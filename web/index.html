@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>拾贝 · ShellTrade</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<aside><a class="brand" href="/">◈ <span>拾贝<small>SHELLTRADE</small></span></a><nav><a href="#workspace" class="active">◎ 选品工作台</a><a href="#planning">◇ 预算计划</a><a href="#history">◷ 扫描记录</a><a href="#roadmap">↗ 交易迁移</a></nav><p class="aside-foot">先看清市场，<br>再让交易有序发生。</p></aside>
+<main id="workspace"><header><div><span class="eyebrow">YOUR MARKET, IN FOCUS</span><h1>让每一次选品，有据可循。</h1><p>设定范围，查看覆盖，理解每一件商品的去留。</p></div><span class="badge">初版 · 扫描与计划</span></header>
+<section class="notice">当前支持演示扫描与 SteamDT 榜单读取。榜单通过仅代表预筛通过，尚未进行实时深度、历史风险和交易前复核；真实买卖正在迁移。</section>
+<div class="workspace"><section class="card controls"><div class="section-title"><h2>本轮选品范围</h2><span>01 / SCOPE</span></div>
+<form id="scan-form"><label>数据来源<select name="source"><option value="demo">演示数据 · 本地固定样例</option><option value="steamdt">SteamDT · BUFF → Steam 榜单</option></select></label>
+<div class="pair"><label>最多请求页数<input name="max_pages" type="number" min="1" max="20" value="3" required></label><label>每页条数<input name="page_size" type="number" min="1" max="200" value="10" required></label></div>
+<label>最多分析商品数<input name="max_items" type="number" min="1" max="2000" value="100" required></label>
+<div class="pair"><label>最低现金价 / 元<input name="min_price" type="number" min="0" step="0.01" value="2" required></label><label>最高现金价 / 元<input name="max_price" type="number" min="0" max="1000000" step="0.01" value="5000" required></label></div>
+<div class="pair"><label>最低来源成交量<input name="min_volume" type="number" min="0" value="200" required></label><label>最高估算折算率 / %<input name="max_ratio" type="number" min="0.01" max="200" step="0.01" value="90" required></label></div>
+<label>排除关键词<small>使用逗号分隔</small><input name="exclude_keywords" value="印花" maxlength="500"></label>
+<p class="hint">扫描预算与展示数量分开。到达预算即说明停止原因，不把局部结果当作全市场。</p>
+<button id="start" type="submit">开始扫描 <span>↗</span></button><button id="cancel" class="secondary" type="button" hidden>停止当前扫描</button></form>
+</section>
+<section class="card results"><div class="section-title"><h2>扫描结果</h2><span id="source-label">等待开始</span></div><div id="feedback" role="status" aria-live="polite">选择范围后开始。演示数据可直接体验，无需登录账号。</div>
+<div class="metrics" id="metrics"></div><div class="result-toolbar"><strong id="result-summary">每件商品，都有理由</strong><label><input id="only-passed" type="checkbox"> 只看预筛通过</label></div>
+<div id="candidates" class="candidate-list"><div class="empty">◈<h3>市场很大，先画好范围。</h3><p>扫描后将在这里显示报价、折算率和逐条规则结果。</p></div></div></section></div>
+<section class="card" id="planning"><div class="section-title"><h2>交易预算计划</h2><span>02 / PLAN</span></div>
+<p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>
+<div class="workspace"><form id="plan-form">
+<label>现金预算 / 元<input name="budget" type="number" min="0.01" max="1000000" step="0.01" value="100" required></label>
+<label>钱包目标 / 元（选填）<input name="target_wallet" type="number" min="0.01" max="10000000" step="0.01" placeholder="留空则按预算分配"></label>
+<div class="pair"><label>每种最多件数<input name="max_units" type="number" min="1" max="100" value="2" required></label><label>最多商品种类<input name="max_positions" type="number" min="1" max="100" value="3" required></label></div>
+<label>报价有效期 / 秒<input name="quote_age" type="number" min="1" max="3600" value="300" required></label>
+<p class="hint">按估算折算率从低到高分配。数量上限属于本计划，尚未计入已有持仓或市场库存。预览不会下单。</p>
+<button id="plan-create" type="submit" disabled>生成并保存预算预览</button>
+<div id="plan-feedback" role="status" aria-live="polite"></div>
+</form><div id="plan-result"><p class="hint">计划会保留报价快照、预算分配与跳过原因。</p></div></div>
+<details><summary>已保存的预算计划</summary><div id="plan-history"></div></details></section>
+<section class="card" id="history"><div class="section-title"><h2>最近扫描</h2><span>02 / JOURNAL</span></div><div id="history-list">正在读取记录…</div></section>
+<section class="card" id="roadmap"><div class="section-title"><h2>自动买卖迁移进度</h2><span>03 / BUILDING</span></div><div class="roadmap"><div><b>01 · 选品与范围</b><p>已接入分页扫描、去重、规则解释和记录保存。</p></div><div><b>02 · 分析与计划</b><p>预算预览已接入；待迁移历史稳定性与市场深度。</p></div><div><b>03 · 自动执行</b><p>待迁移付款核验、收货、上架确认和成交同步。</p></div></div></section>
+<footer>拾贝 · ShellTrade <span>为每次决策留下依据。</span></footer></main><script src="/app.js" type="module"></script>
+</body></html>
