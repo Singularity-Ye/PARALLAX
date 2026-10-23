@@ -13,6 +13,9 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  priceHistories: account => request(`/api/accounts/${encodeURIComponent(account)}/price-histories`),
+  priceHistory: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/price-histories/${encodeURIComponent(id)}`),
+  fetchPriceHistory: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/price-histories`,value),
   inventories: account => request(`/api/accounts/${encodeURIComponent(account)}/inventories`),
   inventory: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/inventories/${encodeURIComponent(id)}`),
   fetchInventory: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/inventories`,value),

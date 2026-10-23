@@ -7,8 +7,55 @@ use crate::domain::{
 };
 use std::future::Future;
 
+#[derive(Clone, Copy)]
+pub enum SteamReadScope {
+    Inventory,
+    PriceHistory,
+}
+impl SteamReadScope {
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::Inventory => "steam_inventory",
+            Self::PriceHistory => "steam_price_history",
+        }
+    }
+}
+pub trait SteamReadPolicy: Send + Sync {
+    fn steam_read_retry(
+        &self,
+        scope: SteamReadScope,
+    ) -> impl Future<Output = anyhow::Result<u64>> + Send;
+    fn set_steam_read_retry(
+        &self,
+        scope: SteamReadScope,
+        at: u64,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+}
+pub trait HistoryProvider: Send + Sync {
+    fn history(
+        &self,
+        request: &crate::domain::history::HistoryRequest,
+        secret: &Credentials,
+        at: u64,
+    ) -> impl Future<Output = Result<crate::domain::history::HistorySeries, SteamReadError>> + Send;
+}
+pub trait HistoryRepository: SteamReadPolicy {
+    fn insert_history(
+        &self,
+        snapshot: crate::domain::history::HistorySnapshot,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn history(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::history::HistorySnapshot>>> + Send;
+    fn histories(
+        &self,
+        account: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::history::HistorySnapshot>>> + Send;
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum InventoryReadError {
+pub enum SteamReadError {
     Network,
     InvalidPayload,
     Rejected,
@@ -17,18 +64,18 @@ pub enum InventoryReadError {
     ChangedDuringRead,
     RateLimited(u64),
 }
-impl InventoryReadError {
+impl SteamReadError {
     pub fn message(self) -> &'static str {
         match self {
-            Self::Network => "Steam 库存读取失败或超时；未保存新快照",
-            Self::InvalidPayload => "Steam 库存字段、资产身份或游标无效；未保存新快照",
+            Self::Network => "Steam 只读数据获取失败或超时；未保存新快照",
+            Self::InvalidPayload => "Steam 只读响应字段、身份或格式无效；未保存新快照",
             Self::Rejected => {
-                "Steam 拒绝库存读取，可能涉及隐私或访问限制；未当作空库存或判定登录失效"
+                "Steam 拒绝只读请求，可能涉及隐私或访问限制；未当作空数据或判定登录失效"
             }
             Self::Expired => "Steam 返回未登录，请重新获取并验证登录态",
             Self::CredentialsChanged => "Steam 返回新的认证 Cookie，需通过浏览器重新获取和核验",
             Self::ChangedDuringRead => "分页期间库存总数、资产或游标发生冲突；未保存不一致的新快照",
-            Self::RateLimited(_) => "Steam 库存读取处于冷却中，请等待后重试",
+            Self::RateLimited(_) => "Steam 只读数据获取处于冷却中，请等待后重试",
         }
     }
 }
@@ -39,9 +86,9 @@ pub trait InventoryProvider: Send + Sync {
         context: &str,
         cursor: Option<&str>,
         secret: &Credentials,
-    ) -> impl Future<Output = Result<crate::domain::inventory::InventoryPage, InventoryReadError>> + Send;
+    ) -> impl Future<Output = Result<crate::domain::inventory::InventoryPage, SteamReadError>> + Send;
 }
-pub trait InventoryRepository: Send + Sync {
+pub trait InventoryRepository: SteamReadPolicy {
     fn insert_inventory(
         &self,
         snapshot: crate::domain::inventory::InventorySnapshot,
@@ -54,8 +101,6 @@ pub trait InventoryRepository: Send + Sync {
         &self,
         account_id: String,
     ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::inventory::InventorySnapshot>>> + Send;
-    fn inventory_retry(&self) -> impl Future<Output = anyhow::Result<u64>> + Send;
-    fn set_inventory_retry(&self, at: u64) -> impl Future<Output = anyhow::Result<()>> + Send;
 }
 
 #[derive(Clone, Copy, Debug)]

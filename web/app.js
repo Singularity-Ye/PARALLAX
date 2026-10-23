@@ -2,6 +2,7 @@ import { parallax } from './lib/api.js';
 import { readWalletPolicy, readPositionInputs, renderPositionInputs } from './plan-inputs.js';
 import {readSteamSnapshotIds} from './orderbook.js';
 import {renderBuffCandidates,readBuffQuoteInputs} from './buff-quotes.js';
+import {renderHistoryCandidates} from './price-history.js';
 const el = id => document.getElementById(id);
 const money = value => `¥${(value / 100).toFixed(2)}`;
 const reasonNames = {page_budget:'已达到页数预算，仍可能有未读取商品',item_budget:'已达到分析预算',source_exhausted:'当前来源查询已返回空页（不代表全市场）',source_error:'来源请求失败，保留已取得结果',cancelled:'已按要求停止',process_restart:'上次扫描被进程重启中断'};
@@ -23,6 +24,7 @@ function render(report) {
   renderCandidates();
   renderPositionInputs(report);
   renderBuffCandidates(report);
+  renderHistoryCandidates(report);
 }
 function renderCandidates() {
   if (!current) return;

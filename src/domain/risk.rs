@@ -19,26 +19,38 @@ pub struct DailyBar {
     pub missing_volume_samples: u32,
 }
 pub fn daily_bars(points: &[PricePoint], currency: &Currency) -> Result<Vec<DailyBar>, String> {
-    if points.len() > 20_000 {
+    if points.iter().any(|p| p.price.currency != *currency) {
+        return Err("历史价格币种不一致，需要先显式转换".into());
+    }
+    let samples: Vec<_> = points
+        .iter()
+        .map(|p| (p.at, p.price.minor, p.volume))
+        .collect();
+    daily_bars_scaled(&samples, currency, 1)
+}
+// Retain source precision until daily aggregation; divisor is source units per native minor unit.
+pub(crate) fn daily_bars_scaled(
+    points: &[(u64, u64, Option<u64>)],
+    currency: &Currency,
+    divisor: u64,
+) -> Result<Vec<DailyBar>, String> {
+    if points.len() > 20_000 || divisor == 0 {
         return Err("历史样本最多 20000 条".into());
     }
     // weighted sum, positive volume, zero-count, missing-count
     let mut days: BTreeMap<u64, (u128, u64, u32, u32)> = BTreeMap::new();
-    for point in points {
-        if point.price.currency != *currency {
-            return Err("历史价格币种不一致，需要先显式转换".into());
-        }
-        if point.price.minor == 0 {
+    for &(at, price, volume) in points {
+        if price == 0 {
             return Err("历史价格必须大于零".into());
         }
-        let row = days.entry(point.at / 86_400).or_default();
-        match point.volume {
+        let row = days.entry(at / 86_400).or_default();
+        match volume {
             Some(0) => row.2 += 1,
             None => row.3 += 1,
             Some(v) => {
                 row.0 = row
                     .0
-                    .checked_add((point.price.minor as u128) * (v as u128))
+                    .checked_add((price as u128) * (v as u128))
                     .ok_or("历史加权金额溢出")?;
                 row.1 = row.1.checked_add(v).ok_or("历史成交量溢出")?;
             }
@@ -48,11 +60,12 @@ pub fn daily_bars(points: &[PricePoint], currency: &Currency) -> Result<Vec<Dail
         .map(|(day, (pv, v, zero, missing))| {
             Ok(DailyBar {
                 utc_day: day,
-                vwap: if v == 0 {
+                vwap: if v == 0 || pv / (v as u128) / (divisor as u128) == 0 {
                     None
                 } else {
                     Some(Money {
-                        minor: u64::try_from(pv / (v as u128)).map_err(|_| "日均价溢出")?,
+                        minor: u64::try_from(pv / (v as u128) / (divisor as u128))
+                            .map_err(|_| "日均价溢出")?,
                         currency: currency.clone(),
                     })
                 },

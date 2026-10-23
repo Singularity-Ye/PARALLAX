@@ -12,7 +12,7 @@ use std::{
 use tokio::sync::{Mutex, Notify};
 type Auth = Accounts<Store, TestVault, TestVerifier>;
 struct Source {
-    pages: Mutex<VecDeque<Result<InventoryPage, InventoryReadError>>>,
+    pages: Mutex<VecDeque<Result<InventoryPage, SteamReadError>>>,
     calls: Arc<AtomicUsize>,
 }
 impl InventoryProvider for Source {
@@ -22,7 +22,7 @@ impl InventoryProvider for Source {
         context: &str,
         cursor: Option<&str>,
         secret: &Credentials,
-    ) -> Result<InventoryPage, InventoryReadError> {
+    ) -> Result<InventoryPage, SteamReadError> {
         assert_eq!(steam_id, "76561198000000001");
         assert!(secret.cookies.contains("synthetic-secret"));
         assert!(["2", "16"].contains(&context));
@@ -35,7 +35,7 @@ impl InventoryProvider for Source {
             .expect("unexpected platform call")
     }
 }
-fn source(pages: Vec<Result<InventoryPage, InventoryReadError>>) -> Source {
+fn source(pages: Vec<Result<InventoryPage, SteamReadError>>) -> Source {
     Source {
         pages: Mutex::new(pages.into()),
         calls: Arc::new(AtomicUsize::new(0)),
@@ -60,7 +60,7 @@ fn page(
     ids: &[&str],
     total: u32,
     next: Option<&str>,
-) -> Result<InventoryPage, InventoryReadError> {
+) -> Result<InventoryPage, SteamReadError> {
     Ok(InventoryPage {
         assets: ids.iter().map(|id| asset(id, context)).collect(),
         total,
@@ -169,13 +169,15 @@ async fn page_budget_is_explicit_and_second_context_failure_never_saves_partial_
     assert!(!snapshot.coverage_complete());
     assert_eq!(snapshot.coverage[0].stop_reason, "page_budget");
     assert_eq!(snapshot.coverage[1].observed_assets, 0);
-    repo.set_inventory_retry(0).await.unwrap();
+    repo.set_steam_read_retry(SteamReadScope::Inventory, 0)
+        .await
+        .unwrap();
     let failed = InventoryResearch::new(
         repo.clone(),
         auth,
         source(vec![
             page("2", &["101"], 1, None),
-            Err(InventoryReadError::Network),
+            Err(SteamReadError::Network),
         ]),
     );
     assert!(
@@ -206,7 +208,7 @@ async fn pagination_drift_totals_duplicates_and_missing_assets_never_become_full
         let app = InventoryResearch::new(repo.clone(), auth, source(pages));
         assert!(matches!(
             app.fetch(&id, InventoryRequest::default()).await,
-            Err(AppError::Inventory(InventoryReadError::ChangedDuringRead))
+            Err(AppError::SteamRead(SteamReadError::ChangedDuringRead))
         ));
         assert!(repo.inventories(id).await.unwrap().is_empty());
     }
@@ -283,11 +285,11 @@ async fn request_identity_freshness_and_same_origin_guard_run_before_platform_re
 #[tokio::test]
 async fn read_failures_persist_cooldown_or_identity_changes_without_erasing_old_evidence() {
     for error in [
-        InventoryReadError::RateLimited(1),
-        InventoryReadError::Rejected,
-        InventoryReadError::Expired,
-        InventoryReadError::Network,
-        InventoryReadError::CredentialsChanged,
+        SteamReadError::RateLimited(1),
+        SteamReadError::Rejected,
+        SteamReadError::Expired,
+        SteamReadError::Network,
+        SteamReadError::CredentialsChanged,
     ] {
         let (repo, auth, id) = fixture().await;
         let prior = repo
@@ -306,8 +308,13 @@ async fn read_failures_persist_cooldown_or_identity_changes_without_erasing_old_
             .unwrap();
         assert_eq!(after.view.checked_at, prior.view.checked_at);
         match error {
-            InventoryReadError::RateLimited(_) => {
-                assert!(repo.inventory_retry().await.unwrap() >= now() + 299);
+            SteamReadError::RateLimited(_) => {
+                assert!(
+                    repo.steam_read_retry(SteamReadScope::Inventory)
+                        .await
+                        .unwrap()
+                        >= now() + 299
+                );
                 assert_eq!(after.view.status, SessionStatus::Valid);
                 // Import and another account cannot clear the app-wide inventory cooldown.
                 auth.import(
@@ -320,7 +327,12 @@ async fn read_failures_persist_cooldown_or_identity_changes_without_erasing_old_
                 )
                 .await
                 .unwrap();
-                assert!(repo.inventory_retry().await.unwrap() >= now() + 299);
+                assert!(
+                    repo.steam_read_retry(SteamReadScope::Inventory)
+                        .await
+                        .unwrap()
+                        >= now() + 299
+                );
                 let other = auth
                     .create("other".into(), "76561198000000002".into())
                     .await
@@ -331,11 +343,11 @@ async fn read_failures_persist_cooldown_or_identity_changes_without_erasing_old_
                 repo.save_session(other.id.clone(), s).await.unwrap();
                 assert!(matches!(
                     app.fetch(&other.id, InventoryRequest::default()).await,
-                    Err(AppError::Inventory(InventoryReadError::RateLimited(_)))
+                    Err(AppError::SteamRead(SteamReadError::RateLimited(_)))
                 ));
             }
-            InventoryReadError::Expired => assert_eq!(after.view.status, SessionStatus::Invalid),
-            InventoryReadError::CredentialsChanged => {
+            SteamReadError::Expired => assert_eq!(after.view.status, SessionStatus::Invalid),
+            SteamReadError::CredentialsChanged => {
                 assert_eq!(after.view.status, SessionStatus::Unverified);
                 assert_ne!(after.view.generation, prior.view.generation);
             }
@@ -360,11 +372,18 @@ async fn inventory_snapshot_and_global_cooldown_survive_database_reopen() {
     {
         let file = Store::open(&path).unwrap();
         file.insert_inventory(snapshot.clone()).await.unwrap();
-        file.set_inventory_retry(retry).await.unwrap();
+        file.set_steam_read_retry(SteamReadScope::Inventory, retry)
+            .await
+            .unwrap();
     }
     {
         let file = Store::open(&path).unwrap();
-        assert_eq!(file.inventory_retry().await.unwrap(), retry);
+        assert_eq!(
+            file.steam_read_retry(SteamReadScope::Inventory)
+                .await
+                .unwrap(),
+            retry
+        );
         let restored = file.inventory(snapshot.id.clone()).await.unwrap().unwrap();
         assert!(restored.coverage_complete());
         assert!(restored.assets.is_empty());
@@ -383,7 +402,7 @@ impl InventoryProvider for PausedSource {
         context: &str,
         _: Option<&str>,
         _: &Credentials,
-    ) -> Result<InventoryPage, InventoryReadError> {
+    ) -> Result<InventoryPage, SteamReadError> {
         if context == "2" {
             self.entered.notify_one();
             self.release.notified().await;

@@ -14,7 +14,7 @@
 
 - `domain/inventory`：资产身份、整数数量、页校验、范围与快照；不使用网络、凭据或 SQLite。
 - `application/inventory`：双区依次分页、预算、重复/冲突拒绝、保存与账户历史。新端口 InventoryProvider / InventoryRepository；SQLite 只新增 `inventory_snapshots` 表。
-- `application/accounts_inventory`：作为 Accounts 子模块扩展，整轮复用同一认证门。读取与导入、验证、停用、浏览器恢复互斥；不会另建认证状态机。
+- `application/accounts_inventory`：通过共用 `accounts_steam` 获取现有 Accounts 门与凭据访问，整轮与导入、验证、停用、浏览器恢复互斥；价格历史也复用同一访问规则，没有另建会话状态机。
 - `adapters/steam_inventory`：固定主机 GET、有限响应和平台字段转换；`transport/inventory` 转换 HTTP。前端复用统一客户端和声明文件。
 
 读取前要求 Steam 会话 valid，subject 等于账户 Steam ID，checked_at 在过去 300 秒内，且 session.retry_at 与全应用库存冷却均已过。凭据再次检查 Steam 身份，仅在门内传给适配器，不写入快照。新导入的 unverified 不能读库存。独立浏览器或手动导入使用同一现有流程。
@@ -51,7 +51,7 @@
 
 本轮没有可靠的每资产绝对解锁时间，页面明确未知，未生成 estimated_unlock 或 actual_unlock；不能靠本地计时转为可出售。后续样本适配、资产迁移和实际解锁观测再进入账本；不同资产不能仅按同名绑定购买记录。
 
-不把这一份库存自动覆盖手工 PositionSnapshot：后者还承载挂牌、未决、预留现金与日量；需要补齐来源、去重/对账规则后才能合并。PlanRequest/PlanPreview 本轮不变。真实历史分析仍待迁移，不把库存快照历史称为价格历史。
+不把这一份库存自动覆盖手工 PositionSnapshot：后者还承载挂牌、未决、预留现金与日量；需要补齐来源、去重/对账规则后才能合并。PlanRequest/PlanPreview 不变。价格历史已有独立的[研究切片](price-history.md)，真实协议仍未验收；不把库存快照历史称为价格历史。
 
 ## 验证与下一步
 

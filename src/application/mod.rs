@@ -4,6 +4,7 @@ mod account_tests;
 pub mod accounts;
 pub mod browser_login;
 pub mod buff_quotes;
+pub mod history;
 pub mod inventory;
 pub mod orderbook;
 pub mod ports;
@@ -31,7 +32,7 @@ pub enum AppError {
     Storage(anyhow::Error),
     Market(ports::MarketReadError),
     Buff(ports::BuffReadError),
-    Inventory(ports::InventoryReadError),
+    SteamRead(ports::SteamReadError),
 }
 impl From<anyhow::Error> for AppError {
     fn from(value: anyhow::Error) -> Self {

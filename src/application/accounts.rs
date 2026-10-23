@@ -8,6 +8,8 @@ use tokio::sync::Mutex;
 
 #[path = "accounts_inventory.rs"]
 mod inventory;
+#[path = "accounts_steam.rs"]
+mod steam;
 
 pub struct Accounts<R, C, V> {
     repo: R,

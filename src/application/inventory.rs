@@ -53,14 +53,14 @@ impl<
 }
 
 // Called under the shared account gate for the entire two-context read. Secrets never enter snapshots.
-pub(super) async fn collect<P: InventoryProvider, R: InventoryRepository>(
+pub(super) async fn collect<P: InventoryProvider, R: SteamReadPolicy>(
     provider: &P,
     repo: &R,
     steam_id: &str,
     secret: &Credentials,
     request: &InventoryRequest,
 ) -> Result<(Vec<InventoryAsset>, Vec<InventoryCoverage>), AppError> {
-    use InventoryReadError as E;
+    use SteamReadError as E;
     let mut assets = Vec::new();
     let mut coverage = Vec::new();
     let mut seen_assets = HashSet::new();
@@ -75,16 +75,17 @@ pub(super) async fn collect<P: InventoryProvider, R: InventoryRepository>(
             if let Some(at) = last_request_at {
                 tokio::time::sleep_until(at + std::time::Duration::from_secs(1)).await;
             }
-            repo.set_inventory_retry(now() + 2).await?;
+            repo.set_steam_read_retry(SteamReadScope::Inventory, now() + 2)
+                .await?;
             last_request_at = Some(tokio::time::Instant::now());
             let page = provider
                 .page(steam_id, context, cursor.as_deref(), secret)
                 .await
-                .map_err(AppError::Inventory)?;
+                .map_err(AppError::SteamRead)?;
             page.validate(context)
-                .map_err(|_| AppError::Inventory(E::InvalidPayload))?;
+                .map_err(|_| AppError::SteamRead(E::InvalidPayload))?;
             if expected_total.is_some_and(|n| n != page.total) {
-                return Err(AppError::Inventory(E::ChangedDuringRead));
+                return Err(AppError::SteamRead(E::ChangedDuringRead));
             }
             expected_total = Some(page.total);
             // A duplicate can be pagination drift or a context move. Never silently double count.
@@ -93,21 +94,21 @@ pub(super) async fn collect<P: InventoryProvider, R: InventoryRepository>(
                 .iter()
                 .any(|a| !seen_assets.insert(a.asset_id.clone()))
             {
-                return Err(AppError::Inventory(E::ChangedDuringRead));
+                return Err(AppError::SteamRead(E::ChangedDuringRead));
             }
             observed += page.assets.len() as u32;
             if observed > page.total
                 || (page.next_asset_id.is_none() && observed != page.total)
                 || (page.next_asset_id.is_some() && observed >= page.total)
             {
-                return Err(AppError::Inventory(E::ChangedDuringRead));
+                return Err(AppError::SteamRead(E::ChangedDuringRead));
             }
             assets.extend(page.assets);
             let exhausted = page.next_asset_id.is_none();
             if let Some(next) = &page.next_asset_id
                 && (!seen_cursors.insert(next.clone()) || cursor.as_ref() == Some(next))
             {
-                return Err(AppError::Inventory(E::ChangedDuringRead));
+                return Err(AppError::SteamRead(E::ChangedDuringRead));
             }
             if exhausted || page_number == request.max_pages_per_context {
                 coverage.push(InventoryCoverage {

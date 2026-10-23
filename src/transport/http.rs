@@ -39,8 +39,8 @@ pub(super) fn app_error(err: AppError) -> ApiError {
                 _ => error(StatusCode::BAD_GATEWAY, err.message()),
             }
         }
-        AppError::Inventory(err) => {
-            use crate::application::ports::InventoryReadError as I;
+        AppError::SteamRead(err) => {
+            use crate::application::ports::SteamReadError as I;
             match err {
                 I::RateLimited(retry_at) => (
                     StatusCode::TOO_MANY_REQUESTS,
@@ -84,11 +84,12 @@ pub fn router(state: AppState) -> Router {
         .route("/orderbook.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/orderbook.js")) }))
         .route("/buff-quotes.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/buff-quotes.js")) }))
         .route("/inventory.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/inventory.js")) }))
+        .route("/price-history.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/price-history.js")) }))
         .route("/plan-inputs.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/plan-inputs.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
-            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":false,"steam_order_books":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
+            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":true,"steam_order_books":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))

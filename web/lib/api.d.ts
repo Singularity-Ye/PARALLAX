@@ -91,6 +91,9 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;
+  priceHistory(account:string,id:string):Promise<HistorySnapshot>;
+  fetchPriceHistory(account:string,value:HistoryRequest):Promise<HistorySnapshot>;
   inventories(account:string):Promise<{items:InventorySnapshot[]}>;
   inventory(account:string,id:string):Promise<InventorySnapshot>;
   fetchInventory(account:string,value:InventoryRequest):Promise<InventorySnapshot>;
@@ -119,3 +122,14 @@ export const parallax: {
   plan(id:string):Promise<PlanPreview>;
   createPlan(request:PlanRequest):Promise<PlanPreview>;
 };
+export interface HistoryRequest {scan_id:string;item_key:string;window_days:number;slippage_bps:number;}
+export interface HistorySnapshot {
+  id:string;account_id:string;credential_generation:string;request:HistoryRequest;started_at:number;observed_at:number;
+  source:'steam_authenticated_pricehistory';identity_binding:'scan_candidate_and_request_parameters';platform_verified:false;
+  series:{currency:string|null;currency_basis:'explicit_code_or_unique_marker'|'ambiguous_or_unsupported';
+    points:{at:number;price_major_1e4:number;volume:number|null}[];response_rows:number;excluded_before_window:number;excluded_open_day:number;from_utc_day:number;until_utc_day_exclusive:number};
+  analysis:{status:'unknown_currency'|'no_usable_daily_prices'|'insufficient_pairs'|'historical_pairs_available';
+    daily_bars:{utc_day:number;vwap:NativeMoney|null;volume:number;zero_volume_samples:number;missing_volume_samples:number}[];
+    missing_calendar_days:number;below_minor_unit_days:number;reference_utc_day:number|null;
+    risk:{algorithm:'calendar_p10_v1';sample_count:number;return_p10_bps:number|null;conservative_gross:NativeMoney|null;slippage_bps:number}|null;warnings:string[]};
+}
