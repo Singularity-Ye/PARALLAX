@@ -15,6 +15,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 rusqlite = { version = "0.40", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
 anyhow = "1"
+headless_chrome = { version = "=1.0.22", default-features = false, features = ["offline"] }
 
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3.6.3", default-features = false, features = ["windows-native"] }

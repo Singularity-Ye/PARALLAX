@@ -54,6 +54,11 @@ export interface SessionView {
   status:'unverified'|'valid'|'invalid'|'unknown'|'rate_limited'|'verification_required'|'missing';
   checked_at:number|null; retry_at:number; message:string; subject:string|null;
 }
+export interface BrowserLogin {
+  id:string; account_id:string; platform:Platform;
+  status:'pending'|'completed'|'cancelled'|'expired'; expires_at:number;
+  message:string; session:SessionView|null;
+}
 export const parallax: {
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
   accounts():Promise<{items:Account[]}>;
@@ -62,6 +67,10 @@ export const parallax: {
   importSession(id:string,platform:Platform,value:{cookies:string;user_agent?:string}):Promise<SessionView>;
   verifySession(id:string,platform:Platform):Promise<SessionView>;
   revokeSession(id:string,platform:Platform):Promise<SessionView>;
+  browserLogin():Promise<{item:BrowserLogin|null}>;
+  startBrowserLogin(id:string,platform:Platform):Promise<BrowserLogin>;
+  finishBrowserLogin(id:string):Promise<BrowserLogin>;
+  cancelBrowserLogin(id:string):Promise<BrowserLogin>;
   scans():Promise<{items:Omit<ScanReport,'candidates'>[]}>;
   scan(id:string):Promise<ScanReport>;
   startScan(request:Partial<ScanRequest>):Promise<ScanReport>;

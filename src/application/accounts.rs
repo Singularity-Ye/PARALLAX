@@ -46,11 +46,119 @@ impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C
         self.repo.add_account(account.clone()).await?;
         Ok(account)
     }
-    async fn account(&self, id: &str) -> Result<Account, AppError> {
+    pub(crate) async fn account(&self, id: &str) -> Result<Account, AppError> {
         self.repo
             .account(id.into())
             .await?
             .ok_or(AppError::Missing("账户不存在"))
+    }
+    pub(crate) async fn generation(
+        &self,
+        id: &str,
+        platform: Platform,
+    ) -> Result<Option<String>, AppError> {
+        self.account(id).await?;
+        Ok(self
+            .repo
+            .session(id.into(), platform)
+            .await?
+            .map(|s| s.view.generation))
+    }
+
+    // Browser recovery is a distinct operation: verify the captured identity before
+    // replacing any stored secret. Generation binding prevents an old login window
+    // from undoing a later manual import or revocation.
+    pub(crate) async fn recover_browser(
+        &self,
+        id: &str,
+        platform: Platform,
+        expected_generation: &Option<String>,
+        secret: Credentials,
+    ) -> Result<SessionView, AppError> {
+        let _guard = self.gate.lock().await;
+        let account = self.account(id).await?;
+        let old = self.repo.session(id.into(), platform).await?;
+        if &old.as_ref().map(|s| s.view.generation.clone()) != expected_generation {
+            return Err(AppError::Conflict(
+                "账户登录态已变化，请取消旧窗口并重新发起登录",
+            ));
+        }
+        secret
+            .validate(platform, &account.steam_id)
+            .map_err(AppError::Invalid)?;
+        let (global_retry, blocked) = self.repo.buff_policy().await?;
+        if old.as_ref().is_some_and(|s| s.view.retry_at > now())
+            || (platform == Platform::Buff && global_retry > now())
+        {
+            return Err(AppError::Conflict("验证请求处于冷却中，请稍后再试"));
+        }
+        // Pacing survives failure and restart. A failed recovery leaves the old
+        // credentials intact; only verified success may clear a BUFF challenge.
+        if let Some(mut prior) = old.clone() {
+            prior.view.retry_at = now() + 30;
+            self.repo.save_session(id.into(), prior).await?;
+        }
+        if platform == Platform::Buff {
+            self.repo.set_buff_policy(now() + 30, blocked).await?;
+        }
+        let result = self
+            .verifier
+            .verify(
+                &account,
+                platform,
+                Credentials {
+                    cookies: secret.cookies.clone(),
+                    user_agent: secret.user_agent.clone(),
+                },
+            )
+            .await;
+        if platform == Platform::Buff {
+            // Even a valid probe must not release the challenge before the new
+            // credential reference has been committed successfully.
+            self.repo
+                .set_buff_policy(
+                    now() + result.retry_secs,
+                    blocked || result.status == SessionStatus::VerificationRequired,
+                )
+                .await?;
+        }
+        if result.status != SessionStatus::Valid || result.subject.is_none() {
+            if let Some(mut prior) = old {
+                prior.view.retry_at = now() + result.retry_secs;
+                self.repo.save_session(id.into(), prior).await?;
+            }
+            return Err(AppError::Invalid(result.message.into()));
+        }
+        let key = uuid::Uuid::new_v4().to_string();
+        self.vault.put(key.clone(), secret).await?;
+        let stored = StoredSession {
+            credential_key: key.clone(),
+            view: SessionView {
+                platform,
+                generation: key.clone(),
+                status: SessionStatus::Valid,
+                checked_at: Some(now()),
+                retry_at: now() + result.retry_secs,
+                message: "浏览器登录态已通过在线身份验证并保存".into(),
+                subject: result.subject,
+            },
+        };
+        if let Err(err) = self.repo.save_session(id.into(), stored.clone()).await {
+            self.vault.remove(key).await?;
+            return Err(err.into());
+        }
+        if platform == Platform::Buff {
+            self.repo
+                .set_buff_policy(stored.view.retry_at, false)
+                .await?;
+        }
+        let mut view = stored.view;
+        if let Some(old) = old
+            && self.vault.remove(old.credential_key).await.is_err()
+        {
+            view.message = "新登录态已验证并保存；旧凭据清理失败，需检查 Windows 凭据管理器".into();
+        }
+        Ok(view)
     }
     pub async fn sessions(&self, id: &str) -> Result<Vec<SessionView>, AppError> {
         self.account(id).await?;
@@ -114,7 +222,7 @@ impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C
         }
         if session.view.status == SessionStatus::VerificationRequired {
             return Err(AppError::Conflict(
-                "平台要求浏览器验证；当前切片尚不支持解除验证阻断",
+                "平台要求浏览器验证，请使用独立登录窗口完成验证",
             ));
         }
         let (global_retry, blocked) = self.repo.buff_policy().await?;
@@ -170,6 +278,7 @@ impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C
             .ok_or(AppError::Missing("没有已保存的登录态"))?;
         // First remove valid status; a vault failure must never leave this session executable.
         session.view.status = SessionStatus::Missing;
+        session.view.generation = uuid::Uuid::new_v4().to_string();
         session.view.message = "本地登录态已停用；不代表平台远程注销".into();
         self.repo.save_session(id.into(), session.clone()).await?;
         self.vault.remove(session.credential_key).await?;

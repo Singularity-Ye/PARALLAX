@@ -3,6 +3,18 @@ const el = id => document.getElementById(id);
 const select = el('account-select');
 const platform = el('session-platform');
 const form = el('session-form');
+let login = null;
+function renderLogin() {
+  const pending = login?.status === 'pending';
+  el('browser-start').disabled = pending;
+  el('browser-finish').disabled = !pending;
+  el('browser-cancel').disabled = !pending;
+  if (login) el('browser-feedback').textContent = `${login.platform.toUpperCase()} · ${login.message} · 绑定账户 ${login.account_id} · 截止 ${new Date(login.expires_at*1000).toLocaleTimeString()}`;
+}
+async function loadLogin() {
+  const {item} = await parallax.browserLogin();
+  login = item; renderLogin();
+}
 const states = {unverified:'尚未验证',valid:'验证有效',invalid:'失效或身份不符',unknown:'无法确认',rate_limited:'限流冷却',verification_required:'需浏览器验证',missing:'本地凭据已停用或缺失'};
 async function sessions() {
   el('session-list').replaceChildren();
@@ -27,7 +39,7 @@ async function action(fn) {
   el('account-feedback').textContent='处理中…';
   try { el('account-feedback').textContent = await fn() || '已完成'; }
   catch(e) { el('account-feedback').textContent=e.message; }
-  finally { controls.forEach(c=>c.disabled=false); }
+  finally { controls.forEach(c=>c.disabled=false); renderLogin(); }
 }
 el('account-form').onsubmit = e => {e.preventDefault();action(async()=>{
   const values = Object.fromEntries(new FormData(e.target));
@@ -49,4 +61,19 @@ el('session-revoke').onclick = ()=>action(async()=>{
   const result = await parallax.revokeSession(select.value,platform.value);await sessions();return result.message;
 });
 select.onchange=()=>action(sessions);
+el('browser-start').onclick=()=>action(async()=>{
+  if (!select.value) throw new Error('请先创建账户');
+  login = await parallax.startBrowserLogin(select.value,platform.value);
+  renderLogin();return login.message;
+});
+el('browser-finish').onclick=()=>action(async()=>{
+  if (!login) throw new Error('请先打开登录窗口');
+  const result = await parallax.finishBrowserLogin(login.id);
+  login = result;renderLogin();await sessions();return result.message;
+});
+el('browser-cancel').onclick=()=>action(async()=>{
+  if (!login) return;
+  login = await parallax.cancelBrowserLogin(login.id);renderLogin();return login.message;
+});
 loadAccounts().catch(e=>el('account-feedback').textContent=e.message);
+loadLogin().catch(e=>el('browser-feedback').textContent=e.message);

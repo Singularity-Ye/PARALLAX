@@ -48,6 +48,22 @@ pub trait SessionVerifier: Send + Sync {
     ) -> impl Future<Output = Verification> + Send;
 }
 
+/// Owns only newly launched, isolated browser windows; never attaches to a user's
+/// existing browser/profile. All returned errors must be safe to show publicly.
+pub trait BrowserAuth: Send + Sync {
+    type Window: Send + Sync;
+    fn launch(
+        &self,
+        platform: Platform,
+    ) -> impl Future<Output = Result<Self::Window, &'static str>> + Send;
+    fn capture(
+        &self,
+        window: &Self::Window,
+        platform: Platform,
+    ) -> impl Future<Output = Result<Credentials, &'static str>> + Send;
+    fn close(&self, window: Self::Window) -> impl Future<Output = Result<(), &'static str>> + Send;
+}
+
 pub trait MarketSource: Send + Sync {
     fn page(
         &self,

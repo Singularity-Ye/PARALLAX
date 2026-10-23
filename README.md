@@ -6,7 +6,7 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 
 金额与预览已升级：可配置整数费用模型、账户手动仓位快照及持仓/预留/可买量约束接入扫描与计划。自然日 VWAP/P10 风险纯函数已实现，尚未接真实历史来源。合同与边界见 [估值与仓位 v2](docs/valuation.md)。
 
-新增账户与手动登录态切片：创建账户、导入 Steam/BUFF Cookie、只读在线身份验证、脱敏状态查询与本地停用。浏览器获取、Guard/账号密码自动登录尚未接入。真实账号有效性尚未实测，不把夹具测试当作平台验证。
+账户与会话支持创建账户、手动导入、只读身份验证、脱敏查询和本地停用；已新增 Steam/BUFF 独立浏览器登录与人工恢复，复用相同凭据后端。用户在官方页面完成密码/Guard/挑战，返回本页完成核验后才保存；密码/Guard 自动登录和后台续期待做。真实平台登录尚未验收，不把夹具或空白窗口测试当作平台验证。合同与选型见 [浏览器登录](docs/browser-login.md)。
 
 ## 快速运行
 
@@ -22,6 +22,8 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 
 也可以直接 `cargo run --locked`。`PARALLAX_PORT` 默认 38480，`PARALLAX_DB` 默认 `data/parallax.db`。服务仅监听环回地址。每个实例使用独立数据库；启动会把旧进程遗留的 running 扫描标记为 interrupted。
 
+浏览器登录复用本机 Chrome/Edge，不额外下载浏览器。可用 `PARALLAX_BROWSER` 指定可执行文件。每次使用独立临时 profile，不连接个人浏览器；一次一个窗口，十分钟过期，失败保留窗口以便重试。刷新页面可找回本进程的待处理流程；应用重启需重新发起。
+
 页面先用演示数据扫描：13 条来源记录、12 件唯一商品、7 件通过、5 件未通过。然后填写现金预算与选填的钱包目标，生成并保存预算预览。演示数据与真实来源始终明确标记。
 
 ## 模块地图
@@ -31,6 +33,7 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 ```text
 src/
   domain/             业务事实和纯计算，不依赖网络、数据库或 Web
+    accounts.rs       账户身份、凭据校验和脱敏会话模型
     selection.rs      选品请求、统一商品、候选理由、覆盖报告
     analysis.rs       费用估算、整数比例与预筛规则
     money.rs          币种金额、费率/最低费用与步长逆推
@@ -38,14 +41,21 @@ src/
     risk.rs           日量聚合与七自然日风险纯计算，未接真实历史源
     planning.rs       预算、数量、目标和报价时效，输出不可执行的计划预览
   application/        可由网页或未来调度器复用的用例
+    accounts.rs       导入、验证、停用与核验后的凭据替换
+    browser_login.rs  独立登录窗口、账户/代次绑定、取消与过期
     mod.rs            扫描任务、取消、计划创建和查询
     scanner.rs        分页、去重、覆盖统计和停止原因
-    ports.rs          MarketSource / Repository 接口
+    ports.rs          行情、仓储、凭据、验证与浏览器端口
   adapters/           外部系统实现接口
+    browser_auth.rs   本机 Chrome/Edge 的独立临时登录窗口
+    credentials.rs    Windows 原生凭据后端
+    session.rs        Steam/BUFF 只读身份核验
     market.rs         演示和 SteamDT 来源，复用 reqwest 连接池
     sqlite.rs         扫描记录和不可覆盖的预算预览快照
   transport/
     http.rs           HTTP/JSON、状态码、静态资源和同源限制
+    accounts.rs       账户与手动会话路由
+    browser_login.rs  浏览器登录/人工恢复路由
   main.rs             组装依赖、配置、启动
 web/
   lib/api.js          与 UI 无关的统一客户端
@@ -83,7 +93,7 @@ web/
 
 ## API v1 与前端接手
 
-账户与登录态接口、凭据存储与验证边界见 [账户会话合同](docs/accounts.md)。前端仍统一复用 `web/lib/api.js` 与 `api.d.ts`；账户 UI 位于 `web/accounts.js`，与扫描和计划用例独立。
+账户与登录态接口、凭据存储与验证边界见 [账户会话合同](docs/accounts.md) 和 [浏览器登录合同](docs/browser-login.md)。前端仍统一复用 `web/lib/api.js` 与 `api.d.ts`；账户 UI 位于 `web/accounts.js`，与扫描和计划用例独立。当前只补必要操作入口；业务打磨后再交反重力统一美化。
 
 | 方法 | 路径 | 行为 |
 | --- | --- | --- |
@@ -111,9 +121,9 @@ web/
 
 完整范围见 [原项目能力与迁移地图](docs/migration-map.md)，逐文件证据见 [源码盘点](docs/source-inventory.md)。已登记两版 337 个文件并静态解析 225 个 Python 文件；这是盘点覆盖，尚未达到行为迁移覆盖。
 
-当前优先完成待迁模块的业务合同与关键路径审查，再继续功能迁移。已提取 24 组业务设计并记录 [核心设计审查与原实现局限](docs/audit/design-review.md)；8 项离线观察可用 `python tools/legacy_contract_probes.py` 复现，不执行旧应用初始化或访问交易平台。原完整测试套件与真实协议尚未验收。
+当前按依赖推进真实只读数据、策略与交易主链；每个切片先核对对应继承合同，再实现和验收。已提取 24 组业务设计并记录 [核心设计审查与原实现局限](docs/audit/design-review.md)；8 项离线观察可用 `python tools/legacy_contract_probes.py` 复现，不执行旧应用初始化或访问交易平台。原完整测试套件与真实协议尚未验收。
 
-1. 先补多账户与 Steam/BUFF 登录态：手动导入、有效性验证、浏览器获取、Guard/自动登录与失效恢复。
+1. 验收已实现的独立浏览器登录/人工恢复；后续补地区币种、Guard/自动登录与后台续期。
 2. 迁移精确费用、盘口、历史稳定性和持仓限额，再接到现有扫描与预算模型。
 3. 迁移持久化订单、预检、付款核验、收货、冷却、挂牌和成交对账，保留两版互补的安全保护与结果账本。
 4. 按迁移地图补齐策略编辑、后台任务/通知、游戏折扣、礼物和其他原有界面；前端继续复用统一 API。

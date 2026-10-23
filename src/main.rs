@@ -21,13 +21,19 @@ async fn main() -> anyhow::Result<()> {
         parallax::adapters::session::OnlineVerifier::new()?,
     );
     let state = Application::new(Provider::new()?, store);
+    let browser_logins = parallax::application::browser_login::BrowserLogins::new(
+        auth.clone(),
+        parallax::adapters::browser_auth::LocalBrowser,
+    );
     println!(
         "Parallax http://127.0.0.1:{port} | SQLite: {} | live execution: unavailable",
         data_path.display()
     );
     axum::serve(
         listener,
-        router(state).merge(parallax::transport::accounts::router(auth)),
+        router(state)
+            .merge(parallax::transport::accounts::router(auth))
+            .merge(parallax::transport::browser_login::router(browser_logins)),
     )
     .with_graceful_shutdown(async {
         let _ = tokio::signal::ctrl_c().await;

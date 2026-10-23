@@ -2,6 +2,7 @@
 #[cfg(test)]
 mod account_tests;
 pub mod accounts;
+pub mod browser_login;
 pub mod ports;
 pub mod scanner;
 
