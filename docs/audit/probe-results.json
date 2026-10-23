@@ -1,0 +1,89 @@
+{
+  "scope": "Offline synthetic probes; date/currency dependencies stubbed; no legacy startup or real platform verification",
+  "observations": [
+    {
+      "id": "L03",
+      "observation": "混合零成交量记录使日均价 210 高于所有输入价的最大值 200",
+      "value": 210.0
+    },
+    {
+      "id": "L04",
+      "observation": "P10=0 被 or -1 当成缺失，未进入满足其他 A 条件的等级",
+      "value": "B"
+    },
+    {
+      "id": "L05",
+      "observation": "空 BUFF 卖单仍展示 available_qty=1",
+      "value": 1
+    },
+    {
+      "id": "L06",
+      "observation": "稀疏日曲线的七条间隔实为 14 个自然日，仍进入 seven_day_risk",
+      "calendar_days": 14,
+      "return_p10": -0.2
+    },
+    {
+      "id": "L07",
+      "observation": "min_daily_trades 门槛使用价格记录条数而非成交量",
+      "record_count": 58,
+      "volume": 5800,
+      "stable": false
+    },
+    {
+      "id": "L01",
+      "observation": "reference 用户确认 True 后记账；提供的 client 无任何查询方法仍能完成",
+      "recorded": 1
+    },
+    {
+      "id": "L01-audit",
+      "observation": "audit 单笔路径查询 is_order_paid，False 不推进",
+      "allowed": false
+    },
+    {
+      "id": "L02",
+      "observation": "audit 邮件分支在局部 import threading 前使用 threading，抛出 UnboundLocalError"
+    }
+  ],
+  "sources": {
+    "AetherSwap_audit/app/candidate_report.py": {
+      "sha256": "a8511e44fc8145f4e61dc286b98cab19145eb6177720acfad17942761162698e",
+      "symbols": {
+        "_parse_history_date": 11,
+        "build_daily_curve": 18,
+        "_percentile": 58,
+        "seven_day_risk": 66,
+        "build_seven_day_stress": 88,
+        "_candidate_decision_notes": 139,
+        "candidate_snapshot": 180
+      }
+    },
+    "AetherSwap_reference/analysis/stability.py": {
+      "sha256": "c3928025a8a62d85342efb4266bed0e63f442719acbda18b5229404d4465dcbc",
+      "symbols": {
+        "_percentile": 21,
+        "_iqr_bounds": 32,
+        "clean_prices_iqr": 44,
+        "_vwap_iqr": 55,
+        "_safe_volume": 73,
+        "_linear_regression_slope": 80,
+        "_linear_regression_r_squared": 93,
+        "_ema": 110,
+        "_analyze_market_status": 118,
+        "_daily_avg_prices_last_n": 129,
+        "analyze_by_time": 139
+      }
+    },
+    "AetherSwap_reference/app/pipeline_steps.py": {
+      "sha256": "fe59ae190f54e9f552668ef24f03b95c1a21c264742506f6d7183be6459447fb",
+      "symbols": {
+        "_do_wait_payment_and_append": 1344
+      }
+    },
+    "AetherSwap_audit/app/pipeline_steps.py": {
+      "sha256": "89631959e60827f706efc2aaaec4ee47b5ee5a09c904c9c465eaedee2ae58e83",
+      "symbols": {
+        "_do_payment_notify_and_wait": 842
+      }
+    }
+  }
+}

@@ -28,7 +28,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M10 | 采购硬上限、日量比例、低价惩罚、已有同名持仓扣减；R `purchase_limit.py`、`pipeline_steps.py` | domain/position_sizing；复用订单/持仓快照 | 未迁移；现有 max_units 只是本计划上限，不是账户风控 |
 | M11 | 候选研究、慢卖/快卖/风险估值、七日 P10、压力场景、报价过期、目标游戏价格与余额组合；A `candidate_report.py`、`routes/candidates.py` | domain/valuation、portfolio；application/research；复用 scanner、报价/历史端口 | 部分预算预览已实现；风险组合、人工选品及精确/缓冲目标未迁移 |
 | M12 | 下单前复核、绑定具体选择的单次短时 token；A `routes/candidates.py`；R 购买前二次复核 | application/preflight；持久化不可变报价与选择摘要 | 未迁移；复核余额、库存、费用、价差、风险、账户和凭据代次；不能直接执行历史预览 |
-| M13 | 单笔/批量锁单、付款提示、确认后平台核验、取消、核销、写入未知阻断；R `pipeline_steps.py`、`buff/buyer.py`、`services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 未迁移，`POST /api/trades` 仍 501；未知结果先对账，禁止重发或改单笔 |
+| M13 | 单笔/批量锁单、付款提示、核销、写入未知阻断（R）；单笔确认后的平台付款/取消核验（A）；两版 `pipeline_steps.py`、`buff/buyer.py`、R `services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 未迁移，`POST /api/trades` 仍 501；R 单笔不能视为已完整核验付款；组合 A 核验与 R 防重，未知结果先对账 |
 | M14 | 工作时间窗、目标余额、停止、互斥、维护锁、失败商品 TTL；R `pipeline.py`、`pipeline_context.py`、`state.py` | application/orchestrator、scheduler；复用纯规则与持久化订单 | 未迁移；区分停止新动作、等待已发请求和补偿/对账 |
 | M15 | BUFF 发货贸易单、接受 Steam offer、购买记录到 asset 的唯一匹配；R `receive_flow.py` | application/receipt；adapters/steam_trade、buff_trade | 未迁移；模糊/多重匹配留待人工复核，不按名称随意绑定 |
 | M16 | 库存分页、可交易时间、冷却、解锁元数据；R `steam/inventory.py`、`inventory_cs2.py`；A `trade_ledger.py` | domain/inventory；application/inventory_sync | 未迁移；estimated_unlock 与 actual_unlock 分开，解锁后保留真实时间 |
@@ -42,6 +42,8 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 新增会话用例测试；原有 13 项测试覆盖扫描/计划切片；旧测试名称/源码索引已登记，尚未逐项移植 |
 
 ## 必须纠正的几处认知
+
+后续关键路径审查与 8 项离线观察见 [设计审查证据](audit/design-review.md)。重制提取业务目的和约束，不要求机械保留原文件结构；设计提取不等于全部实现细节验收完成。
 
 1. 原工程不只有筛选、预算、买卖三个模块。身份、支付核验、收货映射、冷却与成交账本是主流程的必要部分。
 2. 两版能力互补。reference 有更严格的凭据/checkout 日志、批量完整性、所有权和响应处理；audit 有候选人工复核、买盘价差、P10 风险和结果账本，不能用旧分支覆盖新安全修复。
