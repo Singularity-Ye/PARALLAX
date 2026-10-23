@@ -8,6 +8,8 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 
 账户与会话支持创建账户、手动导入、只读身份验证、脱敏查询和本地停用；已新增 Steam/BUFF 独立浏览器登录与人工恢复，复用相同凭据后端。用户在官方页面完成密码/Guard/挑战，返回本页完成核验后才保存；密码/Guard 自动登录和后台续期待做。真实平台登录尚未验收，不把夹具或空白窗口测试当作平台验证。合同与选型见 [浏览器登录](docs/browser-login.md)。
 
+已接 Steam 公开买卖盘口快照、原币深度与价差、SQLite 历史，以及可选的 CNY 预算引用。实测请求 CNY 仍可能得到 TWD，按实际币种保留，不混入人民币计划。BUFF 实价与真实库存仍待接入。合同与边界见 [盘口研究](docs/orderbook.md)。
+
 ## 快速运行
 
 主机使用 Rust 1.99.1（`rust-toolchain.toml` 锁定）、MSVC C++ Build Tools 与 Windows SDK。依赖版本记录在 `Cargo.lock`。SQLite 编译进程序。
@@ -34,6 +36,7 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 src/
   domain/             业务事实和纯计算，不依赖网络、数据库或 Web
     accounts.rs       账户身份、凭据校验和脱敏会话模型
+    orderbook.rs      原币盘口、深度摘要和 CNY 估值约束
     selection.rs      选品请求、统一商品、候选理由、覆盖报告
     analysis.rs       费用估算、整数比例与预筛规则
     money.rs          币种金额、费率/最低费用与步长逆推
@@ -43,6 +46,7 @@ src/
   application/        可由网页或未来调度器复用的用例
     accounts.rs       导入、验证、停用与核验后的凭据替换
     browser_login.rs  独立登录窗口、账户/代次绑定、取消与过期
+    orderbook.rs      只读盘口获取、证据保存与历史查询
     mod.rs            扫描任务、取消、计划创建和查询
     scanner.rs        分页、去重、覆盖统计和停止原因
     ports.rs          行情、仓储、凭据、验证与浏览器端口
@@ -50,12 +54,14 @@ src/
     browser_auth.rs   本机 Chrome/Edge 的独立临时登录窗口
     credentials.rs    Windows 原生凭据后端
     session.rs        Steam/BUFF 只读身份核验
+    steam_orderbook.rs 匿名 Steam queryAction 盘口解析
     market.rs         演示和 SteamDT 来源，复用 reqwest 连接池
     sqlite.rs         扫描记录和不可覆盖的预算预览快照
   transport/
     http.rs           HTTP/JSON、状态码、静态资源和同源限制
     accounts.rs       账户与手动会话路由
     browser_login.rs  浏览器登录/人工恢复路由
+    orderbook.rs      盘口快照路由
   main.rs             组装依赖、配置、启动
 web/
   lib/api.js          与 UI 无关的统一客户端
@@ -103,6 +109,8 @@ web/
 | POST | /api/scans/{id}/cancel | JSON `{}`，请求取消 |
 | GET / POST | /api/plans | 最近 30 个完整预览 / 创建并保存（201） |
 | GET | /api/plans/{id} | 不变的历史预览 |
+| GET / POST | /api/steam/order-books | 最近十份盘口快照 / 匿名读取并保存 |
+| GET | /api/steam/order-books/{id} | 盘口历史；不刷新平台 |
 | POST | /api/trades | 501，未创建订单 |
 
 创建计划的请求示例（scan_id 换成完成的扫描 ID）：

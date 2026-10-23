@@ -3,7 +3,7 @@ use crate::{application::ports::AccountRepository, domain::accounts::*};
 use rusqlite::{Connection, OptionalExtension, params};
 
 impl Store {
-    async fn account_db<T: Send + 'static>(
+    pub(super) async fn account_db<T: Send + 'static>(
         &self,
         f: impl FnOnce(&Connection) -> anyhow::Result<T> + Send + 'static,
     ) -> anyhow::Result<T> {

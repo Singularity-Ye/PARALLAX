@@ -20,6 +20,10 @@ async fn main() -> anyhow::Result<()> {
         parallax::adapters::credentials::NativeVault,
         parallax::adapters::session::OnlineVerifier::new()?,
     );
+    let order_books = parallax::application::orderbook::OrderBookResearch::new(
+        parallax::adapters::steam_orderbook::SteamOrderBook::new()?,
+        store.clone(),
+    );
     let state = Application::new(Provider::new()?, store);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -33,6 +37,7 @@ async fn main() -> anyhow::Result<()> {
         listener,
         router(state)
             .merge(parallax::transport::accounts::router(auth))
+            .merge(parallax::transport::orderbook::router(order_books))
             .merge(parallax::transport::browser_login::router(browser_logins)),
     )
     .with_graceful_shutdown(async {

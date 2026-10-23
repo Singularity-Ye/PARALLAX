@@ -2,6 +2,7 @@
 pub mod accounts;
 pub mod analysis;
 pub mod money;
+pub mod orderbook;
 pub mod planning;
 pub mod positions;
 pub mod risk;

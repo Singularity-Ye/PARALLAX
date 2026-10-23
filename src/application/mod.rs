@@ -3,11 +3,12 @@
 mod account_tests;
 pub mod accounts;
 pub mod browser_login;
+pub mod orderbook;
 pub mod ports;
 pub mod scanner;
 
 use crate::domain::{
-    planning::{PlanPreview, PlanRequest, preview},
+    planning::{PlanPreview, PlanRequest, preview_with_order_books},
     selection::{ScanReport, ScanRequest, now},
 };
 use ports::{MarketSource, Repository};
@@ -26,6 +27,7 @@ pub enum AppError {
     Missing(&'static str),
     Conflict(&'static str),
     Storage(anyhow::Error),
+    Market(ports::MarketReadError),
 }
 impl From<anyhow::Error> for AppError {
     fn from(value: anyhow::Error) -> Self {
@@ -105,7 +107,7 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
     }
     pub async fn create_plan(&self, request: PlanRequest) -> Result<PlanPreview, AppError>
     where
-        R: ports::AccountRepository,
+        R: ports::AccountRepository + ports::OrderBookRepository,
     {
         request.validate().map_err(AppError::Invalid)?;
         if let Some(snapshot) = &request.position_snapshot {
@@ -115,7 +117,17 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
                 .ok_or(AppError::Missing("仓位快照的账户不存在"))?;
         }
         let report = self.scan(request.scan_id.clone()).await?;
-        let plan = preview(&report, request, now()).map_err(AppError::Invalid)?;
+        let mut books = Vec::new();
+        for id in &request.steam_snapshot_ids {
+            books.push(
+                self.store
+                    .order_book(id.clone())
+                    .await?
+                    .ok_or(AppError::Missing("Steam 盘口快照不存在"))?,
+            );
+        }
+        let plan =
+            preview_with_order_books(&report, request, now(), &books).map_err(AppError::Invalid)?;
         self.store.insert_plan(plan.clone()).await?;
         Ok(plan)
     }

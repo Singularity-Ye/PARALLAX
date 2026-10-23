@@ -26,6 +26,16 @@ pub(super) fn app_error(err: AppError) -> ApiError {
         AppError::Invalid(message) => error(StatusCode::BAD_REQUEST, &message),
         AppError::Missing(message) => error(StatusCode::NOT_FOUND, message),
         AppError::Conflict(message) => error(StatusCode::CONFLICT, message),
+        AppError::Market(err) => {
+            if let crate::application::ports::MarketReadError::RateLimited(retry_at) = err {
+                (
+                    StatusCode::TOO_MANY_REQUESTS,
+                    Json(json!({"error":err.message(),"retry_at":retry_at})),
+                )
+            } else {
+                error(StatusCode::BAD_GATEWAY, err.message())
+            }
+        }
         AppError::Storage(err) => {
             eprintln!("storage error: {err}");
             error(
@@ -45,11 +55,12 @@ pub fn router(state: AppState) -> Router {
         .route("/", get(|| async { Html(include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
         .route("/accounts.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/accounts.js")) }))
+        .route("/orderbook.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/orderbook.js")) }))
         .route("/plan-inputs.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/plan-inputs.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
-            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":false}})) }))
+            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":false,"steam_order_books":true}})) }))
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))

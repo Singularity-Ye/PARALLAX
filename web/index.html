@@ -29,6 +29,8 @@
 <label>本计划新增钱包目标 / 元（选填）<input name="target_wallet" type="number" min="0.01" max="10000000" step="0.01" placeholder="留空则按预算分配"></label>
 <div class="pair"><label>每种数量上限（含填报持仓及未决买入）<input name="max_units" type="number" min="1" max="100" value="2" required></label><label>最多商品种类<input name="max_positions" type="number" min="1" max="100" value="3" required></label></div>
 <label>报价有效期 / 秒<input name="quote_age" type="number" min="1" max="3600" value="300" required></label>
+<label>引用 Steam 盘口快照 ID（选填，逗号分隔）<input id="steam-snapshot-ids" autocomplete="off" placeholder="仅接受当前真实扫描对应商品的 CNY 快照"></label>
+<p class="hint">只更新 Steam 慢卖估值；BUFF 现金端仍是原榜单报价，其有效期不会因读取 Steam 盘口而刷新。演示扫描禁止混入真实盘口。</p>
 <details><summary>手动填报仓位与可买量</summary><label><input type="checkbox" id="use-positions"> 使用这份手动快照；保留的 0 表示我填报为零，并非平台核验</label>
 <fieldset id="position-fields" disabled><label>所属账户<select id="position-account" required></select></label><label>数据观察时间<input id="position-time" type="datetime-local" required></label><label>已预留现金 / 元<input id="position-reserved" type="number" min="0" step="0.01" value="0" required></label><label>快照有效期 / 秒<input id="position-age" type="number" min="1" max="3600" value="300" required></label>
 <label><input type="checkbox" id="use-liquidity"> 依据填报日成交量限制增购数量</label><fieldset id="liquidity-fields" disabled><div class="pair"><label>日量占比 / %<input id="daily-participation" type="number" min="0" max="100" step="0.01" value="5" required></label><label>低价界线 / 元<input id="low-threshold" type="number" min="0" step="0.01" value="5" required></label></div><div class="pair"><label>低价数量系数 / %<input id="low-penalty" type="number" min="0" max="100" step="0.01" value="50" required></label><label>低价数量上限<input id="low-cap" type="number" min="0" max="100" step="1" value="30" required></label></div></fieldset>
@@ -38,6 +40,10 @@
 <div id="plan-feedback" role="status" aria-live="polite"></div>
 </form><div id="plan-result"><p class="hint">计划会保留报价快照、预算分配与跳过原因。</p></div></div>
 <details><summary>已保存的预算计划</summary><div id="plan-history"></div></details></section>
+<section class="card" id="steam-research"><div class="section-title"><h2>Steam 公开盘口研究</h2><span>READ ONLY / CS2</span></div>
+<p class="hint">匿名读取官方公开盘口，无需登录；准确输入市场英文名及磨损变体。实际币种以平台响应为准，公开深度不是成交承诺。</p>
+<form id="order-book-form"><label>市场名称<input name="market_hash_name" required maxlength="500" value="Prisma 2 Case" autocomplete="off"></label><button id="book-fetch">读取并保存盘口快照</button></form>
+<p id="book-feedback" role="status" aria-live="polite"></p><div id="book-result"></div><details><summary>最近十份盘口快照</summary><div id="book-history"></div></details></section>
 <section class="card" id="history"><div class="section-title"><h2>最近扫描</h2><span>02 / JOURNAL</span></div><div id="history-list">正在读取记录…</div></section>
 <section class="card" id="roadmap"><div class="section-title"><h2>自动买卖迁移进度</h2><span>03 / BUILDING</span></div><div class="roadmap"><div><b>01 · 选品与范围</b><p>已接入分页扫描、去重、规则解释和记录保存。</p></div><div><b>02 · 分析与计划</b><p>预算预览已接入；待迁移历史稳定性与市场深度。</p></div><div><b>03 · 自动执行</b><p>待迁移付款核验、收货、上架确认和成交同步。</p></div></div></section>
 <section class="card" id="accounts"><div class="section-title"><h2>账户与登录态</h2><span>04 / ACCOUNTS</span></div>

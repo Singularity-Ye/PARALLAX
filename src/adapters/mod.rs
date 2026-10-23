@@ -4,3 +4,4 @@ pub mod credentials;
 pub mod market;
 pub mod session;
 pub mod sqlite;
+pub mod steam_orderbook;

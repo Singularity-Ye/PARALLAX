@@ -1,4 +1,5 @@
-/** API v1. Money is CNY cents; ratios are basis points; dates are Unix seconds.
+/** API v1. Scan/plan money is CNY cents; public books carry their native currency.
+ * Ratios are basis points; dates are Unix seconds.
  * Runtime validation belongs to Rust. This declaration is for frontend consumers.
  */
 export type SourceKind = 'demo' | 'steamdt';
@@ -34,6 +35,7 @@ export interface PlanRequest {
   scan_id:string; budget_cents:number; target_wallet_cents:number|null;
   max_units_per_item:number; max_positions:number; max_quote_age_secs:number;
   position_snapshot?:PositionSnapshot|null; liquidity_policy?:LiquidityPolicy|null;max_position_age_secs?:number;
+  steam_snapshot_ids?:string[];
 }
 export interface PositionSnapshot {account_id:string;observed_at:number;reserved_cash_cents:number;entries:{key:string;held_units:number;pending_buy_units:number;available_units:number|null;daily_volume:number|null}[];}
 export interface LiquidityPolicy {participation_bps:number;low_price_threshold_cents:number;low_price_penalty_bps:number;low_price_cap:number;}
@@ -45,6 +47,15 @@ export interface PlanPreview {
   cash_total_cents:number; remaining_budget_cents:number; estimated_wallet_total_cents:number;
   target_met:boolean|null; execution_blockers:string[];
   reserved_cash_cents?:number;wallet_policy?:WalletPolicy;position_source?:'manual_unverified';
+  steam_valuations?:{snapshot_id:string;market_hash_name:string;observed_at:number;gross_listing_estimate_cents:number;best_bid_cents:number|null}[];
+}
+export interface NativeMoney {minor:number;currency:string;}
+export interface OrderBookSnapshot {
+  id:string;request:{app_id:number;market_hash_name:string};observed_at:number;
+  source:'steam_public_query_action';identity_binding:'request_parameters';requested_currency:string;
+  book:{currency:string;asks:{price_minor:number;quantity:number}[];bids:{price_minor:number;quantity:number}[];reported_sell_orders:number|null;reported_buy_orders:number|null};
+  summary:{best_ask:NativeMoney|null;best_bid:NativeMoney|null;spread_minor:number|null;visible_ask_quantity:number;visible_bid_quantity:number};
+  warnings:string[];
 }
 export class ApiError extends Error { status:number; constructor(message:string, status:number); }
 export type Platform = 'steam' | 'buff';
@@ -60,6 +71,9 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  orderBooks():Promise<{items:OrderBookSnapshot[]}>;
+  orderBook(id:string):Promise<OrderBookSnapshot>;
+  fetchOrderBook(value:{app_id:730;market_hash_name:string}):Promise<OrderBookSnapshot>;
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
   accounts():Promise<{items:Account[]}>;
   createAccount(value:{label:string;steam_id:string}):Promise<Account>;

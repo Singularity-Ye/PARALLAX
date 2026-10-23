@@ -1,4 +1,5 @@
 //! Deterministic budget preview. A preview is never an executable order.
+use super::orderbook::OrderBookSnapshot;
 use super::selection::{Candidate, Coverage, ScanReport, SourceKind};
 use super::{
     money::WalletPolicy,
@@ -24,9 +25,20 @@ pub struct PlanRequest {
     pub liquidity_policy: Option<LiquidityPolicy>,
     #[serde(default = "default_position_age")]
     pub max_position_age_secs: u64,
+    #[serde(default)]
+    pub steam_snapshot_ids: Vec<String>,
 }
 impl PlanRequest {
     pub fn validate(&self) -> Result<(), String> {
+        let mut ids = std::collections::HashSet::new();
+        if self.steam_snapshot_ids.len() > 20
+            || self
+                .steam_snapshot_ids
+                .iter()
+                .any(|id| id.is_empty() || id.len() > 64 || !ids.insert(id))
+        {
+            return Err("最多引用 20 个唯一 Steam 盘口快照 ID".into());
+        }
         if let Some(snapshot) = &self.position_snapshot {
             snapshot.validate()?;
         }
@@ -91,9 +103,28 @@ pub struct PlanPreview {
     pub wallet_policy: Option<WalletPolicy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub position_source: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub steam_valuations: Vec<SteamValuationEvidence>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SteamValuationEvidence {
+    pub snapshot_id: String,
+    pub market_hash_name: String,
+    pub observed_at: u64,
+    pub gross_listing_estimate_cents: u64,
+    pub best_bid_cents: Option<u64>,
 }
 
 pub fn preview(report: &ScanReport, request: PlanRequest, at: u64) -> Result<PlanPreview, String> {
+    preview_with_order_books(report, request, at, &[])
+}
+pub fn preview_with_order_books(
+    report: &ScanReport,
+    request: PlanRequest,
+    at: u64,
+    books: &[OrderBookSnapshot],
+) -> Result<PlanPreview, String> {
     request.validate()?;
     if report.id != request.scan_id || report.status != "completed" {
         return Err("只能从已完成的扫描创建计划，请先完成或重新扫描".into());
@@ -110,11 +141,52 @@ pub fn preview(report: &ScanReport, request: PlanRequest, at: u64) -> Result<Pla
     {
         return Err("仓位快照已过期或时间异常，请重新填报".into());
     }
-    // A new plan uses v2 rules against the saved raw quote; never mutates the old scan.
+    if books.len() != request.steam_snapshot_ids.len()
+        || books
+            .iter()
+            .any(|b| !request.steam_snapshot_ids.contains(&b.id))
+    {
+        return Err("Steam 盘口快照与请求不一致".into());
+    }
+    if !books.is_empty() && report.request.source != SourceKind::Steamdt {
+        return Err("演示扫描不能混入真实 Steam 盘口".into());
+    }
+    let mut overrides = std::collections::HashMap::new();
+    let mut steam_valuations = Vec::new();
+    for book in books {
+        let key = &book.request.market_hash_name;
+        if !report.candidates.iter().any(|c| &c.item.key == key) {
+            return Err("Steam 盘口商品与扫描候选不匹配".into());
+        }
+        let ask = book.cny_ask(at, request.max_quote_age_secs)?;
+        if overrides
+            .insert(key.as_str(), (ask, book.observed_at))
+            .is_some()
+        {
+            return Err("同一商品不能引用多个 Steam 盘口快照".into());
+        }
+        steam_valuations.push(SteamValuationEvidence {
+            snapshot_id: book.id.clone(),
+            market_hash_name: key.clone(),
+            observed_at: book.observed_at,
+            gross_listing_estimate_cents: ask,
+            best_bid_cents: book.book.best_bid(),
+        });
+    }
+    // Only the Steam side is refreshed; the BUFF ranking timestamp stays old.
     let mut candidates: Vec<_> = report
         .candidates
         .iter()
-        .map(|c| super::analysis::evaluate(c.item.clone(), &report.request))
+        .map(|c| {
+            let mut item = c.item.clone();
+            if let Some((ask, observed_at)) = overrides.get(item.key.as_str()) {
+                item.steam_gross_cents = *ask;
+                if item.observed_at <= at {
+                    item.observed_at = item.observed_at.min(*observed_at);
+                }
+            }
+            super::analysis::evaluate(item, &report.request)
+        })
         .collect();
     candidates.sort_by(|a, b| {
         ((a.item.cash_cents as u128) * (b.estimated_wallet_cents as u128))
@@ -136,6 +208,7 @@ pub fn preview(report: &ScanReport, request: PlanRequest, at: u64) -> Result<Pla
             .position_snapshot
             .as_ref()
             .map(|_| "manual_unverified".into()),
+        steam_valuations,
         request,
         lines: vec![],
         skipped: vec![],
@@ -148,6 +221,9 @@ pub fn preview(report: &ScanReport, request: PlanRequest, at: u64) -> Result<Pla
             "手续费为模型估算；尚未接入真实历史风险和订单执行".into(),
         ],
     };
+    if !plan.steam_valuations.is_empty() {
+        plan.execution_blockers.push("已引用 Steam 最低卖价快照作慢卖估值；BUFF 仍为原榜单价，未刷新现金端报价；盘口不保证成交".into());
+    }
     plan.execution_blockers
         .push(if plan.request.position_snapshot.is_some() {
             "仓位、日量和可买量来自用户手动填报，未通过平台验证".into()
@@ -256,6 +332,130 @@ pub fn preview(report: &ScanReport, request: PlanRequest, at: u64) -> Result<Pla
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn steam_override_is_explicit_preserves_buff_time_and_keeps_original_scan() {
+        use crate::domain::{money::Currency, orderbook::*};
+        let (mut report, mut request) = fixture();
+        report.request.source = SourceKind::Steamdt;
+        let name = report.candidates[0].item.key.clone();
+        let snapshot = OrderBookSnapshot::new(
+            OrderBookRequest {
+                app_id: 730,
+                market_hash_name: name.clone(),
+            },
+            OrderBook {
+                currency: Currency::cny(),
+                asks: vec![PriceLevel {
+                    price_minor: 2300,
+                    quantity: 1,
+                }],
+                bids: vec![],
+                reported_buy_orders: None,
+                reported_sell_orders: None,
+            },
+            101,
+        )
+        .unwrap();
+        request.steam_snapshot_ids = vec![snapshot.id.clone()];
+        let plan = preview_with_order_books(
+            &report,
+            request.clone(),
+            101,
+            std::slice::from_ref(&snapshot),
+        )
+        .unwrap();
+        let item = &plan
+            .lines
+            .iter()
+            .find(|l| l.candidate.item.key == name)
+            .unwrap()
+            .candidate;
+        assert_eq!(item.estimated_wallet_cents, 2000);
+        assert_eq!(item.item.observed_at, 100);
+        assert_eq!(report.candidates[0].item.steam_gross_cents, 1150);
+        assert_eq!(plan.steam_valuations.len(), 1);
+        assert!(
+            plan.execution_blockers
+                .iter()
+                .any(|b| b.contains("BUFF 仍为原榜单价"))
+        );
+        let mut future_report = report.clone();
+        future_report.candidates[0].item.observed_at = 1000;
+        let future = preview_with_order_books(
+            &future_report,
+            request.clone(),
+            101,
+            std::slice::from_ref(&snapshot),
+        )
+        .unwrap();
+        assert!(
+            !future.lines.iter().any(|l| l.candidate.item.key == name),
+            "refresh must not hide a future BUFF timestamp"
+        );
+        // Fresh Steam data must not refresh the older BUFF ranking quote.
+        let mut fresh = snapshot;
+        fresh.observed_at = 401;
+        let stale = preview_with_order_books(&report, request, 401, &[fresh]).unwrap();
+        assert!(stale.lines.is_empty());
+    }
+    #[test]
+    fn missing_mismatched_duplicate_or_demo_research_cannot_silently_apply() {
+        use crate::domain::{money::Currency, orderbook::*};
+        let (mut report, mut request) = fixture();
+        let mut snapshot = OrderBookSnapshot::new(
+            OrderBookRequest {
+                app_id: 730,
+                market_hash_name: report.candidates[0].item.key.clone(),
+            },
+            OrderBook {
+                currency: Currency::cny(),
+                asks: vec![PriceLevel {
+                    price_minor: 2300,
+                    quantity: 1,
+                }],
+                bids: vec![],
+                reported_buy_orders: None,
+                reported_sell_orders: None,
+            },
+            100,
+        )
+        .unwrap();
+        request.steam_snapshot_ids = vec![snapshot.id.clone()];
+        assert!(preview(&report, request.clone(), 101).is_err());
+        assert!(
+            preview_with_order_books(
+                &report,
+                request.clone(),
+                101,
+                std::slice::from_ref(&snapshot)
+            )
+            .is_err()
+        );
+        report.request.source = SourceKind::Steamdt;
+        snapshot.request.market_hash_name = "different wear variant".into();
+        assert!(
+            preview_with_order_books(
+                &report,
+                request.clone(),
+                101,
+                std::slice::from_ref(&snapshot)
+            )
+            .is_err()
+        );
+        snapshot.request.market_hash_name = report.candidates[0].item.key.clone();
+        snapshot.book.currency = "TWD".to_string().try_into().unwrap();
+        assert!(
+            preview_with_order_books(
+                &report,
+                request.clone(),
+                101,
+                std::slice::from_ref(&snapshot)
+            )
+            .is_err()
+        );
+        request.steam_snapshot_ids.push(snapshot.id.clone());
+        assert!(request.validate().is_err());
+    }
     use crate::domain::{
         analysis::evaluate,
         selection::{MarketItem, ScanRequest},
@@ -291,6 +491,7 @@ mod tests {
             position_snapshot: None,
             liquidity_policy: None,
             max_position_age_secs: 300,
+            steam_snapshot_ids: vec![],
         };
         (report, request)
     }
@@ -393,6 +594,11 @@ mod tests {
         let (report, request) = fixture();
         let plan = preview(&report, request, 101).unwrap();
         let mut old = serde_json::to_value(&plan).unwrap();
+        old.as_object_mut().unwrap().remove("steam_valuations");
+        old["request"]
+            .as_object_mut()
+            .unwrap()
+            .remove("steam_snapshot_ids");
         old["algorithm"] = "ratio_greedy_v1".into();
         for name in ["wallet_policy", "position_source", "reserved_cash_cents"] {
             old.as_object_mut().unwrap().remove(name);

@@ -13,6 +13,9 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  orderBooks: () => request('/api/steam/order-books'),
+  orderBook: id => request(`/api/steam/order-books/${encodeURIComponent(id)}`),
+  fetchOrderBook: value => post('/api/steam/order-books', value),
   health: () => request('/api/health'),
   accounts: () => request('/api/accounts'),
   createAccount: value => post('/api/accounts', value),
