@@ -12,7 +12,7 @@ impl Provider {
         Ok(Self {
             client: reqwest::Client::builder()
                 .timeout(Duration::from_secs(20))
-                .user_agent("Mozilla/5.0 ShellTrade/0.1")
+                .user_agent("Mozilla/5.0 Parallax/0.1")
                 .build()?,
         })
     }

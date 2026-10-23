@@ -1,4 +1,4 @@
-import { shelltrade } from './lib/api.js';
+import { parallax } from './lib/api.js';
 const el = id => document.getElementById(id);
 const money = value => `¥${(value / 100).toFixed(2)}`;
 const reasonNames = {page_budget:'已达到页数预算，仍可能有未读取商品',item_budget:'已达到分析预算',source_exhausted:'当前来源查询已返回空页（不代表全市场）',source_error:'来源请求失败，保留已取得结果',cancelled:'已按要求停止',process_restart:'上次扫描被进程重启中断'};
@@ -37,11 +37,11 @@ function renderCandidates() {
 }
 function busy(value) { el('start').disabled=value;el('cancel').hidden=!value;el('cancel').disabled=false; }
 async function history() {
-  const data = await shelltrade.scans();
+  const data = await parallax.scans();
   el('history-list').replaceChildren(...data.items.map(report => {
     const button = node('button',undefined,'history-row');button.type='button';
     button.append(node('strong',`${report.request.source==='demo'?'演示':'SteamDT'} · ${statusNames[report.status] || report.status} · 通过 ${report.coverage.accepted} 件`),node('span',new Date(report.created_at*1000).toLocaleString()));
-    button.onclick=async()=>{try{render(await shelltrade.scan(report.id));}catch(e){feedback(e.message,true);}};return button;
+    button.onclick=async()=>{try{render(await parallax.scan(report.id));}catch(e){feedback(e.message,true);}};return button;
   }));
   if(!data.items.length) el('history-list').append(node('p','还没有扫描记录。','hint'));
   return data.items;
@@ -51,17 +51,17 @@ el('scan-form').addEventListener('submit',async event=>{
   const f=new FormData(event.target), n=key=>Number(f.get(key));
   const request={source:f.get('source'),max_pages:n('max_pages'),page_size:n('page_size'),max_items:n('max_items'),min_price_cents:Math.round(n('min_price')*100),max_price_cents:Math.round(n('max_price')*100),min_volume:n('min_volume'),max_ratio_bps:Math.round(n('max_ratio')*100),exclude_keywords:String(f.get('exclude_keywords')).split(/[,，]/).map(s=>s.trim()).filter(Boolean)};
   busy(true);
-  try { const report=await shelltrade.startScan(request);activeId=report.id;render(report);await history(); }
+  try { const report=await parallax.startScan(request);activeId=report.id;render(report);await history(); }
   catch(e){feedback(e.message,true);busy(Boolean(activeId));}
 });
-el('cancel').onclick=async()=>{if(!activeId)return;el('cancel').disabled=true;try{const result=await shelltrade.cancelScan(activeId);feedback(result.message);}catch(e){feedback(e.message,true);el('cancel').disabled=false;}};
+el('cancel').onclick=async()=>{if(!activeId)return;el('cancel').disabled=true;try{const result=await parallax.cancelScan(activeId);feedback(result.message);}catch(e){feedback(e.message,true);el('cancel').disabled=false;}};
 el('only-passed').onchange=renderCandidates;
 setInterval(async()=>{
   if(!activeId||polling)return;polling=true;
-  try{const report=await shelltrade.scan(activeId);render(report);if(report.status!=='running'){activeId=null;busy(false);await history();}}
+  try{const report=await parallax.scan(activeId);render(report);if(report.status!=='running'){activeId=null;busy(false);await history();}}
   catch(e){feedback(`状态读取失败：${e.message}；记录仍保留，稍后重试。`,true);}finally{polling=false;}
 },1000);
-(async()=>{try{const items=await history();const running=items.find(r=>r.status==='running');if(running){activeId=running.id;busy(true);}if(items.length)render(await shelltrade.scan(running?.id || items[0].id));}catch(e){el('history-list').textContent=`记录读取失败：${e.message}`;}})();
+(async()=>{try{const items=await history();const running=items.find(r=>r.status==='running');if(running){activeId=running.id;busy(true);}if(items.length)render(await parallax.scan(running?.id || items[0].id));}catch(e){el('history-list').textContent=`记录读取失败：${e.message}`;}})();
 
 function planFeedback(message, failed = false) {
   el('plan-feedback').textContent = message;
@@ -88,11 +88,11 @@ function renderPlan(plan) {
   box.append(limits);
 }
 async function planHistory() {
-  const {items} = await shelltrade.plans();
+  const {items} = await parallax.plans();
   el('plan-history').replaceChildren(...items.map(plan => {
     const button = node('button', `${plan.source === 'demo' ? '演示' : 'SteamDT'} · ${money(plan.cash_total_cents)} · ${new Date(plan.created_at*1000).toLocaleString()}`, 'history-row');
     button.type='button';
-    button.onclick = async () => {try {renderPlan(await shelltrade.plan(plan.id));planFeedback('已读取保存的历史预览；它不是当前可执行报价。');} catch(e) {planFeedback(e.message,true);}};
+    button.onclick = async () => {try {renderPlan(await parallax.plan(plan.id));planFeedback('已读取保存的历史预览；它不是当前可执行报价。');} catch(e) {planFeedback(e.message,true);}};
     return button;
   }));
   if (!items.length) el('plan-history').append(node('p','还没有保存的预算计划。','hint'));
@@ -108,7 +108,7 @@ el('plan-form').addEventListener('submit', async event => {
     max_quote_age_secs:Number(form.get('quote_age'))};
   el('plan-create').disabled=true;
   try {
-    renderPlan(await shelltrade.createPlan(request));
+    renderPlan(await parallax.createPlan(request));
     planFeedback('预算预览已保存。未创建订单或预留资金。');
     try {await planHistory();} catch(e) {planFeedback(`计划已保存，但历史列表刷新失败：${e.message}`,true);}
   } catch(e) {planFeedback(e.message,true);}

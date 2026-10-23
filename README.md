@@ -1,4 +1,4 @@
-# 拾贝 · ShellTrade
+# 异观 · Parallax
 
 AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预算计划是入口。**
 
@@ -16,7 +16,7 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 ./dev.ps1 build   # release 构建
 ```
 
-也可以直接 `cargo run --locked`。`SHELLTRADE_PORT` 默认 38480，`SHELLTRADE_DB` 默认 `data/shelltrade.db`。服务仅监听环回地址。每个实例使用独立数据库；启动会把旧进程遗留的 running 扫描标记为 interrupted。
+也可以直接 `cargo run --locked`。`PARALLAX_PORT` 默认 38480，`PARALLAX_DB` 默认 `data/parallax.db`。服务仅监听环回地址。每个实例使用独立数据库；启动会把旧进程遗留的 running 扫描标记为 interrupted。
 
 页面先用演示数据扫描：13 条来源记录、12 件唯一商品、7 件通过、5 件未通过。然后填写现金预算与选填的钱包目标，生成并保存预算预览。演示数据与真实来源始终明确标记。
 
@@ -104,7 +104,7 @@ web/
 2. 迁移买入、付款核验、收货匹配、冷却、挂牌和成交对账；引入可恢复订单状态与幂等执行。
 3. 收藏、标签、保存范围与前端视觉收口。
 
-知识库：`C:\Users\Yhx06\Documents\Obsidian Vault\02_丹炉间（项目区）\ShellTrade`。00 放架构，10 放技术决策，20 放协作与接口，80 按日期堆叠日志，90 保留旧版参考。README 跟代码；架构总稿与阶段记录跟 Obsidian。
+知识库：`C:\Users\Yhx06\Documents\Obsidian Vault\02_丹炉间（项目区）\异观（Parallax）`。00 放架构，10 放技术决策，20 放协作与接口，80 按日期堆叠日志，90 保留旧版参考。README 跟代码；架构总稿与阶段记录跟 Obsidian。
 
 ## 来源与许可
 

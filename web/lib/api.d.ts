@@ -39,7 +39,7 @@ export interface PlanPreview {
   target_met:boolean|null; execution_blockers:string[];
 }
 export class ApiError extends Error { status:number; constructor(message:string, status:number); }
-export const shelltrade: {
+export const parallax: {
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
   scans():Promise<{items:Omit<ScanReport,'candidates'>[]}>;
   scan(id:string):Promise<ScanReport>;

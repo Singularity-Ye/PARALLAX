@@ -46,7 +46,7 @@ pub fn router(state: AppState) -> Router {
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
-        .route("/api/health", get(|| async { Json(json!({"name":"拾贝 · ShellTrade","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
+        .route("/api/health", get(|| async { Json(json!({"name":"异观 · Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
             "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"live_execution":false,"history_analysis":false}})) }))
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))

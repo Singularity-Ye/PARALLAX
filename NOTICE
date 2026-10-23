@@ -1,4 +1,4 @@
-ShellTrade (拾贝) is a Rust reimplementation derived from the AetherSwap / Steam-Alpha workflow.
+Parallax (异观) is a Rust reimplementation derived from the AetherSwap / Steam-Alpha workflow.
 Original project: https://github.com/VexedWilosn/AetherSwap
 User adaptation: https://github.com/Singularity-Ye/Steam-Alpha
 The SteamDT protocol shape and indicative wallet conversion were ported from those GPL-3.0 sources.

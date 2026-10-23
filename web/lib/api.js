@@ -12,7 +12,7 @@ async function request(path, options = {}) {
   return data;
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
-export const shelltrade = {
+export const parallax = {
   health: () => request('/api/health'),
   scans: () => request('/api/scans'),
   scan: id => request(`/api/scans/${encodeURIComponent(id)}`),

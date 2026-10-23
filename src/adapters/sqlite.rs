@@ -154,8 +154,7 @@ mod tests {
     use crate::domain::selection::ScanRequest;
     #[tokio::test]
     async fn restart_marks_running_scan_interrupted() {
-        let path =
-            std::env::temp_dir().join(format!("shelltrade-test-{}.db", uuid::Uuid::new_v4()));
+        let path = std::env::temp_dir().join(format!("parallax-test-{}.db", uuid::Uuid::new_v4()));
         let report = ScanReport::new(ScanRequest::default());
         let store = Store::open(&path).unwrap();
         store.save(report.clone()).await.unwrap();
