@@ -1,4 +1,5 @@
 //! Deterministic budget preview. A preview is never an executable order.
+use super::buff_quotes::BuffQuoteSnapshot;
 use super::orderbook::OrderBookSnapshot;
 use super::selection::{Candidate, Coverage, ScanReport, SourceKind};
 use super::{
@@ -27,9 +28,33 @@ pub struct PlanRequest {
     pub max_position_age_secs: u64,
     #[serde(default)]
     pub steam_snapshot_ids: Vec<String>,
+    #[serde(default)]
+    pub buff_snapshot_ids: Vec<String>,
+    #[serde(default)]
+    pub buff_account_id: Option<String>,
 }
 impl PlanRequest {
     pub fn validate(&self) -> Result<(), String> {
+        let mut buff_ids = std::collections::HashSet::new();
+        if self.buff_snapshot_ids.len() > 20
+            || self
+                .buff_snapshot_ids
+                .iter()
+                .any(|id| id.is_empty() || id.len() > 64 || !buff_ids.insert(id))
+            || (!self.buff_snapshot_ids.is_empty()
+                && self
+                    .buff_account_id
+                    .as_ref()
+                    .is_none_or(|id| id.is_empty() || id.len() > 64))
+        {
+            return Err("BUFF 引用需要账户 ID，最多 20 个唯一报价快照".into());
+        }
+        if let (Some(account), Some(snapshot)) = (&self.buff_account_id, &self.position_snapshot)
+            && !self.buff_snapshot_ids.is_empty()
+            && account != &snapshot.account_id
+        {
+            return Err("BUFF 报价与仓位快照必须属于同一账户".into());
+        }
         let mut ids = std::collections::HashSet::new();
         if self.steam_snapshot_ids.len() > 20
             || self
@@ -105,6 +130,20 @@ pub struct PlanPreview {
     pub position_source: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub steam_valuations: Vec<SteamValuationEvidence>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub buff_valuations: Vec<BuffValuationEvidence>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct BuffValuationEvidence {
+    pub snapshot_id: String,
+    pub account_id: String,
+    pub credential_generation: String,
+    pub item_key: String,
+    pub goods_id: u64,
+    pub observed_at: u64,
+    pub unit_cash_cents: Option<u64>,
+    pub lowest_tier_visible_units: u32,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -124,6 +163,15 @@ pub fn preview_with_order_books(
     request: PlanRequest,
     at: u64,
     books: &[OrderBookSnapshot],
+) -> Result<PlanPreview, String> {
+    preview_with_quotes(report, request, at, books, &[])
+}
+pub fn preview_with_quotes(
+    report: &ScanReport,
+    request: PlanRequest,
+    at: u64,
+    books: &[OrderBookSnapshot],
+    buffs: &[BuffQuoteSnapshot],
 ) -> Result<PlanPreview, String> {
     request.validate()?;
     if report.id != request.scan_id || report.status != "completed" {
@@ -151,6 +199,53 @@ pub fn preview_with_order_books(
     if !books.is_empty() && report.request.source != SourceKind::Steamdt {
         return Err("演示扫描不能混入真实 Steam 盘口".into());
     }
+    if buffs.len() != request.buff_snapshot_ids.len()
+        || buffs
+            .iter()
+            .any(|b| !request.buff_snapshot_ids.contains(&b.id))
+    {
+        return Err("BUFF 快照与引用请求不一致".into());
+    }
+    if !buffs.is_empty() && report.request.source != SourceKind::Steamdt {
+        return Err("演示扫描不能混入真实 BUFF 快照".into());
+    }
+    let mut cash_overrides = std::collections::HashMap::new();
+    let mut buff_valuations = Vec::new();
+    for buff in buffs {
+        if Some(&buff.account_id) != request.buff_account_id.as_ref()
+            || buff.request.scan_id != report.id
+        {
+            return Err("BUFF 快照账户或扫描不匹配".into());
+        }
+        let item = &report
+            .candidates
+            .iter()
+            .find(|c| c.item.key == buff.request.item_key)
+            .ok_or("BUFF 快照商品不在当前扫描中")?
+            .item;
+        let (cash, units) = buff.cash_quote(
+            item.goods_id.ok_or("候选缺少 BUFF goods_id")?,
+            &item.key,
+            at,
+            request.max_quote_age_secs,
+        )?;
+        if cash_overrides
+            .insert(item.key.as_str(), (cash, units, buff.observed_at))
+            .is_some()
+        {
+            return Err("同一商品不能引用多个 BUFF 快照".into());
+        }
+        buff_valuations.push(BuffValuationEvidence {
+            snapshot_id: buff.id.clone(),
+            account_id: buff.account_id.clone(),
+            credential_generation: buff.credential_generation.clone(),
+            item_key: item.key.clone(),
+            goods_id: buff.page.goods_id,
+            observed_at: buff.observed_at,
+            unit_cash_cents: cash,
+            lowest_tier_visible_units: units,
+        });
+    }
     let mut overrides = std::collections::HashMap::new();
     let mut steam_valuations = Vec::new();
     for book in books {
@@ -173,18 +268,27 @@ pub fn preview_with_order_books(
             best_bid_cents: book.book.best_bid(),
         });
     }
-    // Only the Steam side is refreshed; the BUFF ranking timestamp stays old.
+    // Each leg keeps its own age; only explicit evidence replaces a ranking quote.
     let mut candidates: Vec<_> = report
         .candidates
         .iter()
         .map(|c| {
             let mut item = c.item.clone();
+            let mut steam_at = item.observed_at;
+            let mut buff_at = item.observed_at;
             if let Some((ask, observed_at)) = overrides.get(item.key.as_str()) {
                 item.steam_gross_cents = *ask;
-                if item.observed_at <= at {
-                    item.observed_at = item.observed_at.min(*observed_at);
-                }
+                steam_at = *observed_at;
             }
+            if let Some((cash, _, observed_at)) = cash_overrides.get(item.key.as_str()) {
+                item.cash_cents = cash.unwrap_or(0);
+                buff_at = *observed_at;
+            }
+            item.observed_at = if steam_at > at || buff_at > at {
+                steam_at.max(buff_at)
+            } else {
+                steam_at.min(buff_at)
+            };
             super::analysis::evaluate(item, &report.request)
         })
         .collect();
@@ -209,6 +313,7 @@ pub fn preview_with_order_books(
             .as_ref()
             .map(|_| "manual_unverified".into()),
         steam_valuations,
+        buff_valuations,
         request,
         lines: vec![],
         skipped: vec![],
@@ -221,7 +326,9 @@ pub fn preview_with_order_books(
             "手续费为模型估算；尚未接入真实历史风险和订单执行".into(),
         ],
     };
-    if !plan.steam_valuations.is_empty() {
+    if !plan.buff_valuations.is_empty() {
+        plan.execution_blockers.push("BUFF 只引用账户绑定的首屏最低价可见卖单，数量未锁定、CNY 协议未实测；未引用的一侧仍保留榜单报价和时效".into());
+    } else if !plan.steam_valuations.is_empty() {
         plan.execution_blockers.push("已引用 Steam 最低卖价快照作慢卖估值；BUFF 仍为原榜单价，未刷新现金端报价；盘口不保证成交".into());
     }
     plan.execution_blockers
@@ -234,7 +341,12 @@ pub fn preview_with_order_books(
         plan.execution_blockers.push("使用固定演示数据".into());
     }
     for candidate in candidates {
-        let reason = if !candidate.passed
+        let reason = if cash_overrides
+            .get(candidate.item.key.as_str())
+            .is_some_and(|(_, units, _)| *units == 0)
+        {
+            Some("BUFF 本页无可见卖单，未退回榜单价格")
+        } else if !candidate.passed
             || candidate.ratio_bps.is_none()
             || candidate.item.cash_cents == 0
             || candidate.estimated_wallet_cents == 0
@@ -276,6 +388,11 @@ pub fn preview_with_order_books(
                 plan.request.liquidity_policy.as_ref(),
             )
         };
+        let limit = limit.map(|n| {
+            cash_overrides
+                .get(candidate.item.key.as_str())
+                .map_or(n, |(_, units, _)| n.min(*units))
+        });
         let max_additional = match limit {
             Ok(n) if n > 0 => n,
             other => {
@@ -492,6 +609,8 @@ mod tests {
             liquidity_policy: None,
             max_position_age_secs: 300,
             steam_snapshot_ids: vec![],
+            buff_snapshot_ids: vec![],
+            buff_account_id: None,
         };
         (report, request)
     }
@@ -599,6 +718,15 @@ mod tests {
             .as_object_mut()
             .unwrap()
             .remove("steam_snapshot_ids");
+        old["request"]
+            .as_object_mut()
+            .unwrap()
+            .remove("buff_snapshot_ids");
+        old["request"]
+            .as_object_mut()
+            .unwrap()
+            .remove("buff_account_id");
+        old.as_object_mut().unwrap().remove("buff_valuations");
         old["algorithm"] = "ratio_greedy_v1".into();
         for name in ["wallet_policy", "position_source", "reserved_cash_cents"] {
             old.as_object_mut().unwrap().remove(name);

@@ -1,6 +1,7 @@
 import { parallax } from './lib/api.js';
 import { readWalletPolicy, readPositionInputs, renderPositionInputs } from './plan-inputs.js';
 import {readSteamSnapshotIds} from './orderbook.js';
+import {renderBuffCandidates,readBuffQuoteInputs} from './buff-quotes.js';
 const el = id => document.getElementById(id);
 const money = value => `¥${(value / 100).toFixed(2)}`;
 const reasonNames = {page_budget:'已达到页数预算，仍可能有未读取商品',item_budget:'已达到分析预算',source_exhausted:'当前来源查询已返回空页（不代表全市场）',source_error:'来源请求失败，保留已取得结果',cancelled:'已按要求停止',process_restart:'上次扫描被进程重启中断'};
@@ -21,6 +22,7 @@ function render(report) {
   el('result-summary').textContent = `淘汰 ${c.rejected} · 重复 ${c.duplicates} · 已收未分析 ${c.unexamined_received}`;
   renderCandidates();
   renderPositionInputs(report);
+  renderBuffCandidates(report);
 }
 function renderCandidates() {
   if (!current) return;
@@ -73,13 +75,14 @@ function planFeedback(message, failed = false) {
 }
 function renderPlan(plan) {
   const box = el('plan-result');
-  const source = plan.source === 'demo' ? '固定演示数据' : plan.steam_valuations?.length?'SteamDT 现金榜单 + Steam 盘口估值':'SteamDT 榜单报价';
+  const source = plan.source === 'demo' ? '固定演示数据' : `${plan.buff_valuations?.length?'BUFF 首屏现金报价':'SteamDT 现金榜单'} + ${plan.steam_valuations?.length?'Steam 盘口估值':'SteamDT 钱包估值'}`;
   box.replaceChildren(node('h3', `${source} · 预算预览`),
     node('p', `扫描 ${plan.request.scan_id.slice(0,8)} · 生成于 ${new Date(plan.created_at*1000).toLocaleString()}`),
     node('p', `计划现金 ${money(plan.cash_total_cents)} · 已填报预留 ${money(plan.reserved_cash_cents || 0)} · 剩余预算 ${money(plan.remaining_budget_cents)} · 估算钱包 ${money(plan.estimated_wallet_total_cents)}`),
     node('p', `${plan.wallet_policy?.kind==='parameterized_fees'?'自填费用模型估算':'1.15 比例估算'} · ${plan.position_source==='manual_unverified'?'仓位来源：用户手动填报，未平台核验':'未使用账户仓位快照'}`,'hint'));
   if (plan.target_met !== null) box.append(node('p', plan.target_met ? '已达到估算钱包目标（整件分配可能略超目标）。' : '未达到估算钱包目标，请查看预算与跳过原因。'));
   for(const evidence of plan.steam_valuations || [])box.append(node('p',`Steam 估值引用 ${evidence.snapshot_id} · ${evidence.market_hash_name} · 最低卖价 ${money(evidence.gross_listing_estimate_cents)}；为慢卖估算，不保证成交。`,'hint'));
+  for(const evidence of plan.buff_valuations || [])box.append(node('p',`BUFF 引用 ${evidence.snapshot_id} · ${evidence.item_key} · ${evidence.unit_cash_cents===null?'空卖盘':money(evidence.unit_cash_cents)} · 最低价可见 ${evidence.lowest_tier_visible_units} 条；未锁定数量。`,'hint'));
   for (const line of plan.lines) {
     const row = node('article', undefined, 'candidate');
     row.append(node('strong', line.candidate.item.name),
@@ -117,6 +120,7 @@ el('plan-form').addEventListener('submit', async event => {
   try {
     Object.assign(request,readPositionInputs());
     request.steam_snapshot_ids=readSteamSnapshotIds();
+    Object.assign(request,readBuffQuoteInputs());
     renderPlan(await parallax.createPlan(request));
     planFeedback('预算预览已保存。未创建订单或预留资金。');
     try {await planHistory();} catch(e) {planFeedback(`计划已保存，但历史列表刷新失败：${e.message}`,true);}

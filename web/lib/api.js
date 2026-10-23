@@ -13,6 +13,9 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  buffQuotes: account => request(`/api/accounts/${encodeURIComponent(account)}/buff-quotes`),
+  buffQuote: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/buff-quotes/${encodeURIComponent(id)}`),
+  fetchBuffQuote: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/buff-quotes`,value),
   orderBooks: () => request('/api/steam/order-books'),
   orderBook: id => request(`/api/steam/order-books/${encodeURIComponent(id)}`),
   fetchOrderBook: value => post('/api/steam/order-books', value),

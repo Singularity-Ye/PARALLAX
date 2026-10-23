@@ -1,6 +1,6 @@
 # Parallax 金额、估值与仓位预览 v2
 
-后续已增加可选 Steam 盘口引用：PlanRequest.steam_snapshot_ids / PlanPreview.steam_valuations，详见 [公开盘口合同](orderbook.md)。只替换明确引用的有效 CNY Steam 慢卖估值，现金端仍保留原榜单价格与时间；以下费用与仓位规则继续适用。
+后续已增加可选 Steam 盘口引用：PlanRequest.steam_snapshot_ids / PlanPreview.steam_valuations，详见 [公开盘口合同](orderbook.md)。BUFF 可选引用 buff_snapshot_ids/buff_account_id，输出 buff_valuations，详见 [现金端合同](buff-quotes.md)。只有明确引用的一侧更新报价和时间；以下费用与仓位规则继续适用。
 
 ## 已实现与边界
 

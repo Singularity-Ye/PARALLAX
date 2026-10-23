@@ -1,10 +1,60 @@
 use crate::domain::accounts::{Account, Credentials, Platform, StoredSession, Verification};
+use crate::domain::buff_quotes::{BuffQuoteSnapshot, BuffSellPage};
 use crate::domain::orderbook::{OrderBook, OrderBookRequest, OrderBookSnapshot};
 use crate::domain::{
     planning::PlanPreview,
     selection::{MarketItem, ScanReport, ScanRequest},
 };
 use std::future::Future;
+
+#[derive(Clone, Copy, Debug)]
+pub enum BuffReadError {
+    Network,
+    InvalidPayload,
+    IdentityMismatch,
+    Expired,
+    Challenge,
+    RateLimited(u64),
+    Rejected,
+    CredentialsChanged,
+}
+impl BuffReadError {
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::Network => "BUFF 卖单读取失败或超时；未生成报价",
+            Self::InvalidPayload => "BUFF 卖单格式或金额无效；未生成报价",
+            Self::IdentityMismatch => "BUFF 商品身份与扫描候选不匹配",
+            Self::Expired => "BUFF 登录态已失效，请重新登录",
+            Self::Challenge => "BUFF 要求浏览器验证，已阻断后续请求",
+            Self::RateLimited(_) => "BUFF 请求处于冷却中，请等待后重试",
+            Self::Rejected => "BUFF 拒绝卖单请求；未将失败当作空卖盘",
+            Self::CredentialsChanged => {
+                "BUFF 返回新的认证 Cookie；当前凭据需通过浏览器重新获取和核验"
+            }
+        }
+    }
+}
+pub trait BuffQuoteProvider: Send + Sync {
+    fn sell_page(
+        &self,
+        goods_id: u64,
+        secret: Credentials,
+    ) -> impl Future<Output = Result<BuffSellPage, BuffReadError>> + Send;
+}
+pub trait BuffQuoteRepository: Send + Sync {
+    fn insert_buff_quote(
+        &self,
+        snapshot: BuffQuoteSnapshot,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn buff_quote(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<BuffQuoteSnapshot>>> + Send;
+    fn buff_quotes(
+        &self,
+        account_id: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<BuffQuoteSnapshot>>> + Send;
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum MarketReadError {

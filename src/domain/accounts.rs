@@ -87,7 +87,7 @@ impl Credentials {
         }
         Ok(())
     }
-    fn cookie(&self, name: &str) -> Option<&str> {
+    pub(crate) fn cookie(&self, name: &str) -> Option<&str> {
         self.cookies
             .split(';')
             .filter_map(|s| s.trim().split_once('='))

@@ -36,6 +36,7 @@ export interface PlanRequest {
   max_units_per_item:number; max_positions:number; max_quote_age_secs:number;
   position_snapshot?:PositionSnapshot|null; liquidity_policy?:LiquidityPolicy|null;max_position_age_secs?:number;
   steam_snapshot_ids?:string[];
+  buff_snapshot_ids?:string[];buff_account_id?:string|null;
 }
 export interface PositionSnapshot {account_id:string;observed_at:number;reserved_cash_cents:number;entries:{key:string;held_units:number;pending_buy_units:number;available_units:number|null;daily_volume:number|null}[];}
 export interface LiquidityPolicy {participation_bps:number;low_price_threshold_cents:number;low_price_penalty_bps:number;low_price_cap:number;}
@@ -48,6 +49,14 @@ export interface PlanPreview {
   target_met:boolean|null; execution_blockers:string[];
   reserved_cash_cents?:number;wallet_policy?:WalletPolicy;position_source?:'manual_unverified';
   steam_valuations?:{snapshot_id:string;market_hash_name:string;observed_at:number;gross_listing_estimate_cents:number;best_bid_cents:number|null}[];
+  buff_valuations?:{snapshot_id:string;account_id:string;credential_generation:string;item_key:string;goods_id:number;observed_at:number;unit_cash_cents:number|null;lowest_tier_visible_units:number}[];
+}
+export interface BuffQuoteSnapshot {
+  id:string;account_id:string;credential_generation:string;
+  request:{scan_id:string;item_key:string};observed_at:number;currency:'CNY';currency_basis:'buff_cny_protocol_not_live_verified';
+  source:'buff_sell_orders_readonly';coverage:'first_page_lowest_tier_only';
+  page:{goods_id:number;market_hash_name:string;levels:{price_minor:number;quantity:number}[];reported_total:number|null};
+  lowest_cash_cents:number|null;lowest_tier_visible_units:number;
 }
 export interface NativeMoney {minor:number;currency:string;}
 export interface OrderBookSnapshot {
@@ -71,6 +80,9 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  buffQuotes(account:string):Promise<{items:BuffQuoteSnapshot[]}>;
+  buffQuote(account:string,id:string):Promise<BuffQuoteSnapshot>;
+  fetchBuffQuote(account:string,value:{scan_id:string;item_key:string}):Promise<BuffQuoteSnapshot>;
   orderBooks():Promise<{items:OrderBookSnapshot[]}>;
   orderBook(id:string):Promise<OrderBookSnapshot>;
   fetchOrderBook(value:{app_id:730;market_hash_name:string}):Promise<OrderBookSnapshot>;
