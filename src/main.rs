@@ -16,7 +16,7 @@ async fn main() -> anyhow::Result<()> {
         PathBuf::from(std::env::var("PARALLAX_DB").unwrap_or_else(|_| "data/parallax.db".into()));
     let state = Application::new(Provider::new()?, Store::open(&data_path)?);
     println!(
-        "异观 · Parallax http://127.0.0.1:{port} | SQLite: {} | live execution: unavailable",
+        "Parallax http://127.0.0.1:{port} | SQLite: {} | live execution: unavailable",
         data_path.display()
     );
     axum::serve(listener, router(state))

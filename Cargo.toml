@@ -3,7 +3,7 @@ name = "parallax"
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-only"
-description = "异观：Steam 饰品跨市场量化交易工作台"
+description = "Parallax: Steam item cross-market quantitative trading workstation"
 
 [dependencies]
 axum = "0.8"
