@@ -39,8 +39,21 @@ export interface PlanPreview {
   target_met:boolean|null; execution_blockers:string[];
 }
 export class ApiError extends Error { status:number; constructor(message:string, status:number); }
+export type Platform = 'steam' | 'buff';
+export interface Account { id:string; label:string; steam_id:string; created_at:number; }
+export interface SessionView {
+  platform:Platform; generation:string;
+  status:'unverified'|'valid'|'invalid'|'unknown'|'rate_limited'|'verification_required'|'missing';
+  checked_at:number|null; retry_at:number; message:string; subject:string|null;
+}
 export const parallax: {
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
+  accounts():Promise<{items:Account[]}>;
+  createAccount(value:{label:string;steam_id:string}):Promise<Account>;
+  sessions(id:string):Promise<{items:SessionView[]}>;
+  importSession(id:string,platform:Platform,value:{cookies:string;user_agent?:string}):Promise<SessionView>;
+  verifySession(id:string,platform:Platform):Promise<SessionView>;
+  revokeSession(id:string,platform:Platform):Promise<SessionView>;
   scans():Promise<{items:Omit<ScanReport,'candidates'>[]}>;
   scan(id:string):Promise<ScanReport>;
   startScan(request:Partial<ScanRequest>):Promise<ScanReport>;

@@ -1,4 +1,7 @@
 //! Use cases and job ownership; independent of Axum and concrete platform/storage adapters.
+#[cfg(test)]
+mod account_tests;
+pub mod accounts;
 pub mod ports;
 pub mod scanner;
 

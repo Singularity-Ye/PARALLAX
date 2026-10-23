@@ -14,15 +14,24 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     let data_path =
         PathBuf::from(std::env::var("PARALLAX_DB").unwrap_or_else(|_| "data/parallax.db".into()));
-    let state = Application::new(Provider::new()?, Store::open(&data_path)?);
+    let store = Store::open(&data_path)?;
+    let auth = parallax::application::accounts::Accounts::new(
+        store.clone(),
+        parallax::adapters::credentials::NativeVault,
+        parallax::adapters::session::OnlineVerifier::new()?,
+    );
+    let state = Application::new(Provider::new()?, store);
     println!(
         "Parallax http://127.0.0.1:{port} | SQLite: {} | live execution: unavailable",
         data_path.display()
     );
-    axum::serve(listener, router(state))
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
-        .await?;
+    axum::serve(
+        listener,
+        router(state).merge(parallax::transport::accounts::router(auth)),
+    )
+    .with_graceful_shutdown(async {
+        let _ = tokio::signal::ctrl_c().await;
+    })
+    .await?;
     Ok(())
 }

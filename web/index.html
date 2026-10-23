@@ -32,5 +32,10 @@
 <details><summary>已保存的预算计划</summary><div id="plan-history"></div></details></section>
 <section class="card" id="history"><div class="section-title"><h2>最近扫描</h2><span>02 / JOURNAL</span></div><div id="history-list">正在读取记录…</div></section>
 <section class="card" id="roadmap"><div class="section-title"><h2>自动买卖迁移进度</h2><span>03 / BUILDING</span></div><div class="roadmap"><div><b>01 · 选品与范围</b><p>已接入分页扫描、去重、规则解释和记录保存。</p></div><div><b>02 · 分析与计划</b><p>预算预览已接入；待迁移历史稳定性与市场深度。</p></div><div><b>03 · 自动执行</b><p>待迁移付款核验、收货、上架确认和成交同步。</p></div></div></section>
-<footer>Parallax <span>观其异，度其值。</span></footer></main><script src="/app.js" type="module"></script>
+<section class="card" id="accounts"><div class="section-title"><h2>账户与登录态</h2><span>04 / ACCOUNTS</span></div>
+<p class="hint">先创建账户，再手动导入 Cookie 请求头。凭据保存在本机 Windows 凭据管理器；在线验证只读取平台身份。浏览器获取与自动登录待接入。</p>
+<div class="workspace"><form id="account-form"><label>账户备注<input name="label" required maxlength="80" autocomplete="off"></label><label>Steam ID（17 位数字）<input name="steam_id" required pattern="[0-9]{17}" inputmode="numeric" autocomplete="off"></label><button>创建账户</button></form>
+<form id="session-form" autocomplete="off"><label>账户<select id="account-select" required></select></label><label>平台<select id="session-platform"><option value="steam">Steam</option><option value="buff">BUFF</option></select></label><label>Cookie 请求头<input name="cookies" type="password" required autocomplete="off" maxlength="2300"></label><label>User-Agent（选填）<input name="user_agent" autocomplete="off" maxlength="300"></label><button>保存登录态</button><button id="session-verify" type="button" class="secondary">在线验证</button><button id="session-revoke" type="button" class="secondary">停用本地登录态</button></form></div>
+<p id="account-feedback" role="status" aria-live="polite"></p><div id="session-list"></div></section>
+<footer>Parallax <span>观其异，度其值。</span></footer></main><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script>
 </body></html>

@@ -1,0 +1,178 @@
+use super::{
+    AppError,
+    ports::{AccountRepository, CredentialStore, SessionVerifier},
+};
+use crate::domain::{accounts::*, selection::now};
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
+pub struct Accounts<R, C, V> {
+    repo: R,
+    vault: C,
+    verifier: V,
+    // Serialize replacement, revocation and verification, including native vault calls.
+    gate: Mutex<()>,
+}
+impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C, V> {
+    pub fn new(repo: R, vault: C, verifier: V) -> Arc<Self> {
+        Arc::new(Self {
+            repo,
+            vault,
+            verifier,
+            gate: Mutex::new(()),
+        })
+    }
+    pub async fn list(&self) -> Result<Vec<Account>, AppError> {
+        Ok(self.repo.accounts().await?)
+    }
+    pub async fn create(&self, label: String, steam_id: String) -> Result<Account, AppError> {
+        let label = label.trim().to_string();
+        if label.is_empty()
+            || label.chars().count() > 80
+            || label.chars().any(char::is_control)
+            || steam_id.len() != 17
+            || !steam_id.bytes().all(|b| b.is_ascii_digit())
+        {
+            return Err(AppError::Invalid(
+                "名称需要 1–80 个字符；Steam ID 需要 17 位数字".into(),
+            ));
+        }
+        let account = Account {
+            id: uuid::Uuid::new_v4().to_string(),
+            label,
+            steam_id,
+            created_at: now(),
+        };
+        self.repo.add_account(account.clone()).await?;
+        Ok(account)
+    }
+    async fn account(&self, id: &str) -> Result<Account, AppError> {
+        self.repo
+            .account(id.into())
+            .await?
+            .ok_or(AppError::Missing("账户不存在"))
+    }
+    pub async fn sessions(&self, id: &str) -> Result<Vec<SessionView>, AppError> {
+        self.account(id).await?;
+        Ok(self
+            .repo
+            .sessions(id.into())
+            .await?
+            .into_iter()
+            .map(|s| s.view)
+            .collect())
+    }
+    pub async fn import(
+        &self,
+        id: &str,
+        platform: Platform,
+        secret: Credentials,
+    ) -> Result<SessionView, AppError> {
+        let _guard = self.gate.lock().await;
+        let account = self.account(id).await?;
+        secret
+            .validate(platform, &account.steam_id)
+            .map_err(AppError::Invalid)?;
+        let old = self.repo.session(id.into(), platform).await?;
+        let key = uuid::Uuid::new_v4().to_string();
+        self.vault.put(key.clone(), secret).await?;
+        let stored = StoredSession {
+            credential_key: key.clone(),
+            view: SessionView {
+                platform,
+                generation: key.clone(),
+                status: SessionStatus::Unverified,
+                checked_at: None,
+                // Replacing cookies must not bypass the platform cooldown or challenge state.
+                retry_at: old.as_ref().map_or(0, |s| s.view.retry_at),
+                message: "已保存，尚未在线验证".into(),
+                subject: None,
+            },
+        };
+        if let Err(err) = self.repo.save_session(id.into(), stored.clone()).await {
+            self.vault.remove(key).await?;
+            return Err(err.into());
+        }
+        let mut view = stored.view;
+        if let Some(old) = old
+            && self.vault.remove(old.credential_key).await.is_err()
+        {
+            view.message = "新登录态已保存；旧凭据清理失败，需检查 Windows 凭据管理器".into();
+        }
+        Ok(view)
+    }
+    pub async fn verify(&self, id: &str, platform: Platform) -> Result<SessionView, AppError> {
+        let _guard = self.gate.lock().await;
+        let account = self.account(id).await?;
+        let mut session = self
+            .repo
+            .session(id.into(), platform)
+            .await?
+            .ok_or(AppError::Missing("请先导入登录态"))?;
+        if session.view.status == SessionStatus::Missing {
+            return Err(AppError::Conflict("登录态已停用，请重新导入"));
+        }
+        if session.view.status == SessionStatus::VerificationRequired {
+            return Err(AppError::Conflict(
+                "平台要求浏览器验证；当前切片尚不支持解除验证阻断",
+            ));
+        }
+        let (global_retry, blocked) = self.repo.buff_policy().await?;
+        if platform == Platform::Buff && blocked {
+            return Err(AppError::Conflict(
+                "BUFF 需要浏览器验证；替换 Cookie 或新增账户不能解除阻断",
+            ));
+        }
+        if session.view.retry_at > now() || (platform == Platform::Buff && global_retry > now()) {
+            return Err(AppError::Conflict("验证请求处于冷却中，请稍后再试"));
+        }
+        let result = if let Some(secret) = self.vault.get(session.credential_key.clone()).await? {
+            // Persist pacing before the network call, so a process restart cannot reset it.
+            session.view.retry_at = now() + 30;
+            session.view.status = SessionStatus::Unknown;
+            session.view.message = "验证进行中或上次验证被中断".into();
+            self.repo.save_session(id.into(), session.clone()).await?;
+            if platform == Platform::Buff {
+                self.repo.set_buff_policy(now() + 30, false).await?;
+            }
+            self.verifier.verify(&account, platform, secret).await
+        } else {
+            Verification {
+                status: SessionStatus::Missing,
+                message: "凭据存储中没有登录态，请重新导入",
+                subject: None,
+                retry_secs: 0,
+            }
+        };
+        session.view.status = result.status;
+        session.view.message = result.message.into();
+        session.view.subject = result.subject;
+        session.view.checked_at = Some(now());
+        session.view.retry_at = now() + result.retry_secs;
+        if platform == Platform::Buff {
+            self.repo
+                .set_buff_policy(
+                    session.view.retry_at,
+                    result.status == SessionStatus::VerificationRequired,
+                )
+                .await?;
+        }
+        self.repo.save_session(id.into(), session.clone()).await?;
+        Ok(session.view)
+    }
+    pub async fn revoke(&self, id: &str, platform: Platform) -> Result<SessionView, AppError> {
+        let _guard = self.gate.lock().await;
+        self.account(id).await?;
+        let mut session = self
+            .repo
+            .session(id.into(), platform)
+            .await?
+            .ok_or(AppError::Missing("没有已保存的登录态"))?;
+        // First remove valid status; a vault failure must never leave this session executable.
+        session.view.status = SessionStatus::Missing;
+        session.view.message = "本地登录态已停用；不代表平台远程注销".into();
+        self.repo.save_session(id.into(), session.clone()).await?;
+        self.vault.remove(session.credential_key).await?;
+        Ok(session.view)
+    }
+}

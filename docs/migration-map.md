@@ -16,9 +16,9 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 
 | 编号 | 能力与来源证据 | Rust 归属与复用边界 | 当前差距 / 验收依据 |
 | --- | --- | --- | --- |
-| M01 | 多账户、当前账户、地区币种；R `app/accounts.py`、`services/account_region.py`、`routes/accounts.py` | domain/accounts；application/accounts；账户仓储 | 未迁移；账户切换不能沿用另一账户会话或订单 |
-| M02 | Steam 浏览器获取登录态、手动 Cookie、账号密码/Guard 自动登录、轮询 token、失效恢复；R `routes/auth.py`、`services/steam_auth.py`、`steam/session.py` | domain/auth；application/auth；adapters/steam_auth、credential_store、browser_auth | 未迁移；保留三种入口及 pending/rejected/network/expired 的区别；旧测试 `test_auth_relogin_state`、`test_steam_auth_errors` |
-| M03 | BUFF 浏览器/手动登录、User-Agent、凭据代次、验证挑战；R `services/buff_auth.py`、`routes/auth.py`、`config_loader.py` | application/auth；adapters/buff_auth；复用账户与凭据端口 | 未迁移；替换凭据必须检查未决支付，不能在冷却中反复请求 |
+| M01 | 多账户、当前账户、地区币种；R `app/accounts.py`、`services/account_region.py`、`routes/accounts.py` | domain/accounts；application/accounts；账户仓储 | 部分实现：账户创建与显式账户隔离已接入；地区币种同步和账户管理待迁移 |
+| M02 | Steam 浏览器获取登录态、手动 Cookie、账号密码/Guard 自动登录、轮询 token、失效恢复；R `routes/auth.py`、`services/steam_auth.py`、`steam/session.py` | domain/auth；application/auth；adapters/steam_auth、credential_store、browser_auth | 部分实现：手动 Cookie 保存/在线验证/停用已接入；浏览器、Guard 自动登录和恢复待迁移，须保留 pending/rejected/network/expired 的区别；旧测试 `test_auth_relogin_state`、`test_steam_auth_errors` |
+| M03 | BUFF 浏览器/手动登录、User-Agent、凭据代次、验证挑战；R `services/buff_auth.py`、`routes/auth.py`、`config_loader.py` | application/auth；adapters/buff_auth；复用账户与凭据端口 | 部分实现：手动导入/只读身份验证、持久化冷却与挑战已接入；浏览器和未决支付保护待迁移 |
 | M04 | SteamDT 榜单、参数、分页解析；两版 `steamdt/*`、`services/iflow_client.py` | 现有 MarketSource、MarketItem、scanner、market adapter | 部分实现：分页、预算、去重、范围解释；非全市场目录，未实测实时来源 |
 | M05 | BUFF 实价/卖单、Steam 买卖盘、nameid/SSR/分组商品解析、缓存；R `buff/buyer.py`、`services/buff_client.py`、`steam/market_orders.py`；A 增加买盘深度与价差 | domain/quotes；application/quote；adapters/buff_market、steam_market；QuoteProvider 端口 | 未迁移；报价应带账户、币种、时间、来源和可买数量；覆盖新版与旧版页面结构 |
 | M06 | 手续费、币种、金额单位、展示价与到账价；R `utils/money.py`、`services/workers.py` 汇率任务 | domain/money、fees；adapters/exchange_rates | 当前仅 `gross * 100 / 115` 估算；最低费、步长、币种及舍入未迁移 |
@@ -39,7 +39,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
 | M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 当前只有扫描、预算和历史 UI；现有 web/lib/api.js、api.d.ts 继续作为反重力接入点 |
-| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 现有 13 项 Rust 测试只覆盖首个切片；旧测试名称/源码索引已登记，尚未逐项移植 |
+| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 新增会话用例测试；原有 13 项测试覆盖扫描/计划切片；旧测试名称/源码索引已登记，尚未逐项移植 |
 
 ## 必须纠正的几处认知
 
@@ -90,4 +90,4 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 
 运行 `python tools/source_inventory.py` 生成完整索引，检查两版所有登记路径存在、225 个 Python 文件可解析。该脚本不验证外部接口、策略收益或原测试通过情况。没有启动登录、付款、下单、礼物结账等操作。
 
-下一轮从 M01/M02 做首个会话切片，并持续以本表追踪状态；每迁一项附对应测试与明确差异。完成迁移前本项目真实交易能力仍不可用。
+M01–03 的手动会话切片已落地，合同见 [accounts.md](accounts.md)：账户隔离、手动导入、只读身份验证、脱敏状态、停用和持久化 BUFF 冷却/挑战阻断。19 项本地测试通过，原生 Windows 凭据合成检查独立通过。真实平台会话尚未验证；下一步补浏览器获取、自动登录与恢复，再接纯策略规则。每迁一项附对应测试与明确差异；完成迁移前真实交易能力仍不可用。

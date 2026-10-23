@@ -14,6 +14,12 @@ async function request(path, options = {}) {
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
   health: () => request('/api/health'),
+  accounts: () => request('/api/accounts'),
+  createAccount: value => post('/api/accounts', value),
+  sessions: id => request(`/api/accounts/${encodeURIComponent(id)}/sessions`),
+  importSession: (id, platform, value) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}`, value),
+  verifySession: (id, platform) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}/verify`, {}),
+  revokeSession: (id, platform) => request(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}`, {method:'DELETE'}),
   scans: () => request('/api/scans'),
   scan: id => request(`/api/scans/${encodeURIComponent(id)}`),
   startScan: value => post('/api/scans', value),

@@ -6,6 +6,7 @@ use std::{
     path::Path,
     sync::{Arc, Mutex},
 };
+mod accounts;
 
 #[derive(Clone)]
 pub struct Store(Arc<Mutex<Connection>>);
@@ -18,7 +19,10 @@ impl Store {
         db.busy_timeout(std::time::Duration::from_secs(5))?;
         db.execute_batch("PRAGMA journal_mode=WAL;
             CREATE TABLE IF NOT EXISTS scans (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, report TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS plan_previews (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, report TEXT NOT NULL);")?;
+            CREATE TABLE IF NOT EXISTS plan_previews (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, report TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, steam_id TEXT NOT NULL, metadata TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS account_sessions (account_id TEXT NOT NULL, platform TEXT NOT NULL, metadata TEXT NOT NULL, credential_key TEXT NOT NULL, PRIMARY KEY(account_id,platform));
+            CREATE TABLE IF NOT EXISTS auth_policy (key TEXT PRIMARY KEY, value TEXT NOT NULL);")?;
         // A restarted process cannot continue an old in-memory scan. Preserve evidence honestly.
         let reports = {
             let mut stmt = db.prepare("SELECT report FROM scans")?;

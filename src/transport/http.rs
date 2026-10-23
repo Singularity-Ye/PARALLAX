@@ -17,11 +17,11 @@ use serde_json::json;
 use std::sync::Arc;
 
 pub type AppState = Arc<Application<Provider, Store>>;
-type ApiError = (StatusCode, Json<serde_json::Value>);
+pub(super) type ApiError = (StatusCode, Json<serde_json::Value>);
 fn error(status: StatusCode, message: &str) -> ApiError {
     (status, Json(json!({"error":message})))
 }
-fn app_error(err: AppError) -> ApiError {
+pub(super) fn app_error(err: AppError) -> ApiError {
     match err {
         AppError::Invalid(message) => error(StatusCode::BAD_REQUEST, &message),
         AppError::Missing(message) => error(StatusCode::NOT_FOUND, message),
@@ -35,7 +35,7 @@ fn app_error(err: AppError) -> ApiError {
         }
     }
 }
-fn input<T>(body: Result<Json<T>, JsonRejection>) -> Result<T, ApiError> {
+pub(super) fn input<T>(body: Result<Json<T>, JsonRejection>) -> Result<T, ApiError> {
     body.map(|Json(value)| value)
         .map_err(|err| error(err.status(), &err.body_text()))
 }
@@ -44,10 +44,11 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(|| async { Html(include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
+        .route("/accounts.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/accounts.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
-            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"live_execution":false,"history_analysis":false}})) }))
+            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":false,"automatic_login":false,"live_execution":false,"history_analysis":false}})) }))
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))
@@ -59,7 +60,10 @@ pub fn router(state: AppState) -> Router {
         .layer(axum::middleware::from_fn(same_origin))
         .with_state(state)
 }
-async fn same_origin(request: axum::extract::Request, next: axum::middleware::Next) -> Response {
+pub(super) async fn same_origin(
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Response {
     if request.method() != axum::http::Method::GET {
         if let Some(origin) = request.headers().get(header::ORIGIN) {
             let host = request
