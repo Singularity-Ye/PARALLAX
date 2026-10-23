@@ -21,11 +21,11 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M03 | BUFF 浏览器/手动登录、User-Agent、凭据代次、验证挑战；R `services/buff_auth.py`、`routes/auth.py`、`config_loader.py` | application/auth；adapters/buff_auth；复用账户与凭据端口 | 部分实现：手动导入/只读身份验证、持久化冷却与挑战已接入；浏览器和未决支付保护待迁移 |
 | M04 | SteamDT 榜单、参数、分页解析；两版 `steamdt/*`、`services/iflow_client.py` | 现有 MarketSource、MarketItem、scanner、market adapter | 部分实现：分页、预算、去重、范围解释；非全市场目录，未实测实时来源 |
 | M05 | BUFF 实价/卖单、Steam 买卖盘、nameid/SSR/分组商品解析、缓存；R `buff/buyer.py`、`services/buff_client.py`、`steam/market_orders.py`；A 增加买盘深度与价差 | domain/quotes；application/quote；adapters/buff_market、steam_market；QuoteProvider 端口 | 未迁移；报价应带账户、币种、时间、来源和可买数量；覆盖新版与旧版页面结构 |
-| M06 | 手续费、币种、金额单位、展示价与到账价；R `utils/money.py`、`services/workers.py` 汇率任务 | domain/money、fees；adapters/exchange_rates | 当前仅 `gross * 100 / 115` 估算；最低费、步长、币种及舍入未迁移 |
+| M06 | 手续费、币种、金额单位、展示价与到账价；R `utils/money.py`、`services/workers.py` 汇率任务 | domain/money；后续 adapters/exchange_rates | 参数化整数费用/最低费/步长逆推已接扫描和计划；保留默认 1.15 估算；真实费用与 FX 待验证 |
 | M07 | 壁垒/断层定价、少量低档忽略、偏移；R `steam/market_orders.py:compute_smart_list_price` | domain/pricing；复用统一订单簿 | 未迁移；空盘口、单档、累计量、断层和价格下限需固定样例 |
-| M08 | IQR/VWAP、CV、回归趋势/R²、EMA、历史分位/数据窗口；R `analysis/stability.py`、`services/analysis_client.py`、`utils/trend.py` | domain/history_risk；application/analysis；HistoryProvider 端口 | 未迁移；缺失历史和 429 必须显式输出，不能当成稳定 |
+| M08 | IQR/VWAP、CV、回归趋势/R²、EMA、历史分位/数据窗口；R `analysis/stability.py`、`services/analysis_client.py`、`utils/trend.py` | domain/risk；后续 application/analysis、HistoryProvider | 日 VWAP/七自然日 P10 纯函数已实现；缺数据返回未知；真实历史、CV/EMA/趋势待迁移 |
 | M09 | 买卖策略注册、步骤顺序、依赖、参数、导入导出、声明式自定义条件、模拟；R `app/strategy_engine.py`、`routes/strategies.py` | domain/strategy；application/strategy；版本化策略仓储 | 未迁移；现有基础预筛不等于策略引擎；模拟结果不能充当实盘效果 |
-| M10 | 采购硬上限、日量比例、低价惩罚、已有同名持仓扣减；R `purchase_limit.py`、`pipeline_steps.py` | domain/position_sizing；复用订单/持仓快照 | 未迁移；现有 max_units 只是本计划上限，不是账户风控 |
+| M10 | 采购硬上限、日量比例、低价惩罚、已有同名持仓扣减；R `purchase_limit.py`、`pipeline_steps.py` | domain/positions；复用订单/持仓快照 | 已接手动账户仓位、未决量、预留、可买量和日量约束；真实账户同步与执行风控待迁移 |
 | M11 | 候选研究、慢卖/快卖/风险估值、七日 P10、压力场景、报价过期、目标游戏价格与余额组合；A `candidate_report.py`、`routes/candidates.py` | domain/valuation、portfolio；application/research；复用 scanner、报价/历史端口 | 部分预算预览已实现；风险组合、人工选品及精确/缓冲目标未迁移 |
 | M12 | 下单前复核、绑定具体选择的单次短时 token；A `routes/candidates.py`；R 购买前二次复核 | application/preflight；持久化不可变报价与选择摘要 | 未迁移；复核余额、库存、费用、价差、风险、账户和凭据代次；不能直接执行历史预览 |
 | M13 | 单笔/批量锁单、付款提示、核销、写入未知阻断（R）；单笔确认后的平台付款/取消核验（A）；两版 `pipeline_steps.py`、`buff/buyer.py`、R `services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 未迁移，`POST /api/trades` 仍 501；R 单笔不能视为已完整核验付款；组合 A 核验与 R 防重，未知结果先对账 |
@@ -38,7 +38,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M20 | Steam 游戏折扣采集、区域价格、断点恢复、历史低价、评分、折扣卡片；R `services/steam_deals.py`、`deal_cards.py`、`routes/steam_deals.py` | 独立 application/deals、adapters/steam_store、card_renderer | 未迁移；与饰品自动买卖共用账户/汇率/任务，不耦合订单流程 |
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
-| M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 当前只有扫描、预算和历史 UI；现有 web/lib/api.js、api.d.ts 继续作为反重力接入点 |
+| M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 当前有扫描、预算/历史、手动会话、自填费用与仓位 UI；其余待迁移；统一客户端可供反重力复用 |
 | M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 新增会话用例测试；原有 13 项测试覆盖扫描/计划切片；旧测试名称/源码索引已登记，尚未逐项移植 |
 
 ## 必须纠正的几处认知

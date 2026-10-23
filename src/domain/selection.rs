@@ -27,6 +27,7 @@ pub struct ScanRequest {
     pub min_volume: u64,
     pub max_ratio_bps: u64,
     pub exclude_keywords: Vec<String>,
+    pub wallet_policy: super::money::WalletPolicy,
 }
 impl Default for ScanRequest {
     fn default() -> Self {
@@ -40,11 +41,13 @@ impl Default for ScanRequest {
             min_volume: 200,
             max_ratio_bps: 9000,
             exclude_keywords: vec!["印花".into()],
+            wallet_policy: super::money::WalletPolicy::default(),
         }
     }
 }
 impl ScanRequest {
     pub fn validate(&self) -> Result<(), String> {
+        self.wallet_policy.validate_cny()?;
         if !(1..=20).contains(&self.max_pages)
             || !(1..=200).contains(&self.page_size)
             || !(1..=2000).contains(&self.max_items)
@@ -88,6 +91,9 @@ pub struct Candidate {
     pub estimated_wallet_cents: u64,
     pub ratio_bps: Option<u64>,
     pub rules: Vec<RuleResult>,
+    /// Absent for historical v1 reports; their original estimates remain unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valuation: Option<super::money::FeeQuote>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Coverage {

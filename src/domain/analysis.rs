@@ -1,13 +1,14 @@
 use crate::domain::selection::{Candidate, MarketItem, RuleResult, ScanRequest};
 
-// Indicative legacy estimate only, not a platform fee settlement implementation.
-pub fn estimated_wallet(gross_cents: u64) -> u64 {
-    gross_cents.saturating_mul(100) / 115
-}
-
 pub fn evaluate(item: MarketItem, request: &ScanRequest) -> Candidate {
-    let wallet = estimated_wallet(item.steam_gross_cents);
-    let ratio = (wallet > 0).then(|| item.cash_cents.saturating_mul(10_000) / wallet);
+    let (valuation, valuation_error) = match request.wallet_policy.estimate(item.steam_gross_cents)
+    {
+        Ok(value) => (value, None),
+        Err(error) => (None, Some(error)),
+    };
+    let wallet = valuation.as_ref().map_or(0, |v| v.net.minor);
+    // Round upward so a ratio just above the cap can never pass due to truncation.
+    let ratio = super::money::ratio_bps(item.cash_cents, wallet);
     let name = item.name.to_lowercase();
     let excluded = request
         .exclude_keywords
@@ -47,8 +48,13 @@ pub fn evaluate(item: MarketItem, request: &ScanRequest) -> Candidate {
             "估算折算率",
             ratio.is_some_and(|r| r <= request.max_ratio_bps),
             format!(
-                "{}；上限 {} bps；使用榜单报价，尚未实价复核",
-                ratio.map_or("缺少 Steam 价格".into(), |r| format!("{r} bps")),
+                "{}；上限 {} bps；使用请求指定的费用估算，尚未实价复核",
+                ratio.map_or_else(
+                    || valuation_error.clone().unwrap_or_else(|| {
+                        "缺少有效 Steam 净值；费用或价格不足以得到正净值".into()
+                    }),
+                    |r| format!("{r} bps")
+                ),
                 request.max_ratio_bps
             ),
         ),
@@ -67,6 +73,7 @@ pub fn evaluate(item: MarketItem, request: &ScanRequest) -> Candidate {
         estimated_wallet_cents: wallet,
         ratio_bps: ratio,
         rules,
+        valuation,
     }
 }
 
@@ -87,5 +94,28 @@ mod tests {
         let candidate = evaluate(item, &ScanRequest::default());
         assert!(!candidate.passed);
         assert_eq!(candidate.ratio_bps, None);
+    }
+    #[test]
+    fn rounded_down_ratio_cannot_pass_a_strict_numeric_cap() {
+        let mut request = ScanRequest {
+            min_price_cents: 0,
+            min_volume: 0,
+            max_ratio_bps: 3333,
+            ..ScanRequest::default()
+        };
+        let item = MarketItem {
+            key: "x".into(),
+            name: "x".into(),
+            goods_id: Some(1),
+            cash_cents: 1,
+            steam_gross_cents: 4,
+            volume: 0,
+            observed_at: 100,
+        };
+        let candidate = evaluate(item.clone(), &request);
+        assert_eq!(candidate.ratio_bps, Some(3334));
+        assert!(!candidate.passed);
+        request.max_ratio_bps = 3334;
+        assert!(evaluate(item, &request).passed);
     }
 }

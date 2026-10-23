@@ -45,6 +45,7 @@ pub fn router(state: AppState) -> Router {
         .route("/", get(|| async { Html(include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
         .route("/accounts.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/accounts.js")) }))
+        .route("/plan-inputs.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/plan-inputs.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
@@ -52,7 +53,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))
-        .route("/api/plans", get(plans).post(create_plan))
+        .route("/api/plans", get(plans).post(create_plan).layer(DefaultBodyLimit::max(2 * 1024 * 1024)))
         .route("/api/plans/{id}", get(plan))
         .route("/api/trades", post(|| async { error(StatusCode::NOT_IMPLEMENTED, "真实交易执行尚未迁移；未创建订单") }))
         .fallback(|| async { error(StatusCode::NOT_FOUND, "接口或资源不存在") })
@@ -191,7 +192,9 @@ mod tests {
     }
     #[tokio::test]
     async fn scan_to_plan_is_persisted_and_retrievable() {
-        let app = app();
+        use crate::application::ports::AccountRepository;
+        let store = Store::open(std::path::Path::new(":memory:")).unwrap();
+        let app = Application::new(Provider::new().unwrap(), store.clone());
         let router = router(app.clone());
         let response = request(router.clone(), "/api/scans", "{}").await;
         assert_eq!(response.status(), StatusCode::ACCEPTED);
@@ -224,11 +227,48 @@ mod tests {
         assert!(!plan.lines.is_empty());
         assert!(plan.cash_total_cents <= 10000);
         assert_eq!(plan.status, "preview_only");
+        assert_eq!(plan.algorithm, "ratio_greedy_v2");
         assert_eq!(
             app.plan(plan.id.clone()).await.unwrap().cash_total_cents,
             plan.cash_total_cents
         );
         assert_eq!(app.plans().await.unwrap().len(), 1);
+        let mut constrained = serde_json::from_str::<serde_json::Value>(&payload).unwrap();
+        constrained["position_snapshot"] = json!({"account_id":"fixture-account","observed_at":crate::domain::selection::now(),"reserved_cash_cents":200,
+            "entries":finished.candidates.iter().filter(|c|c.passed).map(|c|json!({"key":c.item.key,"held_units":2,"pending_buy_units":0,"available_units":0,"daily_volume":null})).collect::<Vec<_>>()});
+        let missing = request(router.clone(), "/api/plans", &constrained.to_string()).await;
+        assert_eq!(missing.status(), StatusCode::NOT_FOUND);
+        assert_eq!(app.plans().await.unwrap().len(), 1);
+        store
+            .add_account(crate::domain::accounts::Account {
+                id: "fixture-account".into(),
+                label: "fixture".into(),
+                steam_id: "76561198000000001".into(),
+                created_at: crate::domain::selection::now(),
+            })
+            .await
+            .unwrap();
+        let saved = request(router.clone(), "/api/plans", &constrained.to_string()).await;
+        assert_eq!(saved.status(), StatusCode::CREATED);
+        let saved: PlanPreview = serde_json::from_slice(
+            &axum::body::to_bytes(saved.into_body(), 100_000)
+                .await
+                .unwrap(),
+        )
+        .unwrap();
+        assert!(saved.lines.is_empty());
+        assert_eq!(
+            (
+                saved.cash_total_cents,
+                saved.reserved_cash_cents,
+                saved.remaining_budget_cents
+            ),
+            (0, 200, 9800)
+        );
+        assert_eq!(
+            app.plan(saved.id).await.unwrap().position_source.as_deref(),
+            Some("manual_unverified")
+        );
         let response = router
             .oneshot(
                 Request::builder()

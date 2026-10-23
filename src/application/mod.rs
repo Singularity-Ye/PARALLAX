@@ -102,8 +102,17 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
         flag.store(true, Ordering::Relaxed);
         Ok(())
     }
-    pub async fn create_plan(&self, request: PlanRequest) -> Result<PlanPreview, AppError> {
+    pub async fn create_plan(&self, request: PlanRequest) -> Result<PlanPreview, AppError>
+    where
+        R: ports::AccountRepository,
+    {
         request.validate().map_err(AppError::Invalid)?;
+        if let Some(snapshot) = &request.position_snapshot {
+            self.store
+                .account(snapshot.account_id.clone())
+                .await?
+                .ok_or(AppError::Missing("仓位快照的账户不存在"))?;
+        }
         let report = self.scan(request.scan_id.clone()).await?;
         let plan = preview(&report, request, now()).map_err(AppError::Invalid)?;
         self.store.insert_plan(plan.clone()).await?;

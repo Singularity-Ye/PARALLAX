@@ -7,6 +7,10 @@
 <section class="notice">当前支持演示扫描与 SteamDT 榜单读取。榜单通过仅代表预筛通过，尚未进行实时深度、历史风险和交易前复核；真实买卖正在迁移。</section>
 <div class="workspace"><section class="card controls"><div class="section-title"><h2>本轮选品范围</h2><span>01 / SCOPE</span></div>
 <form id="scan-form"><label>数据来源<select name="source"><option value="demo">演示数据 · 本地固定样例</option><option value="steamdt">SteamDT · BUFF → Steam 榜单</option></select></label>
+<details><summary>钱包净值估算方式</summary><label>费用模型<select name="wallet_policy"><option value="legacy115">原版 1.15 比例估算</option><option value="parameterized_fees">按自填费率与最低费用估算</option></select></label>
+<fieldset id="fee-fields" disabled><div class="pair"><label>平台费率 / %<input name="platform_rate" type="number" min="0" max="100" step="0.01" value="5" required></label><label>发行商费率 / %<input name="publisher_rate" type="number" min="0" max="100" step="0.01" value="10" required></label></div>
+<div class="pair"><label>最低平台费 / 元<input name="platform_min" type="number" min="0" step="0.01" required></label><label>最低发行商费 / 元<input name="publisher_min" type="number" min="0" step="0.01" required></label></div><label>净值步长 / 元<input name="fee_increment" type="number" min="0.01" step="0.01" value="0.01" required></label></fieldset>
+<p class="hint">用于本轮及其计划的 CNY 估算，不代表平台已确认结算。切换参数后请重新扫描。</p></details>
 <div class="pair"><label>最多请求页数<input name="max_pages" type="number" min="1" max="20" value="3" required></label><label>每页条数<input name="page_size" type="number" min="1" max="200" value="10" required></label></div>
 <label>最多分析商品数<input name="max_items" type="number" min="1" max="2000" value="100" required></label>
 <div class="pair"><label>最低现金价 / 元<input name="min_price" type="number" min="0" step="0.01" value="2" required></label><label>最高现金价 / 元<input name="max_price" type="number" min="0" max="1000000" step="0.01" value="5000" required></label></div>
@@ -21,11 +25,15 @@
 <section class="card" id="planning"><div class="section-title"><h2>交易预算计划</h2><span>02 / PLAN</span></div>
 <p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>
 <div class="workspace"><form id="plan-form">
-<label>现金预算 / 元<input name="budget" type="number" min="0.01" max="1000000" step="0.01" value="100" required></label>
-<label>钱包目标 / 元（选填）<input name="target_wallet" type="number" min="0.01" max="10000000" step="0.01" placeholder="留空则按预算分配"></label>
-<div class="pair"><label>每种最多件数<input name="max_units" type="number" min="1" max="100" value="2" required></label><label>最多商品种类<input name="max_positions" type="number" min="1" max="100" value="3" required></label></div>
+<label>现金预算 / 元（含已预留现金）<input name="budget" type="number" min="0.01" max="1000000" step="0.01" value="100" required></label>
+<label>本计划新增钱包目标 / 元（选填）<input name="target_wallet" type="number" min="0.01" max="10000000" step="0.01" placeholder="留空则按预算分配"></label>
+<div class="pair"><label>每种数量上限（含填报持仓及未决买入）<input name="max_units" type="number" min="1" max="100" value="2" required></label><label>最多商品种类<input name="max_positions" type="number" min="1" max="100" value="3" required></label></div>
 <label>报价有效期 / 秒<input name="quote_age" type="number" min="1" max="3600" value="300" required></label>
-<p class="hint">按估算折算率从低到高分配。数量上限属于本计划，尚未计入已有持仓或市场库存。预览不会下单。</p>
+<details><summary>手动填报仓位与可买量</summary><label><input type="checkbox" id="use-positions"> 使用这份手动快照；保留的 0 表示我填报为零，并非平台核验</label>
+<fieldset id="position-fields" disabled><label>所属账户<select id="position-account" required></select></label><label>数据观察时间<input id="position-time" type="datetime-local" required></label><label>已预留现金 / 元<input id="position-reserved" type="number" min="0" step="0.01" value="0" required></label><label>快照有效期 / 秒<input id="position-age" type="number" min="1" max="3600" value="300" required></label>
+<label><input type="checkbox" id="use-liquidity"> 依据填报日成交量限制增购数量</label><fieldset id="liquidity-fields" disabled><div class="pair"><label>日量占比 / %<input id="daily-participation" type="number" min="0" max="100" step="0.01" value="5" required></label><label>低价界线 / 元<input id="low-threshold" type="number" min="0" step="0.01" value="5" required></label></div><div class="pair"><label>低价数量系数 / %<input id="low-penalty" type="number" min="0" max="100" step="0.01" value="50" required></label><label>低价数量上限<input id="low-cap" type="number" min="0" max="100" step="1" value="30" required></label></div></fieldset>
+<p class="hint">可买量和日成交量留空表示未知。启用日量约束时，缺少日量的商品会跳过；不会借用榜单成交量。持有数量包含已挂牌资产，未决买入与持有不要重复计数。</p><div id="position-entries"></div></fieldset></details>
+<p class="hint">按估算折算率分配，受现金、填报仓位和可买量约束。未提供快照时仅为匿名预算预览。预览不会下单或预留资金。</p>
 <button id="plan-create" type="submit" disabled>生成并保存预算预览</button>
 <div id="plan-feedback" role="status" aria-live="polite"></div>
 </form><div id="plan-result"><p class="hint">计划会保留报价快照、预算分配与跳过原因。</p></div></div>

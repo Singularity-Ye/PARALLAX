@@ -1,4 +1,5 @@
 import { parallax } from './lib/api.js';
+import { readWalletPolicy, readPositionInputs, renderPositionInputs } from './plan-inputs.js';
 const el = id => document.getElementById(id);
 const money = value => `¥${(value / 100).toFixed(2)}`;
 const reasonNames = {page_budget:'已达到页数预算，仍可能有未读取商品',item_budget:'已达到分析预算',source_exhausted:'当前来源查询已返回空页（不代表全市场）',source_error:'来源请求失败，保留已取得结果',cancelled:'已按要求停止',process_restart:'上次扫描被进程重启中断'};
@@ -18,6 +19,7 @@ function render(report) {
   }));
   el('result-summary').textContent = `淘汰 ${c.rejected} · 重复 ${c.duplicates} · 已收未分析 ${c.unexamined_received}`;
   renderCandidates();
+  renderPositionInputs(report);
 }
 function renderCandidates() {
   if (!current) return;
@@ -50,6 +52,7 @@ el('scan-form').addEventListener('submit',async event=>{
   event.preventDefault();
   const f=new FormData(event.target), n=key=>Number(f.get(key));
   const request={source:f.get('source'),max_pages:n('max_pages'),page_size:n('page_size'),max_items:n('max_items'),min_price_cents:Math.round(n('min_price')*100),max_price_cents:Math.round(n('max_price')*100),min_volume:n('min_volume'),max_ratio_bps:Math.round(n('max_ratio')*100),exclude_keywords:String(f.get('exclude_keywords')).split(/[,，]/).map(s=>s.trim()).filter(Boolean)};
+  request.wallet_policy=readWalletPolicy(f);
   busy(true);
   try { const report=await parallax.startScan(request);activeId=report.id;render(report);await history(); }
   catch(e){feedback(e.message,true);busy(Boolean(activeId));}
@@ -72,12 +75,14 @@ function renderPlan(plan) {
   const source = plan.source === 'demo' ? '固定演示数据' : 'SteamDT 榜单报价';
   box.replaceChildren(node('h3', `${source} · 预算预览`),
     node('p', `扫描 ${plan.request.scan_id.slice(0,8)} · 生成于 ${new Date(plan.created_at*1000).toLocaleString()}`),
-    node('p', `计划现金 ${money(plan.cash_total_cents)} · 剩余预算 ${money(plan.remaining_budget_cents)} · 估算钱包 ${money(plan.estimated_wallet_total_cents)}`));
+    node('p', `计划现金 ${money(plan.cash_total_cents)} · 已填报预留 ${money(plan.reserved_cash_cents || 0)} · 剩余预算 ${money(plan.remaining_budget_cents)} · 估算钱包 ${money(plan.estimated_wallet_total_cents)}`),
+    node('p', `${plan.wallet_policy?.kind==='parameterized_fees'?'自填费用模型估算':'1.15 比例估算'} · ${plan.position_source==='manual_unverified'?'仓位来源：用户手动填报，未平台核验':'未使用账户仓位快照'}`,'hint'));
   if (plan.target_met !== null) box.append(node('p', plan.target_met ? '已达到估算钱包目标（整件分配可能略超目标）。' : '未达到估算钱包目标，请查看预算与跳过原因。'));
   for (const line of plan.lines) {
     const row = node('article', undefined, 'candidate');
     row.append(node('strong', line.candidate.item.name),
       node('p', `${line.quantity} 件 · 现金合计 ${money(line.cash_total_cents)} · 估算钱包 ${money(line.estimated_wallet_total_cents)}`));
+    if (line.candidate.valuation) row.append(node('p',`每件估算费用 ${money(line.candidate.valuation.fees_minor)} · 无法用于净值的价差余量 ${money(line.candidate.valuation.unallocated_gross_minor)}`,'hint'));
     box.append(row);
   }
   if (!plan.lines.length) box.append(node('p', '本计划未分配商品；请检查报价有效期、预算与预筛条件。'));
@@ -108,6 +113,7 @@ el('plan-form').addEventListener('submit', async event => {
     max_quote_age_secs:Number(form.get('quote_age'))};
   el('plan-create').disabled=true;
   try {
+    Object.assign(request,readPositionInputs());
     renderPlan(await parallax.createPlan(request));
     planFeedback('预算预览已保存。未创建订单或预留资金。');
     try {await planHistory();} catch(e) {planFeedback(`计划已保存，但历史列表刷新失败：${e.message}`,true);}

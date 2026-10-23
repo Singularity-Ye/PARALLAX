@@ -32,6 +32,7 @@ async function action(fn) {
 el('account-form').onsubmit = e => {e.preventDefault();action(async()=>{
   const values = Object.fromEntries(new FormData(e.target));
   const account = await parallax.createAccount(values);
+  window.dispatchEvent(new Event('parallax:account-created'));
   e.target.reset();await loadAccounts(account.id);return '账户已创建';
 });};
 form.onsubmit = e => {e.preventDefault();action(async()=>{
