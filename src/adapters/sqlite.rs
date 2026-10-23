@@ -8,6 +8,7 @@ use std::{
 };
 mod accounts;
 mod buff_quotes;
+mod inventory;
 mod orderbook;
 
 #[derive(Clone)]
@@ -26,7 +27,8 @@ impl Store {
             CREATE TABLE IF NOT EXISTS account_sessions (account_id TEXT NOT NULL, platform TEXT NOT NULL, metadata TEXT NOT NULL, credential_key TEXT NOT NULL, PRIMARY KEY(account_id,platform));
             CREATE TABLE IF NOT EXISTS auth_policy (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS steam_order_books (id TEXT PRIMARY KEY, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS buff_quote_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
+            CREATE TABLE IF NOT EXISTS buff_quote_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS inventory_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
         // A restarted process cannot continue an old in-memory scan. Preserve evidence honestly.
         let reports = {
             let mut stmt = db.prepare("SELECT report FROM scans")?;

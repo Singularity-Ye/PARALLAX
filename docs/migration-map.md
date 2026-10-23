@@ -31,15 +31,15 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M13 | 单笔/批量锁单、付款提示、核销、写入未知阻断（R）；单笔确认后的平台付款/取消核验（A）；两版 `pipeline_steps.py`、`buff/buyer.py`、R `services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 未迁移，`POST /api/trades` 仍 501；R 单笔不能视为已完整核验付款；组合 A 核验与 R 防重，未知结果先对账 |
 | M14 | 工作时间窗、目标余额、停止、互斥、维护锁、失败商品 TTL；R `pipeline.py`、`pipeline_context.py`、`state.py` | application/orchestrator、scheduler；复用纯规则与持久化订单 | 未迁移；区分停止新动作、等待已发请求和补偿/对账 |
 | M15 | BUFF 发货贸易单、接受 Steam offer、购买记录到 asset 的唯一匹配；R `receive_flow.py` | application/receipt；adapters/steam_trade、buff_trade | 未迁移；模糊/多重匹配留待人工复核，不按名称随意绑定 |
-| M16 | 库存分页、可交易时间、冷却、解锁元数据；R `steam/inventory.py`、`inventory_cs2.py`；A `trade_ledger.py` | domain/inventory；application/inventory_sync | 未迁移；estimated_unlock 与 actual_unlock 分开，解锁后保留真实时间 |
+| M16 | 库存分页、可交易时间、冷却、解锁元数据；R `steam/inventory.py`、`inventory_cs2.py`；A `trade_ledger.py` | domain/application/inventory；adapters/steam_inventory | 部分实现：认证双区分页、范围/冲突拒绝、不可覆盖账户快照；真实协议未验收，解锁时间未知，不覆盖手工仓位；挂牌/未决/实际解锁待迁移 |
 | M17 | 立即/趋势/收益保护/暂停出售、同名挂牌限额、上架确认、手机确认、撤单；R `sell_pipeline.py`、`steam/market.py`、`steam_confirm.py`、`steam_listings.py`、`steam_delist.py` | domain/sell_policy；application/listing；adapters/steam_listing、confirmation | 未迁移；绑定账户/资产、真实响应成功才记挂牌；避免全选确认不相关操作 |
 | M18 | 成交同步、错误记录修复、交易 CRUD、持仓估值/报表；R `sync_sold.py`、`repair_error_records.py`、`database.py`、`notify.py`、`routes/transactions.py` | application/reconciliation；adapters/sqlite；审计事件 | 未迁移；保留证据、主键与重复检测，修复需 dry-run，不直接迁旧数据库 |
 | M19 | 同批资产生命周期、真实折算率、滑点、持有时间、14 日解锁敞口；A `trade_ledger.py`、`web/js/tradeLedger.js` | domain/performance；application/ledger | 未迁移；余额价值和可提现现金分开，原阈值未经成交样本校准 |
 | M20 | Steam 游戏折扣采集、区域价格、断点恢复、历史低价、评分、折扣卡片；R `services/steam_deals.py`、`deal_cards.py`、`routes/steam_deals.py` | 独立 application/deals、adapters/steam_store、card_renderer | 未迁移；与饰品自动买卖共用账户/汇率/任务，不耦合订单流程 |
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
-| M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 当前有扫描、预算/历史、手动会话、自填费用与仓位 UI；其余待迁移；统一客户端可供反重力复用 |
-| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前 58 项常规测试通过；BUFF 用合成夹具，未在线验收；Steam/浏览器/凭据沿用前阶段证据；旧测试未逐项移植 |
+| M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 当前有扫描、预算/历史、手动/浏览器会话、自填费用与仓位、双侧报价和库存观察 UI；其余待迁移；统一客户端可供反重力复用 |
+| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前 68 项常规测试通过；库存/BUFF 用合成夹具，未在线验收；Steam/浏览器/凭据沿用前阶段证据；旧测试未逐项移植 |
 
 ## 必须纠正的几处认知
 
@@ -60,7 +60,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 账本/对账 ← 成交 ← 上架/确认 ← 库存冷却 ← 收货 ← 预检/锁单/付款核验
 ```
 
-已实现端口：MarketSource、Repository、CredentialStore、AccountRepository、SessionVerifier、BrowserAuth、OrderBookProvider/OrderBookRepository、BuffQuoteProvider/BuffQuoteRepository。后续按需要补 HistoryProvider、TradeGateway、OrderRepository、InventoryProvider、NotificationSink；只在实现对应切片时添加，不提前堆空接口。
+已实现端口：MarketSource、Repository、CredentialStore、AccountRepository、SessionVerifier、BrowserAuth、OrderBookProvider/OrderBookRepository、BuffQuoteProvider/BuffQuoteRepository、InventoryProvider/InventoryRepository。后续按需要补 HistoryProvider、TradeGateway、OrderRepository、NotificationSink；只在实现对应切片时添加，不提前堆空接口。
 
 - **会话合同**：账户 ID、平台、凭据代次、状态和验证时间；密钥仅存凭据后端，API 只回脱敏状态。网络超时不等于凭据失效。浏览器和自动登录都交付相同会话对象。
 - **报价合同**：原币最小单位、汇率时间、商品标识、买卖深度、可买数量、来源/抓取时间、估算/真实净值。CNY 展示与原币结算分开。
@@ -92,4 +92,4 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 
 运行 `python tools/source_inventory.py` 生成完整索引，检查两版所有登记路径存在、225 个 Python 文件可解析。该脚本不验证外部接口、策略收益或原测试通过情况。没有启动登录、付款、下单、礼物结账等操作。
 
-当前最新为 BUFF 现金端阶段 58 项常规测试通过，19/30/38/48 是前阶段历史数字；Steam 匿名样本、独立空白浏览器与原生凭据沿用前阶段证据。BUFF 已有只读适配、共享认证门、快照与预算引用，本轮未使用真实会话或发出带凭据请求；真实登录、线上报价字段/CNY、库存/历史、自动续期和交易仍待验收/实现。合同见 [buff-quotes.md](buff-quotes.md)、[orderbook.md](orderbook.md) 与 [accounts.md](accounts.md)。
+当前最新为库存观察阶段 68 项常规测试通过，19/30/38/48/58 是前阶段历史数字；Steam 匿名样本、独立空白浏览器与原生凭据沿用前阶段证据。库存双区分页和账户快照已接入，BUFF 已有只读适配与计划引用；本轮未使用真实会话或发出带凭据请求。真实登录、BUFF 报价字段/CNY、库存协议/解锁/持仓合并、价格历史、自动续期和交易仍待验收/实现。合同见 [inventory.md](inventory.md)、[buff-quotes.md](buff-quotes.md)、[orderbook.md](orderbook.md) 与 [accounts.md](accounts.md)。

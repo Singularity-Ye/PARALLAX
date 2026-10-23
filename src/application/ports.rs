@@ -7,6 +7,57 @@ use crate::domain::{
 };
 use std::future::Future;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum InventoryReadError {
+    Network,
+    InvalidPayload,
+    Rejected,
+    Expired,
+    CredentialsChanged,
+    ChangedDuringRead,
+    RateLimited(u64),
+}
+impl InventoryReadError {
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::Network => "Steam 库存读取失败或超时；未保存新快照",
+            Self::InvalidPayload => "Steam 库存字段、资产身份或游标无效；未保存新快照",
+            Self::Rejected => {
+                "Steam 拒绝库存读取，可能涉及隐私或访问限制；未当作空库存或判定登录失效"
+            }
+            Self::Expired => "Steam 返回未登录，请重新获取并验证登录态",
+            Self::CredentialsChanged => "Steam 返回新的认证 Cookie，需通过浏览器重新获取和核验",
+            Self::ChangedDuringRead => "分页期间库存总数、资产或游标发生冲突；未保存不一致的新快照",
+            Self::RateLimited(_) => "Steam 库存读取处于冷却中，请等待后重试",
+        }
+    }
+}
+pub trait InventoryProvider: Send + Sync {
+    fn page(
+        &self,
+        steam_id: &str,
+        context: &str,
+        cursor: Option<&str>,
+        secret: &Credentials,
+    ) -> impl Future<Output = Result<crate::domain::inventory::InventoryPage, InventoryReadError>> + Send;
+}
+pub trait InventoryRepository: Send + Sync {
+    fn insert_inventory(
+        &self,
+        snapshot: crate::domain::inventory::InventorySnapshot,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn inventory(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::inventory::InventorySnapshot>>> + Send;
+    fn inventories(
+        &self,
+        account_id: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::inventory::InventorySnapshot>>> + Send;
+    fn inventory_retry(&self) -> impl Future<Output = anyhow::Result<u64>> + Send;
+    fn set_inventory_retry(&self, at: u64) -> impl Future<Output = anyhow::Result<()>> + Send;
+}
+
 #[derive(Clone, Copy, Debug)]
 pub enum BuffReadError {
     Network,

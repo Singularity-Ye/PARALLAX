@@ -6,6 +6,9 @@ use crate::domain::{accounts::*, selection::now};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[path = "accounts_inventory.rs"]
+mod inventory;
+
 pub struct Accounts<R, C, V> {
     repo: R,
     vault: C,

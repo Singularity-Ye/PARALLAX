@@ -67,6 +67,17 @@ export interface OrderBookSnapshot {
   warnings:string[];
 }
 export class ApiError extends Error { status:number; constructor(message:string, status:number); }
+export interface InventoryRequest {max_pages_per_context?:number;}
+export interface InventoryAsset {
+  app_id:730;context_id:'2'|'16';asset_id:string;class_id:string;instance_id:string;amount:number;
+  market_hash_name:string|null;reported_tradable:boolean;reported_marketable:boolean;restriction_note_present:boolean;
+}
+export interface InventorySnapshot {
+  id:string;account_id:string;steam_id:string;credential_generation:string;request:{max_pages_per_context:number};
+  started_at:number;observed_at:number;source:'steam_authenticated_inventory';platform_verified:false;
+  coverage:{context_id:'2'|'16';pages_read:number;reported_total:number;observed_assets:number;exhausted:boolean;stop_reason:'page_budget'|'source_exhausted'}[];
+  assets:InventoryAsset[];warnings:string[];
+}
 export type Platform = 'steam' | 'buff';
 export interface Account { id:string; label:string; steam_id:string; created_at:number; }
 export interface SessionView {
@@ -80,6 +91,9 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  inventories(account:string):Promise<{items:InventorySnapshot[]}>;
+  inventory(account:string,id:string):Promise<InventorySnapshot>;
+  fetchInventory(account:string,value:InventoryRequest):Promise<InventorySnapshot>;
   buffQuotes(account:string):Promise<{items:BuffQuoteSnapshot[]}>;
   buffQuote(account:string,id:string):Promise<BuffQuoteSnapshot>;
   fetchBuffQuote(account:string,value:{scan_id:string;item_key:string}):Promise<BuffQuoteSnapshot>;

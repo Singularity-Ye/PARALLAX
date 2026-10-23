@@ -10,7 +10,9 @@ AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预�
 
 已接 Steam 公开买卖盘口快照、原币深度与价差、SQLite 历史，以及可选的 CNY 预算引用。实测请求 CNY 仍可能得到 TWD，按实际币种保留，不混入人民币计划。合同与边界见 [盘口研究](docs/orderbook.md)。
 
-BUFF 现金端已接原协议只读适配、账户/凭据代次绑定、首屏快照及预算引用；与登录/挑战/冷却共用认证门。只按最低价可见卖单数限量，空盘不退回榜单价。**该切片仅通过合成夹具，真实 BUFF 登录、卖单字段和 CNY 单位尚未验收。** 合同见 [现金端报价](docs/buff-quotes.md)。库存与历史仍待接入。
+BUFF 现金端已接原协议只读适配、账户/凭据代次绑定、首屏快照及预算引用；与登录/挑战/冷却共用认证门。只按最低价可见卖单数限量，空盘不退回榜单价。**该切片仅通过合成夹具，真实 BUFF 登录、卖单字段和 CNY 单位尚未验收。** 合同见 [现金端报价](docs/buff-quotes.md)。
+
+Steam CS2 库存观察已接双区分页、账户认证门、局部范围与不可覆盖快照；跨区失败不保存新快照，不把缺失或部分库存当零持仓。解锁时间未知，暂不覆盖手工仓位。**真实库存协议未验收**，价格历史仍待接入。合同见 [库存观察](docs/inventory.md)。
 
 ## 快速运行
 
@@ -40,6 +42,7 @@ src/
     accounts.rs       账户身份、凭据校验和脱敏会话模型
     orderbook.rs      原币盘口、深度摘要和 CNY 估值约束
     buff_quotes.rs    账户绑定的首屏现金报价与可见数量
+    inventory.rs      CS2 资产身份、数量和分页范围快照
     selection.rs      选品请求、统一商品、候选理由、覆盖报告
     analysis.rs       费用估算、整数比例与预筛规则
     money.rs          币种金额、费率/最低费用与步长逆推
@@ -51,6 +54,8 @@ src/
     browser_login.rs  独立登录窗口、账户/代次绑定、取消与过期
     orderbook.rs      只读盘口获取、证据保存与历史查询
     buff_quotes.rs    扫描候选映射、共享认证门与账户报价历史
+    inventory.rs      双区分页、截断/冲突处理及账户快照历史
+    accounts_inventory.rs 复用 Accounts 门与凭据的库存读取
     mod.rs            扫描任务、取消、计划创建和查询
     scanner.rs        分页、去重、覆盖统计和停止原因
     ports.rs          行情、仓储、凭据、验证与浏览器端口
@@ -60,6 +65,7 @@ src/
     session.rs        Steam/BUFF 只读身份核验
     steam_orderbook.rs 匿名 Steam queryAction 盘口解析
     buff_quotes.rs    BUFF 卖单 GET、整数价格和错误/轮换分类
+    steam_inventory.rs Steam 双区库存 GET、精确实例匹配和有限解析
     market.rs         演示和 SteamDT 来源，复用 reqwest 连接池
     sqlite.rs         扫描记录和不可覆盖的预算预览快照
   transport/
@@ -68,6 +74,7 @@ src/
     browser_login.rs  浏览器登录/人工恢复路由
     orderbook.rs      盘口快照路由
     buff_quotes.rs    账户 BUFF 报价路由
+    inventory.rs      账户库存快照路由
   main.rs             组装依赖、配置、启动
 web/
   lib/api.js          与 UI 无关的统一客户端
@@ -119,6 +126,8 @@ web/
 | GET | /api/steam/order-books/{id} | 盘口历史；不刷新平台 |
 | GET / POST | /api/accounts/{id}/buff-quotes | 账户最近十份报价 / 读取当前真实候选并保存 |
 | GET | /api/accounts/{id}/buff-quotes/{quote} | 账户绑定的历史报价 |
+| GET / POST | /api/accounts/{id}/inventories | 最近十份库存快照 / 显式双区分页读取 |
+| GET | /api/accounts/{id}/inventories/{snapshot} | 账户绑定的库存历史，非当前可出售承诺 |
 | POST | /api/trades | 501，未创建订单 |
 
 创建计划的请求示例（scan_id 换成完成的扫描 ID）：

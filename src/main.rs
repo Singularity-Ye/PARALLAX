@@ -29,6 +29,11 @@ async fn main() -> anyhow::Result<()> {
         auth.clone(),
         parallax::adapters::buff_quotes::BuffSellOrders::new()?,
     );
+    let inventory = parallax::application::inventory::InventoryResearch::new(
+        store.clone(),
+        auth.clone(),
+        parallax::adapters::steam_inventory::SteamInventory::new()?,
+    );
     let state = Application::new(Provider::new()?, store);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -43,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         router(state)
             .merge(parallax::transport::accounts::router(auth))
             .merge(parallax::transport::buff_quotes::router(buff_quotes))
+            .merge(parallax::transport::inventory::router(inventory))
             .merge(parallax::transport::orderbook::router(order_books))
             .merge(parallax::transport::browser_login::router(browser_logins)),
     )

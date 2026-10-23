@@ -58,5 +58,9 @@
 <div class="actions"><button id="browser-start" type="button" class="secondary">打开独立登录窗口</button><button id="browser-finish" type="button" class="secondary" disabled>完成登录并验证</button><button id="browser-cancel" type="button" class="secondary" disabled>取消登录</button></div>
 <p id="browser-feedback" role="status" aria-live="polite">在上方选择账户与平台，再打开独立窗口。密码与 Guard 码只输入官方页面；窗口十分钟后过期。</p>
 <p id="account-feedback" role="status" aria-live="polite"></p><div id="session-list"></div></section>
-<footer>Parallax <span>观其异，度其值。</span></footer></main><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script>
+<section class="card" id="inventory"><div class="section-title"><h2>Steam 库存观察</h2><span>READ ONLY / CS2</span></div>
+<p class="hint">读取所选账户的 CS2 库存区 2 与 16。先完成最近五分钟内的 Steam 在线身份核验并等待冷却。每页 75 个资产；分页读完也不代表完整交易敞口，不含已挂牌和未决采购。线上协议尚未实测。</p>
+<form id="inventory-form"><label>库存账户<select id="inventory-account" required></select></label><label>每区最多页数<input id="inventory-pages" type="number" min="1" max="10" value="4" required></label><button id="inventory-fetch" disabled>读取并保存库存快照</button></form>
+<p id="inventory-feedback" role="status" aria-live="polite"></p><div id="inventory-result"></div><details><summary>该账户最近十份库存快照</summary><div id="inventory-history"></div></details></section>
+<footer>Parallax <span>观其异，度其值。</span></footer></main><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script>
 </body></html>
