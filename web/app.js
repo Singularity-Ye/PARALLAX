@@ -86,6 +86,7 @@ function renderPlan(plan) {
     node('p', `${plan.wallet_policy?.kind==='parameterized_fees'?'自填费用模型估算':'1.15 比例估算'} · ${plan.position_source==='manual_unverified'?'仓位来源：用户手动填报，未平台核验':'未使用账户仓位快照'}`,'hint'));
   if (plan.target_met !== null) box.append(node('p', plan.target_met ? '已达到估算钱包目标（整件分配可能略超目标）。' : '未达到估算钱包目标，请查看预算与跳过原因。'));
   for(const evidence of plan.steam_valuations || [])box.append(node('p',`Steam 估值引用 ${evidence.snapshot_id} · ${evidence.market_hash_name} · 最低卖价 ${money(evidence.gross_listing_estimate_cents)}；为慢卖估算，不保证成交。`,'hint'));
+  if(plan.fx)box.append(node('p',`外币按参考汇率 ${plan.fx.id} 折为人民币，报价日期 ${[...new Set(Object.values(plan.fx.rates).map(r=>r.date))].join(' / ')}；原币及完整汇率已随计划保存。`,'hint'));
   for(const evidence of plan.buff_valuations || [])box.append(node('p',`BUFF 引用 ${evidence.snapshot_id} · ${evidence.item_key} · ${evidence.unit_cash_cents===null?'空卖盘':money(evidence.unit_cash_cents)} · 最低价可见 ${evidence.lowest_tier_visible_units} 条；未锁定数量。`,'hint'));
   for (const line of plan.lines) {
     const row = node('article', undefined, 'candidate');

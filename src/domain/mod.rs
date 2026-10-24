@@ -2,6 +2,7 @@
 pub mod accounts;
 pub mod analysis;
 pub mod buff_quotes;
+pub mod fx;
 pub mod history;
 pub mod inventory;
 pub mod money;

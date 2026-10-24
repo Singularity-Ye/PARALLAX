@@ -4,6 +4,7 @@ use crate::{
         orderbook::{ListingPreviewRequest, ListingPricePreview, OrderBookResearch},
         ports::*,
     },
+    domain::money::Currency,
     domain::orderbook::*,
 };
 use axum::{
@@ -12,6 +13,7 @@ use axum::{
     http::{StatusCode, header},
     routing::{get, post},
 };
+use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
@@ -25,12 +27,42 @@ pub fn router<P: OrderBookProvider + 'static, R: OrderBookRepository + 'static>(
         )
         .route("/api/steam/order-books/{id}", get(detail::<P, R>))
         .route(
+            "/api/steam/order-books/{id}/valuation",
+            post(valuation::<P, R>),
+        )
+        .route(
             "/api/steam/order-books/{id}/listing-preview",
             post(listing_preview::<P, R>),
         )
         .layer(DefaultBodyLimit::max(2048))
         .layer(axum::middleware::from_fn(same_origin))
         .with_state(state)
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ValuationRequest {
+    #[serde(default = "Currency::cny")]
+    display_currency: Currency,
+}
+async fn valuation<P: OrderBookProvider, R: OrderBookRepository>(
+    State(app): State<Arc<OrderBookResearch<P, R>>>,
+    Path(id): Path<String>,
+    body: Result<Json<ValuationRequest>, JsonRejection>,
+) -> Result<
+    (
+        [(header::HeaderName, &'static str); 1],
+        Json<crate::application::orderbook::BookValuation>,
+    ),
+    ApiError,
+> {
+    Ok((
+        [(header::CACHE_CONTROL, "no-store")],
+        Json(
+            app.valuation(id, input(body)?.display_currency)
+                .await
+                .map_err(app_error)?,
+        ),
+    ))
 }
 async fn listing_preview<P: OrderBookProvider, R: OrderBookRepository>(
     State(app): State<Arc<OrderBookResearch<P, R>>>,

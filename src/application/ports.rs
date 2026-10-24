@@ -7,6 +7,22 @@ use crate::domain::{
 };
 use std::future::Future;
 
+pub trait FxProvider: Send + Sync {
+    fn fetch_rates(
+        &self,
+        at: u64,
+    ) -> impl Future<Output = Result<crate::domain::fx::FxSnapshot, String>> + Send;
+}
+pub trait FxRepository: Send + Sync {
+    fn insert_fx(
+        &self,
+        snapshot: crate::domain::fx::FxSnapshot,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn latest_fx(
+        &self,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::fx::FxSnapshot>>> + Send;
+}
+
 #[derive(Clone, Copy)]
 pub enum SteamReadScope {
     Inventory,

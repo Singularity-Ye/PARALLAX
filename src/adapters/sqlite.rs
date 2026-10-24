@@ -8,6 +8,7 @@ use std::{
 };
 mod accounts;
 mod buff_quotes;
+mod fx;
 mod history;
 mod inventory;
 mod orderbook;
@@ -31,7 +32,8 @@ impl Store {
             CREATE TABLE IF NOT EXISTS steam_order_books (id TEXT PRIMARY KEY, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS buff_quote_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS inventory_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS price_history_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
+            CREATE TABLE IF NOT EXISTS price_history_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS exchange_rate_snapshots (id TEXT PRIMARY KEY, fetched_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
         // A restarted process cannot continue an old in-memory scan. Preserve evidence honestly.
         let reports = {
             let mut stmt = db.prepare("SELECT report FROM scans")?;

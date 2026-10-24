@@ -23,6 +23,7 @@ fn error(status: StatusCode, message: &str) -> ApiError {
 }
 pub(super) fn app_error(err: AppError) -> ApiError {
     match err {
+        AppError::Fx(message) => error(StatusCode::BAD_GATEWAY, &message),
         AppError::Invalid(message) => error(StatusCode::BAD_REQUEST, &message),
         AppError::Missing(message) => error(StatusCode::NOT_FOUND, message),
         AppError::Conflict(message) => error(StatusCode::CONFLICT, message),

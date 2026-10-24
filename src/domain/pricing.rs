@@ -76,6 +76,8 @@ pub struct GapCheck {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ListingPriceAnalysis {
     pub algorithm: String,
+    pub book_currency: Currency,
+    pub native_gross_listing_estimate: Option<Money>,
     pub gross_listing_estimate: Option<Money>,
     pub reason: PricingReason,
     pub ignored_lowest_tiers: Vec<PriceLevel>,
@@ -100,10 +102,36 @@ pub fn wall_gap_price(
     book: &OrderBook,
     policy: &WallGapPolicy,
 ) -> Result<ListingPriceAnalysis, String> {
+    if book.currency != Currency::cny() {
+        return Err("外币定价需要有效汇率快照".into());
+    }
+    wall_gap_price_with_rate(book, policy, 1, 1)
+}
+
+/// Exact CNY-minor/native-minor ratio. No quantized/merged synthetic order book.
+pub fn wall_gap_price_with_rate(
+    book: &OrderBook,
+    policy: &WallGapPolicy,
+    n: u64,
+    d: u64,
+) -> Result<ListingPriceAnalysis, String> {
     policy.validate()?;
     book.validate()?;
-    if book.currency != policy.currency {
-        return Err("盘口实际币种与人民币定价参数不一致；不能套用人民币阈值".into());
+    if !super::fx::supported(&book.currency)
+        || n == 0
+        || d == 0
+        || n > 1_000_000_000_000
+        || d > 1_000_000_000_000
+    {
+        return Err("汇率比率或币种无效".into());
+    }
+    let (n, d) = (n as u128, d as u128);
+    if book
+        .asks
+        .last()
+        .is_some_and(|l| (l.price_minor as u128) * n / d > 1_000_000_000_000)
+    {
+        return Err("折合人民币价格超出范围".into());
     }
     if book
         .best_ask()
@@ -113,7 +141,14 @@ pub fn wall_gap_price(
         return Err("盘口交叉，不能计算挂牌参考价".into());
     }
     let mut result = ListingPriceAnalysis {
-        algorithm: "wall_gap_cny_v1".into(),
+        algorithm: if book.currency == Currency::cny() {
+            "wall_gap_cny_v1"
+        } else {
+            "wall_gap_fx_v1"
+        }
+        .into(),
+        book_currency: book.currency.clone(),
+        native_gross_listing_estimate: None,
         gross_listing_estimate: None,
         reason: PricingReason::EmptyAsks,
         ignored_lowest_tiers: vec![],
@@ -163,10 +198,10 @@ pub fn wall_gap_price(
             result.stopped_by_blocking_volume = true;
             break;
         }
-        let (absolute, relative) = thresholds(lower.price_minor);
+        let (absolute, relative) = thresholds(((lower.price_minor as u128) * n / d) as u64);
         let gap = upper.price_minor - lower.price_minor;
         // Strictly greater than BOTH thresholds, without rounding relative cents.
-        let jumped = gap > absolute
+        let jumped = (gap as u128) * n > (absolute as u128) * d
             && (gap as u128) * 10_000 > (lower.price_minor as u128) * (relative as u128);
         result.gap_checks.push(GapCheck {
             lower_minor: lower.price_minor,
@@ -182,12 +217,20 @@ pub fn wall_gap_price(
         }
     }
     // Signed arithmetic matters when an undercut crosses zero before a positive offset.
-    let adjusted = anchor as i128 - policy.min_step_minor as i128 + policy.offset_minor as i128;
-    result.floor_applied = adjusted < policy.min_floor_minor as i128;
-    let price = adjusted.max(policy.min_floor_minor as i128);
-    if price > 1_000_000_000_000 {
+    let adjusted = (anchor as i128) * (n as i128) - (policy.min_step_minor as i128) * (d as i128)
+        + (policy.offset_minor as i128) * (d as i128);
+    let floor = (policy.min_floor_minor as i128) * (d as i128);
+    result.floor_applied = adjusted < floor;
+    // Round the native research price up, preserving the configured CNY floor.
+    let native_price = (adjusted.max(floor) as u128).div_ceil(n);
+    let price = native_price * n / d;
+    if price > 1_000_000_000_000 || native_price > 1_000_000_000_000 {
         return Err("计算挂牌价超出支持的金额范围".into());
     }
+    result.native_gross_listing_estimate = Some(Money {
+        minor: native_price as u64,
+        currency: book.currency.clone(),
+    });
     result.gross_listing_estimate = Some(Money::cny(price as u64));
     Ok(result)
 }
@@ -215,6 +258,31 @@ mod tests {
     }
     fn gross(r: &ListingPriceAnalysis) -> u64 {
         r.gross_listing_estimate.as_ref().unwrap().minor
+    }
+    #[test]
+    fn fx_comparisons_keep_native_tiers_and_cny_thresholds_exact() {
+        let mut b = book(&[(5000, 1), (5500, 30)]);
+        b.currency = "TWD".to_string().try_into().unwrap();
+        let p = WallGapPolicy {
+            min_lowest_tier_volume: 0,
+            ..Default::default()
+        };
+        let r = wall_gap_price_with_rate(&b, &p, 1, 5).unwrap();
+        assert_eq!(gross(&r), 1099);
+        assert_eq!(r.native_gross_listing_estimate.unwrap().minor, 5495);
+        assert_eq!(r.reason, PricingReason::GapJump);
+        assert_eq!(r.gap_checks[0].lower_minor, 5000);
+        b.asks[1].price_minor = 5250; // 50 CNY cents == 5%; equality must NOT jump.
+        assert_eq!(
+            wall_gap_price_with_rate(&b, &p, 1, 5).unwrap().reason,
+            PricingReason::RegularUndercut
+        );
+        let mut b = book(&[(1, 30)]);
+        b.currency = "TWD".to_string().try_into().unwrap();
+        let r = wall_gap_price_with_rate(&b, &p, 3, 7).unwrap();
+        assert!(gross(&r) >= 3);
+        assert!(r.floor_applied);
+        assert_eq!(r.native_gross_listing_estimate.unwrap().minor, 7);
     }
     #[test]
     fn empty_and_single_level_keep_absence_and_floor_explicit() {

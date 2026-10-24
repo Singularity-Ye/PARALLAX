@@ -107,6 +107,8 @@ pub struct SkippedItem {
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanPreview {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fx: Option<super::fx::FxSnapshot>,
     pub id: String,
     pub created_at: u64,
     pub status: String,
@@ -148,6 +150,8 @@ pub struct BuffValuationEvidence {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SteamValuationEvidence {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub native_ask: Option<super::money::Money>,
     pub snapshot_id: String,
     pub market_hash_name: String,
     pub observed_at: u64,
@@ -173,7 +177,20 @@ pub fn preview_with_quotes(
     books: &[OrderBookSnapshot],
     buffs: &[BuffQuoteSnapshot],
 ) -> Result<PlanPreview, String> {
+    preview_with_fx_quotes(report, request, at, books, buffs, None)
+}
+pub fn preview_with_fx_quotes(
+    report: &ScanReport,
+    request: PlanRequest,
+    at: u64,
+    books: &[OrderBookSnapshot],
+    buffs: &[BuffQuoteSnapshot],
+    fx: Option<&super::fx::FxSnapshot>,
+) -> Result<PlanPreview, String> {
     request.validate()?;
+    if let Some(f) = fx {
+        f.validate(at)?;
+    }
     if report.id != request.scan_id || report.status != "completed" {
         return Err("只能从已完成的扫描创建计划，请先完成或重新扫描".into());
     }
@@ -253,7 +270,20 @@ pub fn preview_with_quotes(
         if !report.candidates.iter().any(|c| &c.item.key == key) {
             return Err("Steam 盘口商品与扫描候选不匹配".into());
         }
-        let ask = book.cny_ask(at, request.max_quote_age_secs)?;
+        let native = super::money::Money {
+            minor: book.native_ask(at, request.max_quote_age_secs)?,
+            currency: book.book.currency.clone(),
+        };
+        let converted = if native.currency == super::money::Currency::cny() {
+            native.clone()
+        } else {
+            fx.ok_or("外币预算引用需要有效汇率快照")?
+                .convert(&native, &super::money::Currency::cny())?
+        };
+        let ask = converted.minor;
+        if ask == 0 {
+            return Err("折合人民币金额低于最小单位，不能作为预算估值".into());
+        }
         if overrides
             .insert(key.as_str(), (ask, book.observed_at))
             .is_some()
@@ -261,11 +291,28 @@ pub fn preview_with_quotes(
             return Err("同一商品不能引用多个 Steam 盘口快照".into());
         }
         steam_valuations.push(SteamValuationEvidence {
+            native_ask: Some(native),
             snapshot_id: book.id.clone(),
             market_hash_name: key.clone(),
             observed_at: book.observed_at,
             gross_listing_estimate_cents: ask,
-            best_bid_cents: book.book.best_bid(),
+            best_bid_cents: book
+                .book
+                .best_bid()
+                .map(|minor| {
+                    let m = super::money::Money {
+                        minor,
+                        currency: book.book.currency.clone(),
+                    };
+                    if m.currency == super::money::Currency::cny() {
+                        Ok(m.minor)
+                    } else {
+                        fx.ok_or("缺少汇率")?
+                            .convert(&m, &super::money::Currency::cny())
+                            .map(|v| v.minor)
+                    }
+                })
+                .transpose()?,
         });
     }
     // Each leg keeps its own age; only explicit evidence replaces a ranking quote.
@@ -298,6 +345,7 @@ pub fn preview_with_quotes(
             .then(a.item.key.cmp(&b.item.key))
     });
     let mut plan = PlanPreview {
+        fx: fx.cloned(),
         id: uuid::Uuid::new_v4().to_string(),
         created_at: at,
         status: "preview_only".into(),
@@ -326,6 +374,9 @@ pub fn preview_with_quotes(
             "手续费为模型估算；尚未接入真实历史风险和订单执行".into(),
         ],
     };
+    if plan.fx.is_some() {
+        plan.execution_blockers.push("外币使用参考汇率折为CNY；费用仍为所选模型估算，实际账户费率、换汇价和执行前汇率尚未核验".into());
+    }
     if !plan.buff_valuations.is_empty() {
         plan.execution_blockers.push("BUFF 只引用账户绑定的首屏最低价可见卖单，数量未锁定、CNY 协议未实测；未引用的一侧仍保留榜单报价和时效".into());
     } else if !plan.steam_valuations.is_empty() {

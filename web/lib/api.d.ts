@@ -41,6 +41,7 @@ export interface PlanRequest {
 export interface PositionSnapshot {account_id:string;observed_at:number;reserved_cash_cents:number;entries:{key:string;held_units:number;pending_buy_units:number;available_units:number|null;daily_volume:number|null}[];}
 export interface LiquidityPolicy {participation_bps:number;low_price_threshold_cents:number;low_price_penalty_bps:number;low_price_cap:number;}
 export interface PlanPreview {
+  fx?:FxSnapshot;
   id:string; created_at:number; status:'preview_only'; algorithm:'ratio_greedy_v1'|'ratio_greedy_v2';
   source:SourceKind; source_coverage:Coverage; source_stop_reason:string; request:PlanRequest;
   lines:{candidate:Candidate; quantity:number; cash_total_cents:number; estimated_wallet_total_cents:number;max_additional_units?:number}[];
@@ -48,7 +49,7 @@ export interface PlanPreview {
   cash_total_cents:number; remaining_budget_cents:number; estimated_wallet_total_cents:number;
   target_met:boolean|null; execution_blockers:string[];
   reserved_cash_cents?:number;wallet_policy?:WalletPolicy;position_source?:'manual_unverified';
-  steam_valuations?:{snapshot_id:string;market_hash_name:string;observed_at:number;gross_listing_estimate_cents:number;best_bid_cents:number|null}[];
+  steam_valuations?:{native_ask?:NativeMoney;snapshot_id:string;market_hash_name:string;observed_at:number;gross_listing_estimate_cents:number;best_bid_cents:number|null}[];
   buff_valuations?:{snapshot_id:string;account_id:string;credential_generation:string;item_key:string;goods_id:number;observed_at:number;unit_cash_cents:number|null;lowest_tier_visible_units:number}[];
 }
 export interface BuffQuoteSnapshot {
@@ -104,6 +105,7 @@ export const parallax: {
   orderBook(id:string):Promise<OrderBookSnapshot>;
   fetchOrderBook(value:{app_id:730;market_hash_name:string}):Promise<OrderBookSnapshot>;
   listingPricePreview(id:string,value:ListingPreviewRequest):Promise<ListingPricePreview>;
+  orderBookValuation(id:string,value?:{display_currency?:string}):Promise<BookValuation>;
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
   accounts():Promise<{items:Account[]}>;
   createAccount(value:{label:string;steam_id:string}):Promise<Account>;
@@ -125,12 +127,15 @@ export const parallax: {
 };
 export interface HistoryRequest {scan_id:string;item_key:string;window_days:number;slippage_bps:number;}
 export interface WallGapPolicy {currency:'CNY';wall_volume_threshold:number;max_ignore_volume:number;min_lowest_tier_volume:number;min_step_minor:number;min_floor_minor:number;offset_minor:number;}
-export interface ListingPreviewRequest {policy:WallGapPolicy;max_quote_age_secs:number;fee_schedule?:{currency:'CNY';platform_bps:number;publisher_bps:number;platform_min_minor:number;publisher_min_minor:number;increment_minor:number}|null;}
+export interface FxSnapshot {id:string;source:'frankfurter_v2_blended';fetched_at:number;rates:Record<string,{date:string;units_per_cny_1e8:number}>;}
+export interface BookValuation {snapshot_id:string;observed_at:number;native_currency:string;display_currency:string;best_ask:NativeMoney|null;best_bid:NativeMoney|null;fx:FxSnapshot|null;}
+export interface ListingPreviewRequest {display_currency?:string;policy:WallGapPolicy;max_quote_age_secs:number;fee_schedule?:{currency:string;platform_bps:number;publisher_bps:number;platform_min_minor:number;publisher_min_minor:number;increment_minor:number}|null;}
 export interface ListingPricePreview {
+  fx:FxSnapshot|null;display_currency:string;display_gross_listing_estimate:NativeMoney|null;display_net_estimate:NativeMoney|null;
   preview_only:true;snapshot_id:string;market:{app_id:730;market_hash_name:string};source:string;identity_binding:string;
   observed_at:number;computed_at:number;age_secs:number;freshness:'within_selected_age'|'historical_only';
   request:ListingPreviewRequest;
-  analysis:{algorithm:'wall_gap_cny_v1';gross_listing_estimate:NativeMoney|null;reason:'empty_asks'|'single_level'|'regular_undercut'|'gap_jump';
+  analysis:{algorithm:'wall_gap_cny_v1'|'wall_gap_fx_v1';book_currency:string;native_gross_listing_estimate:NativeMoney|null;gross_listing_estimate:NativeMoney|null;reason:'empty_asks'|'single_level'|'regular_undercut'|'gap_jump';
     ignored_lowest_tiers:{price_minor:number;quantity:number}[];wall:{level_index:number;price_minor:number;cumulative_quantity:number;reached_threshold:boolean}|null;
     gap_checks:{lower_minor:number;upper_minor:number;blocking_quantity:number;absolute_threshold_minor:number;relative_threshold_bps:number;jumped:boolean}[];
     stopped_by_blocking_volume:boolean;floor_applied:boolean};fee_estimate:FeeQuote|null;warnings:string[];

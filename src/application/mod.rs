@@ -4,6 +4,7 @@ mod account_tests;
 pub mod accounts;
 pub mod browser_login;
 pub mod buff_quotes;
+pub mod fx;
 pub mod history;
 pub mod inventory;
 pub mod orderbook;
@@ -11,7 +12,7 @@ pub mod ports;
 pub mod scanner;
 
 use crate::domain::{
-    planning::{PlanPreview, PlanRequest, preview_with_quotes},
+    planning::{PlanPreview, PlanRequest, preview_with_fx_quotes},
     selection::{ScanReport, ScanRequest, now},
 };
 use ports::{MarketSource, Repository};
@@ -26,6 +27,7 @@ use tokio::sync::Mutex;
 
 #[derive(Debug)]
 pub enum AppError {
+    Fx(String),
     Invalid(String),
     Missing(&'static str),
     Conflict(&'static str),
@@ -41,6 +43,7 @@ impl From<anyhow::Error> for AppError {
 }
 
 pub struct Application<S, R> {
+    fx: Option<Arc<dyn fx::FxResolver>>,
     source: S,
     store: R,
     jobs: Mutex<HashMap<String, Arc<AtomicBool>>>,
@@ -48,8 +51,17 @@ pub struct Application<S, R> {
 impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
     pub fn new(source: S, store: R) -> Arc<Self> {
         Arc::new(Self {
+            fx: None,
             source,
             store,
+            jobs: Mutex::new(HashMap::new()),
+        })
+    }
+    pub fn with_fx(source: S, store: R, fx: Arc<dyn fx::FxResolver>) -> Arc<Self> {
+        Arc::new(Self {
+            source,
+            store,
+            fx: Some(fx),
             jobs: Mutex::new(HashMap::new()),
         })
     }
@@ -175,7 +187,21 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
                 buffs.push(quote);
             }
         }
-        let plan = preview_with_quotes(&report, request, now(), &books, &buffs)
+        let fx = if books
+            .iter()
+            .any(|b| b.book.currency != crate::domain::money::Currency::cny())
+        {
+            Some(
+                self.fx
+                    .as_ref()
+                    .ok_or(AppError::Invalid("外币预算引用需要有效汇率来源".into()))?
+                    .rates()
+                    .await?,
+            )
+        } else {
+            None
+        };
+        let plan = preview_with_fx_quotes(&report, request, now(), &books, &buffs, fx.as_ref())
             .map_err(AppError::Invalid)?;
         self.store.insert_plan(plan.clone()).await?;
         Ok(plan)

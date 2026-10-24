@@ -26,6 +26,7 @@ export const parallax = {
   orderBook: id => request(`/api/steam/order-books/${encodeURIComponent(id)}`),
   fetchOrderBook: value => post('/api/steam/order-books', value),
   listingPricePreview: (id,value) => post(`/api/steam/order-books/${encodeURIComponent(id)}/listing-preview`,value),
+  orderBookValuation: (id,value={}) => post(`/api/steam/order-books/${encodeURIComponent(id)}/valuation`,value),
   health: () => request('/api/health'),
   accounts: () => request('/api/accounts'),
   createAccount: value => post('/api/accounts', value),

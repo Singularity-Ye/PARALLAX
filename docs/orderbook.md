@@ -2,7 +2,7 @@
 
 ## 已实现
 
-匿名读取 CS2 的 Steam `market/orderbook` queryAction，保存不可覆盖的原币快照；显示买卖深度、最高买价、最低卖价和毛价差。预算可显式引用对应候选的 **CNY** 快照，替换 Steam 慢卖挂牌估值。后续 BUFF、库存和历史已分别接入只读研究，真实协议仍待验收。CNY 壁垒/断层挂牌参考已接本地快照，见 [pricing.md](pricing.md)；FX 和真实交易执行仍未接入。
+匿名读取 CS2 的 Steam `market/orderbook` queryAction，保存不可覆盖的原币快照；显示买卖深度、最高买价、最低卖价和毛价差。预算可显式引用对应候选的原币快照，使用有效汇率折合 **CNY** 后作为 Steam 慢卖挂牌估值，原币和汇率快照一并保存。后续 BUFF、库存和历史已分别接入只读研究，真实协议仍待验收。CNY 壁垒/断层挂牌参考已接本地快照，见 [pricing.md](pricing.md)；共享 FX 已接入盘口显示、定价和预算，见 [fx.md](fx.md)；真实交易执行仍未接入。
 
 复用现有 reqwest、serde_json、SQLite、整数金额与预筛/计划，没有新增依赖。没有找到可作为稳定公开合同的官方盘口 API 文档；按原两版 `steam/market_orders.py` 的 queryAction 协议实现，接口变化要重新验收。SSR、分组页/变体解析与旧 histogram 兼容仍待迁移。
 
@@ -15,6 +15,7 @@
 | POST /api/steam/order-books | `{app_id:730,market_hash_name:"Prisma 2 Case"}`；201 快照 |
 | GET /api/steam/order-books | 最近十份完整快照；读取历史不请求平台 |
 | GET /api/steam/order-books/{id} | 不可覆盖的历史快照；404 表示不存在 |
+| POST /api/steam/order-books/{id}/valuation | 默认人民币或指定显示币种的本地换算，按需获取汇率；不刷新原盘口 |
 | POST /api/steam/order-books/{id}/listing-preview | 仅使用本地深度生成可解释挂牌参考；200，不请求平台、不保存订单；详见 pricing.md |
 
 参数无效 400/422，平台网络/格式/不支持币种返回 502，冷却/429 返回 429 与 retry_at；错误不写成功快照，不替换成演示结果。
@@ -34,7 +35,7 @@
 PlanRequest 新增可选 `steam_snapshot_ids`，默认空数组，最多 20 个唯一 ID。PlanPreview 新增可选 `steam_valuations` 摘要证据，保存 ID、名称、时间、最低卖价和最高买价；完整深度留在不可覆盖的盘口快照表。
 
 - 只允许真实 SteamDT 扫描引用；演示扫描不能混入平台快照。
-- 每份快照必须存在，名称与候选 key 完全相同，app_id=730，币种 CNY；同一商品不能引用多份。
+- 每份快照必须存在，名称与候选 key 完全相同，app_id=730，币种需已适配；外币需有效汇率快照，保留原币证据；同一商品不能引用多份。
 - 时间不得在未来，年龄不超过计划 max_quote_age_secs；空卖盘、交叉盘口均拒绝。
 - 使用最低卖价作为**慢卖挂牌毛价估值**，复用本轮扫描的费用策略重算净钱包估算与折算率，不把买盘价或卖盘量当现金端事实。
 - 未引用 BUFF 快照时，现金价格与观察时间来自原扫描。Steam 刷新不会掩盖旧 BUFF 过期/未来时间；两侧都显式引用时分别使用对应快照，按两侧较早时间验报价。
@@ -47,7 +48,7 @@ PlanRequest 新增可选 `steam_snapshot_ids`，默认空数组，最多 20 个�
 
 仅访问固定 Steam HTTPS 地址，无 Cookie、不跟随重定向、不关闭 TLS。每实例串行请求，至少两秒间隔；429 冷却至少 300 秒，最多七天，Retry-After 非秒数形式按 300 秒处理。没有自动重试、轮换代理或切换端点绕过拒绝；冷却是当前进程内状态，重启不保证保留，尚未作为全应用 Steam 访问预算。
 
-本地测试覆盖币种、数组/金额/空盘口、排序合并、节流、快照保存与不可覆盖、HTTP 错误/同源、预算引用和历史 JSON。真实来源单独验收：一次匿名 queryAction 实测 HTTP 200；请求 CNY 实际得到 eCurrency=30（TWD），因此保留外币且不允许人民币预算。该公开接口样本不证明其他币种、SSR、登录会话或成交协议已验收。
+本地测试覆盖币种、数组/金额/空盘口、排序合并、节流、快照保存与不可覆盖、HTTP 错误/同源、预算引用和历史 JSON。真实来源单独验收：一次匿名 queryAction 实测 HTTP 200；请求 CNY 实际得到 eCurrency=30（TWD），当时保留外币并阻断直接人民币预算；当前已允许通过独立有效汇率换算后引用，未改旧快照。该公开接口样本不证明其他币种、SSR、登录会话或成交协议已验收。
 
 ## 下一步
 

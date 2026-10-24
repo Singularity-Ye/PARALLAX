@@ -111,7 +111,7 @@ impl OrderBookSnapshot {
         let mut warnings =
             vec!["公开盘口为请求时快照，不保证深度完整；不是成交承诺或账户可执行报价".into()];
         if book.currency != Currency::cny() {
-            warnings.push("平台实际返回非 CNY；保留原币，不换汇，不能用于人民币预算".into());
+            warnings.push("平台实际返回非 CNY；保留原币，显示与预算需通过有效汇率快照换算".into());
         }
         if book
             .best_ask()
@@ -149,10 +149,16 @@ impl OrderBookSnapshot {
         })
     }
     pub fn cny_ask(&self, at: u64, max_age: u64) -> Result<u64, String> {
+        if self.book.currency != Currency::cny() {
+            return Err("外币预算引用需要汇率快照".into());
+        }
+        self.native_ask(at, max_age)
+    }
+    pub fn native_ask(&self, at: u64, max_age: u64) -> Result<u64, String> {
         self.request.validate()?;
         self.book.validate()?;
-        if self.source != "steam_public_query_action" || self.book.currency != Currency::cny() {
-            return Err("预算只接受本应用保存的 CNY Steam 盘口，不能把外币视为人民币".into());
+        if self.source != "steam_public_query_action" {
+            return Err("预算只接受本应用保存的 Steam 盘口".into());
         }
         if self.observed_at > at || at - self.observed_at > max_age {
             return Err("Steam 盘口快照已过期或时间异常".into());

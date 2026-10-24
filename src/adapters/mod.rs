@@ -2,6 +2,7 @@
 pub mod browser_auth;
 pub mod buff_quotes;
 pub mod credentials;
+pub mod fx;
 pub mod market;
 pub mod session;
 pub mod sqlite;

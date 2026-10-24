@@ -20,9 +20,14 @@ async fn main() -> anyhow::Result<()> {
         parallax::adapters::credentials::NativeVault,
         parallax::adapters::session::OnlineVerifier::new()?,
     );
-    let order_books = parallax::application::orderbook::OrderBookResearch::new(
+    let fx = parallax::application::fx::ExchangeRates::new(
+        parallax::adapters::fx::Frankfurter::new()?,
+        store.clone(),
+    );
+    let order_books = parallax::application::orderbook::OrderBookResearch::with_fx(
         parallax::adapters::steam_orderbook::SteamOrderBook::new()?,
         store.clone(),
+        fx.clone(),
     );
     let buff_quotes = parallax::application::buff_quotes::BuffResearch::new(
         store.clone(),
@@ -39,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
         auth.clone(),
         parallax::adapters::steam_history::SteamHistory::new()?,
     );
-    let state = Application::new(Provider::new()?, store);
+    let state = Application::with_fx(Provider::new()?, store, fx);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
         parallax::adapters::browser_auth::LocalBrowser,

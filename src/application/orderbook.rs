@@ -3,9 +3,10 @@ use super::{
     ports::{OrderBookProvider, OrderBookRepository},
 };
 use crate::domain::{
-    money::{FeeQuote, FeeSchedule},
+    fx::FxSnapshot,
+    money::{Currency, FeeQuote, FeeSchedule, Money},
     orderbook::*,
-    pricing::{ListingPriceAnalysis, WallGapPolicy, wall_gap_price},
+    pricing::{ListingPriceAnalysis, WallGapPolicy, wall_gap_price, wall_gap_price_with_rate},
     selection::now,
 };
 use serde::{Deserialize, Serialize};
@@ -14,6 +15,8 @@ use std::sync::Arc;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ListingPreviewRequest {
+    #[serde(default = "Currency::cny")]
+    pub display_currency: Currency,
     pub policy: WallGapPolicy,
     pub max_quote_age_secs: u64,
     #[serde(default)]
@@ -27,8 +30,8 @@ impl ListingPreviewRequest {
         }
         if let Some(schedule) = &self.fee_schedule {
             schedule.validate()?;
-            if schedule.currency != self.policy.currency {
-                return Err("费用模型与定价币种不一致".into());
+            if !crate::domain::fx::supported(&schedule.currency) {
+                return Err("费用模型币种尚未适配".into());
             }
             // Keep API amounts within JS exact-integer range, including zero-price results.
             if schedule.increment_minor > 1_000_000_000_000
@@ -38,11 +41,18 @@ impl ListingPreviewRequest {
                 return Err("费用参数超出支持范围".into());
             }
         }
+        if !crate::domain::fx::supported(&self.display_currency) {
+            return Err("显示币种尚未适配".into());
+        }
         Ok(())
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ListingPricePreview {
+    pub fx: Option<FxSnapshot>,
+    pub display_currency: Currency,
+    pub display_gross_listing_estimate: Option<Money>,
+    pub display_net_estimate: Option<Money>,
     pub preview_only: bool,
     pub snapshot_id: String,
     pub market: OrderBookRequest,
@@ -61,11 +71,72 @@ pub struct ListingPricePreview {
 pub struct OrderBookResearch<P, R> {
     provider: P,
     repo: R,
+    fx: Option<Arc<dyn super::fx::FxResolver>>,
 }
 
 impl<P: OrderBookProvider, R: OrderBookRepository> OrderBookResearch<P, R> {
     pub fn new(provider: P, repo: R) -> Arc<Self> {
-        Arc::new(Self { provider, repo })
+        Arc::new(Self {
+            provider,
+            repo,
+            fx: None,
+        })
+    }
+    pub fn with_fx(provider: P, repo: R, fx: Arc<dyn super::fx::FxResolver>) -> Arc<Self> {
+        Arc::new(Self {
+            provider,
+            repo,
+            fx: Some(fx),
+        })
+    }
+    async fn resolve_fx(
+        &self,
+        from: &Currency,
+        to: &Currency,
+    ) -> Result<Option<FxSnapshot>, AppError> {
+        if !crate::domain::fx::supported(from) || !crate::domain::fx::supported(to) {
+            return Err(AppError::Invalid("币种最小单位尚未适配".into()));
+        }
+        if from == to {
+            return Ok(None);
+        }
+        let resolver = self
+            .fx
+            .as_ref()
+            .ok_or(AppError::Invalid("外币换算需要有效汇率来源".into()))?;
+        Ok(Some(resolver.rates().await?))
+    }
+    pub async fn valuation(
+        &self,
+        id: String,
+        currency: Currency,
+    ) -> Result<BookValuation, AppError> {
+        let snapshot = self.get(id).await?;
+        snapshot.book.validate().map_err(AppError::Invalid)?;
+        let fx = self.resolve_fx(&snapshot.book.currency, &currency).await?;
+        let convert = |amount: Option<u64>| {
+            amount
+                .map(|minor| {
+                    let m = Money {
+                        minor,
+                        currency: snapshot.book.currency.clone(),
+                    };
+                    match &fx {
+                        Some(f) => f.convert(&m, &currency).map_err(AppError::Invalid),
+                        None => Ok(m),
+                    }
+                })
+                .transpose()
+        };
+        Ok(BookValuation {
+            snapshot_id: snapshot.id,
+            observed_at: snapshot.observed_at,
+            native_currency: snapshot.book.currency.clone(),
+            display_currency: currency.clone(),
+            best_ask: convert(snapshot.book.best_ask())?,
+            best_bid: convert(snapshot.book.best_bid())?,
+            fx,
+        })
     }
     pub async fn fetch(&self, request: OrderBookRequest) -> Result<OrderBookSnapshot, AppError> {
         request.validate().map_err(AppError::Invalid)?;
@@ -102,17 +173,73 @@ impl<P: OrderBookProvider, R: OrderBookRepository> OrderBookResearch<P, R> {
                 "盘口来源或时间异常，不能计算挂牌参考价".into(),
             ));
         }
-        let analysis =
-            wall_gap_price(&snapshot.book, &request.policy).map_err(AppError::Invalid)?;
-        let fee_estimate = match (&request.fee_schedule, &analysis.gross_listing_estimate) {
+        if request
+            .fee_schedule
+            .as_ref()
+            .is_some_and(|f| f.currency != snapshot.book.currency)
+        {
+            return Err(AppError::Invalid(
+                "费用模型必须使用盘口原币；不能把人民币最低费套到外币".into(),
+            ));
+        }
+        let fx = if snapshot.book.currency != Currency::cny() {
+            self.resolve_fx(&snapshot.book.currency, &Currency::cny())
+                .await?
+        } else {
+            self.resolve_fx(&snapshot.book.currency, &request.display_currency)
+                .await?
+        };
+        let analysis = if snapshot.book.currency == Currency::cny() {
+            wall_gap_price(&snapshot.book, &request.policy)
+        } else {
+            let (n, d) = fx
+                .as_ref()
+                .ok_or(AppError::Invalid("缺少汇率".into()))?
+                .factor(&snapshot.book.currency, &Currency::cny())
+                .map_err(AppError::Invalid)?;
+            wall_gap_price_with_rate(&snapshot.book, &request.policy, n, d)
+        }
+        .map_err(AppError::Invalid)?;
+        let fee_estimate = match (
+            &request.fee_schedule,
+            &analysis.native_gross_listing_estimate,
+        ) {
             (Some(schedule), Some(gross)) => {
                 schedule.net_from_gross(gross).map_err(AppError::Invalid)?
             }
             _ => None,
         };
+        let display = |money: &Money| {
+            if money.currency == request.display_currency {
+                Ok(money.clone())
+            } else {
+                fx.as_ref()
+                    .ok_or(AppError::Invalid("缺少显示币种汇率".into()))?
+                    .convert(money, &request.display_currency)
+                    .map_err(AppError::Invalid)
+            }
+        };
+        let display_gross_listing_estimate = analysis
+            .native_gross_listing_estimate
+            .as_ref()
+            .map(display)
+            .transpose()?;
+        let display_net_estimate = fee_estimate.as_ref().map(|f| display(&f.net)).transpose()?;
         let age_secs = at - snapshot.observed_at;
         let fresh = age_secs <= request.max_quote_age_secs;
-        let mut warnings = snapshot.warnings;
+        // Old immutable snapshots retain their creation-time restriction; report current policy.
+        let mut warnings: Vec<String> = snapshot
+            .warnings
+            .into_iter()
+            .map(|warning| {
+                if warning == "平台实际返回非 CNY；保留原币，不换汇，不能用于人民币预算"
+                {
+                    "平台实际返回非 CNY；保留原币，当前显示与预算通过独立有效汇率快照换算".into()
+                } else {
+                    warning
+                }
+            })
+            .collect();
         warnings.push(
             "继承的壁垒/断层参数未用真实成交校准；参考价不是成交价、上架指令或收益保证".into(),
         );
@@ -133,7 +260,14 @@ impl<P: OrderBookProvider, R: OrderBookRepository> OrderBookResearch<P, R> {
         } else {
             warnings.push("未提供费用模型，净钱包价值保持未知".into());
         }
+        if fx.is_some() {
+            warnings.push("换算使用带日期的参考汇率，不等于银行或Steam实际换汇结算价；原币挂牌参考向上取整到已适配最小单位，展示估值向下取整".into());
+        }
         Ok(ListingPricePreview {
+            fx,
+            display_currency: request.display_currency.clone(),
+            display_gross_listing_estimate,
+            display_net_estimate,
             preview_only: true,
             snapshot_id: snapshot.id,
             market: snapshot.request,
@@ -154,6 +288,17 @@ impl<P: OrderBookProvider, R: OrderBookRepository> OrderBookResearch<P, R> {
             warnings,
         })
     }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct BookValuation {
+    pub snapshot_id: String,
+    pub observed_at: u64,
+    pub native_currency: Currency,
+    pub display_currency: Currency,
+    pub best_ask: Option<Money>,
+    pub best_bid: Option<Money>,
+    pub fx: Option<FxSnapshot>,
 }
 
 #[cfg(test)]
@@ -320,6 +465,7 @@ mod tests {
         .unwrap();
         repo.insert_order_book(snapshot.clone()).await.unwrap();
         let request = ListingPreviewRequest {
+            display_currency: Currency::cny(),
             policy: WallGapPolicy::default(),
             max_quote_age_secs: 300,
             fee_schedule: Some(FeeSchedule {
@@ -380,6 +526,155 @@ mod tests {
         assert_eq!(saved.book.asks[0].price_minor, 2300);
     }
     #[tokio::test]
+    async fn fx_research_and_budget_preserve_native_quotes_and_saved_rate_evidence() {
+        struct Rates(crate::domain::fx::FxSnapshot);
+        impl crate::application::fx::FxResolver for Rates {
+            fn rates(
+                &self,
+            ) -> std::pin::Pin<
+                Box<
+                    dyn std::future::Future<
+                            Output = Result<crate::domain::fx::FxSnapshot, AppError>,
+                        > + Send
+                        + '_,
+                >,
+            > {
+                Box::pin(async { Ok(self.0.clone()) })
+            }
+        }
+        let at = now();
+        let repo = Store::open(Path::new(":memory:")).unwrap();
+        let fx = Arc::new(Rates(crate::domain::fx::tests::fixture(at)));
+        let snapshot = OrderBookSnapshot::new(
+            OrderBookRequest {
+                app_id: 730,
+                market_hash_name: "fx fixture".into(),
+            },
+            OrderBook {
+                currency: "TWD".to_string().try_into().unwrap(),
+                asks: vec![PriceLevel {
+                    price_minor: 11500,
+                    quantity: 30,
+                }],
+                bids: vec![PriceLevel {
+                    price_minor: 10000,
+                    quantity: 1,
+                }],
+                reported_buy_orders: None,
+                reported_sell_orders: None,
+            },
+            at,
+        )
+        .unwrap();
+        repo.insert_order_book(snapshot.clone()).await.unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let app = OrderBookResearch::with_fx(
+            Source {
+                calls: calls.clone(),
+                fail: true,
+            },
+            repo.clone(),
+            fx.clone(),
+        );
+        let valuation = app
+            .valuation(snapshot.id.clone(), Currency::cny())
+            .await
+            .unwrap();
+        assert_eq!(valuation.best_ask.unwrap().minor, 2300);
+        assert_eq!(valuation.fx.unwrap().id, fx.0.id);
+        let request = ListingPreviewRequest {
+            display_currency: Currency::cny(),
+            policy: WallGapPolicy::default(),
+            max_quote_age_secs: 300,
+            fee_schedule: Some(FeeSchedule {
+                currency: "TWD".to_string().try_into().unwrap(),
+                platform_bps: 500,
+                publisher_bps: 1000,
+                platform_min_minor: 7,
+                publisher_min_minor: 7,
+                increment_minor: 1,
+            }),
+        };
+        let preview = app
+            .listing_preview(snapshot.id.clone(), request.clone())
+            .await
+            .unwrap();
+        assert_eq!(
+            preview
+                .analysis
+                .native_gross_listing_estimate
+                .unwrap()
+                .minor,
+            11495
+        );
+        assert_eq!(preview.display_gross_listing_estimate.unwrap().minor, 2299);
+        assert_eq!(
+            String::from(preview.fee_estimate.unwrap().net.currency),
+            "TWD"
+        );
+        assert_eq!(preview.fx.unwrap().id, fx.0.id);
+        let mut wrong_fee = request;
+        wrong_fee.fee_schedule.as_mut().unwrap().currency = Currency::cny();
+        assert!(matches!(
+            app.listing_preview(snapshot.id.clone(), wrong_fee).await,
+            Err(AppError::Invalid(_))
+        ));
+        let router = crate::transport::orderbook::router(app);
+        let response = router
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(format!("/api/steam/order-books/{}/valuation", snapshot.id))
+                    .header("content-type", "application/json")
+                    .body(Body::from("{}"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        let application = Application::with_fx(Provider::new().unwrap(), repo.clone(), fx.clone());
+        let mut report = ScanReport::new(ScanRequest {
+            source: SourceKind::Steamdt,
+            ..Default::default()
+        });
+        report.status = "completed".into();
+        report.finished_at = Some(at);
+        report.candidates = vec![evaluate(
+            MarketItem {
+                key: "fx fixture".into(),
+                name: "fx fixture".into(),
+                goods_id: Some(1),
+                cash_cents: 500,
+                steam_gross_cents: 1150,
+                volume: 300,
+                observed_at: at,
+            },
+            &report.request,
+        )];
+        repo.save(report.clone()).await.unwrap();
+        let request:PlanRequest=serde_json::from_value(serde_json::json!({"scan_id":report.id,"budget_cents":2000,"target_wallet_cents":null,"max_units_per_item":2,"max_positions":2,"max_quote_age_secs":300,"steam_snapshot_ids":[snapshot.id]})).unwrap();
+        let plan = application.create_plan(request).await.unwrap();
+        assert_eq!(plan.lines[0].candidate.estimated_wallet_cents, 2000);
+        assert_eq!(
+            plan.steam_valuations[0].native_ask.as_ref().unwrap().minor,
+            11500
+        );
+        assert_eq!(plan.steam_valuations[0].best_bid_cents, Some(2000));
+        let saved = application.plan(plan.id).await.unwrap();
+        assert_eq!(saved.fx.unwrap().id, fx.0.id);
+        assert_eq!(
+            repo.order_book(snapshot.id)
+                .await
+                .unwrap()
+                .unwrap()
+                .book
+                .best_ask(),
+            Some(11500)
+        );
+        assert_eq!(calls.load(Ordering::SeqCst), 0);
+    }
+    #[tokio::test]
     async fn listing_preview_rejects_foreign_future_and_fee_currency_mismatch() {
         let repo = Store::open(Path::new(":memory:")).unwrap();
         let app = OrderBookResearch::new(
@@ -390,6 +685,7 @@ mod tests {
             repo.clone(),
         );
         let req = ListingPreviewRequest {
+            display_currency: Currency::cny(),
             policy: WallGapPolicy::default(),
             max_quote_age_secs: 300,
             fee_schedule: None,
@@ -424,7 +720,7 @@ mod tests {
         assert!(bad.validate().is_err());
         bad = req;
         bad.fee_schedule = Some(FeeSchedule {
-            currency: "USD".to_string().try_into().unwrap(),
+            currency: "JPY".to_string().try_into().unwrap(),
             platform_bps: 0,
             publisher_bps: 0,
             platform_min_minor: 0,
