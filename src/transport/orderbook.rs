@@ -1,13 +1,16 @@
 use super::http::{ApiError, app_error, input, same_origin};
 use crate::{
-    application::{orderbook::OrderBookResearch, ports::*},
+    application::{
+        orderbook::{ListingPreviewRequest, ListingPricePreview, OrderBookResearch},
+        ports::*,
+    },
     domain::orderbook::*,
 };
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Path, State, rejection::JsonRejection},
-    http::StatusCode,
-    routing::get,
+    http::{StatusCode, header},
+    routing::{get, post},
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -21,9 +24,33 @@ pub fn router<P: OrderBookProvider + 'static, R: OrderBookRepository + 'static>(
             get(list::<P, R>).post(fetch::<P, R>),
         )
         .route("/api/steam/order-books/{id}", get(detail::<P, R>))
+        .route(
+            "/api/steam/order-books/{id}/listing-preview",
+            post(listing_preview::<P, R>),
+        )
         .layer(DefaultBodyLimit::max(2048))
         .layer(axum::middleware::from_fn(same_origin))
         .with_state(state)
+}
+async fn listing_preview<P: OrderBookProvider, R: OrderBookRepository>(
+    State(app): State<Arc<OrderBookResearch<P, R>>>,
+    Path(id): Path<String>,
+    body: Result<Json<ListingPreviewRequest>, JsonRejection>,
+) -> Result<
+    (
+        [(header::HeaderName, &'static str); 1],
+        Json<ListingPricePreview>,
+    ),
+    ApiError,
+> {
+    Ok((
+        [(header::CACHE_CONTROL, "no-store")],
+        Json(
+            app.listing_preview(id, input(body)?)
+                .await
+                .map_err(app_error)?,
+        ),
+    ))
 }
 async fn list<P: OrderBookProvider, R: OrderBookRepository>(
     State(app): State<Arc<OrderBookResearch<P, R>>>,

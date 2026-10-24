@@ -2,7 +2,7 @@
 
 ## 已实现
 
-匿名读取 CS2 的 Steam `market/orderbook` queryAction，保存不可覆盖的原币快照；显示买卖深度、最高买价、最低卖价和毛价差。预算可显式引用对应候选的 **CNY** 快照，替换 Steam 慢卖挂牌估值。后续 BUFF 现金报价适配与引用见 [buff-quotes.md](buff-quotes.md)，该部分平台未验收；库存、历史、FX、智能挂牌定价与交易执行仍未接入。
+匿名读取 CS2 的 Steam `market/orderbook` queryAction，保存不可覆盖的原币快照；显示买卖深度、最高买价、最低卖价和毛价差。预算可显式引用对应候选的 **CNY** 快照，替换 Steam 慢卖挂牌估值。后续 BUFF、库存和历史已分别接入只读研究，真实协议仍待验收。CNY 壁垒/断层挂牌参考已接本地快照，见 [pricing.md](pricing.md)；FX 和真实交易执行仍未接入。
 
 复用现有 reqwest、serde_json、SQLite、整数金额与预筛/计划，没有新增依赖。没有找到可作为稳定公开合同的官方盘口 API 文档；按原两版 `steam/market_orders.py` 的 queryAction 协议实现，接口变化要重新验收。SSR、分组页/变体解析与旧 histogram 兼容仍待迁移。
 
@@ -15,6 +15,7 @@
 | POST /api/steam/order-books | `{app_id:730,market_hash_name:"Prisma 2 Case"}`；201 快照 |
 | GET /api/steam/order-books | 最近十份完整快照；读取历史不请求平台 |
 | GET /api/steam/order-books/{id} | 不可覆盖的历史快照；404 表示不存在 |
+| POST /api/steam/order-books/{id}/listing-preview | 仅使用本地深度生成可解释挂牌参考；200，不请求平台、不保存订单；详见 pricing.md |
 
 参数无效 400/422，平台网络/格式/不支持币种返回 502，冷却/429 返回 429 与 retry_at；错误不写成功快照，不替换成演示结果。
 
@@ -50,4 +51,4 @@ PlanRequest 新增可选 `steam_snapshot_ids`，默认空数组，最多 20 个�
 
 ## 下一步
 
-接 BUFF 实价与请求策略、账户库存/历史来源，再完善深度估值和定价。账户相关请求需复用现有凭据代次、冷却与挑战保护；前端只补功能，统一美化留待业务成熟。
+继续迁移完整历史稳定性、策略引用、预检和订单链路。挂牌参考暂不自动替换预算最低卖价；后续引用必须显式绑定算法、参数、来源/时效与费用。账户相关请求继续复用现有凭据代次、冷却与挑战保护。

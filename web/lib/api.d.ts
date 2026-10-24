@@ -103,6 +103,7 @@ export const parallax: {
   orderBooks():Promise<{items:OrderBookSnapshot[]}>;
   orderBook(id:string):Promise<OrderBookSnapshot>;
   fetchOrderBook(value:{app_id:730;market_hash_name:string}):Promise<OrderBookSnapshot>;
+  listingPricePreview(id:string,value:ListingPreviewRequest):Promise<ListingPricePreview>;
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
   accounts():Promise<{items:Account[]}>;
   createAccount(value:{label:string;steam_id:string}):Promise<Account>;
@@ -123,6 +124,17 @@ export const parallax: {
   createPlan(request:PlanRequest):Promise<PlanPreview>;
 };
 export interface HistoryRequest {scan_id:string;item_key:string;window_days:number;slippage_bps:number;}
+export interface WallGapPolicy {currency:'CNY';wall_volume_threshold:number;max_ignore_volume:number;min_lowest_tier_volume:number;min_step_minor:number;min_floor_minor:number;offset_minor:number;}
+export interface ListingPreviewRequest {policy:WallGapPolicy;max_quote_age_secs:number;fee_schedule?:{currency:'CNY';platform_bps:number;publisher_bps:number;platform_min_minor:number;publisher_min_minor:number;increment_minor:number}|null;}
+export interface ListingPricePreview {
+  preview_only:true;snapshot_id:string;market:{app_id:730;market_hash_name:string};source:string;identity_binding:string;
+  observed_at:number;computed_at:number;age_secs:number;freshness:'within_selected_age'|'historical_only';
+  request:ListingPreviewRequest;
+  analysis:{algorithm:'wall_gap_cny_v1';gross_listing_estimate:NativeMoney|null;reason:'empty_asks'|'single_level'|'regular_undercut'|'gap_jump';
+    ignored_lowest_tiers:{price_minor:number;quantity:number}[];wall:{level_index:number;price_minor:number;cumulative_quantity:number;reached_threshold:boolean}|null;
+    gap_checks:{lower_minor:number;upper_minor:number;blocking_quantity:number;absolute_threshold_minor:number;relative_threshold_bps:number;jumped:boolean}[];
+    stopped_by_blocking_volume:boolean;floor_applied:boolean};fee_estimate:FeeQuote|null;warnings:string[];
+}
 export interface HistorySnapshot {
   id:string;account_id:string;credential_generation:string;request:HistoryRequest;started_at:number;observed_at:number;
   source:'steam_authenticated_pricehistory';identity_binding:'scan_candidate_and_request_parameters';platform_verified:false;

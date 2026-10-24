@@ -80,7 +80,20 @@
 <section class="card" id="steam-research"><div class="section-title"><h2>Steam 公开盘口研究</h2><span>READ ONLY / CS2</span></div>
 <p class="hint">匿名读取官方公开盘口，无需登录；准确输入市场英文名及磨损变体。实际币种以平台响应为准，公开深度不是成交承诺。</p>
 <form id="order-book-form"><label>市场名称<input name="market_hash_name" required maxlength="500" value="Prisma 2 Case" autocomplete="off"></label><button id="book-fetch">读取并保存盘口快照</button></form>
-<p id="book-feedback" role="status" aria-live="polite"></p><div id="book-result"></div><details><summary>最近十份盘口快照</summary><div id="book-history"></div></details></section>
+<p id="book-feedback" role="status" aria-live="polite"></p><div id="book-result"></div><details><summary>最近十份盘口快照</summary><div id="book-history"></div></details>
+<details id="listing-preview-panel"><summary>壁垒／断层定价研究 · CNY</summary>
+<p class="hint">使用当前选中的已保存盘口，只在本地计算。低量最低档剔除与断层阻挡量是独立规则；参数继承原项目，尚未用真实成交校准。结果不会替换预算或发起上架。</p>
+<form id="listing-preview-form"><label>选中快照<input id="listing-snapshot" readonly placeholder="先读取或选择历史盘口"></label>
+<div class="pair"><label>价格墙累计量<input name="wall_volume_threshold" type="number" required min="1" max="1000000000000" step="1" value="20"></label><label>断层最大阻挡量<input name="max_ignore_volume" type="number" required min="0" max="1000000000000" step="1" value="4"></label></div>
+<div class="pair"><label>剔除最低档量 ≤<input name="min_lowest_tier_volume" type="number" required min="0" max="1000000000000" step="1" value="3"></label><label>压价步长（CNY 分）<input name="min_step_minor" type="number" required min="1" max="1000000000000" step="1" value="1"></label></div>
+<div class="pair"><label>价格下限（CNY 分）<input name="min_floor_minor" type="number" required min="1" max="1000000000000" step="1" value="3"></label><label>价格偏移（CNY 分，可负）<input name="offset_minor" type="number" required min="-1000000000000" max="1000000000000" step="1" value="0"></label></div>
+<label>所选报价时效（秒；超时仅历史研究）<input name="max_quote_age_secs" type="number" required min="1" max="86400" step="1" value="300"></label>
+<details><summary>可选净钱包费用估算</summary><label><span><input id="listing-fees-enabled" name="estimate_fees" type="checkbox">使用以下显式费用模型（未做平台结算验证）</span></label><fieldset id="listing-fees" disabled><legend>费用模型</legend>
+<div class="pair"><label>平台费用（bps）<input name="platform_bps" type="number" required min="0" max="10000" step="1" value="500"></label><label>发行商费用（bps）<input name="publisher_bps" type="number" required min="0" max="10000" step="1" value="1000"></label></div>
+<div class="pair"><label>平台最低费（分）<input name="platform_min_minor" type="number" required min="0" max="1000000000000" step="1" value="7"></label><label>发行商最低费（分）<input name="publisher_min_minor" type="number" required min="0" max="1000000000000" step="1" value="7"></label></div>
+<label>净额步长（分）<input name="increment_minor" type="number" required min="1" max="1000000000000" step="1" value="1"></label></fieldset></details>
+<button id="listing-preview-create" disabled>计算挂牌参考价</button></form>
+<p id="listing-preview-feedback" role="status" aria-live="polite">请选择已保存的 CNY 盘口；外币不能套用人民币价格阈值。</p><div id="listing-preview-result"></div></details></section>
 </section>
 <section class="page" data-page="buff-research" id="page-buff-research" hidden>
 <section class="card" id="buff-research"><div class="section-title"><h2>BUFF 现金端研究</h2><span>AUTHENTICATED READ / CS2</span></div>

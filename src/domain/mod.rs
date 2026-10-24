@@ -8,5 +8,6 @@ pub mod money;
 pub mod orderbook;
 pub mod planning;
 pub mod positions;
+pub mod pricing;
 pub mod risk;
 pub mod selection;
