@@ -20,8 +20,8 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M02 | Steam 浏览器获取登录态、手动 Cookie、账号密码/Guard 自动登录、轮询 token、失效恢复；R `routes/auth.py`、`services/steam_auth.py`、`steam/session.py` | domain/auth；application/auth；adapters/steam_auth、credential_store、browser_auth | 部分实现：手动 Cookie 与独立浏览器登录/人工恢复已接入；Guard 自动登录和后台续期待迁移，真实平台登录未验收，须保留 pending/rejected/network/expired 的区别；旧测试 `test_auth_relogin_state`、`test_steam_auth_errors` |
 | M03 | BUFF 浏览器/手动登录、User-Agent、凭据代次、验证挑战；R `services/buff_auth.py`、`routes/auth.py`、`config_loader.py` | application/auth；adapters/buff_auth；复用账户与凭据端口 | 部分实现：手动导入、独立浏览器、只读身份核验和冷却已接入；浏览器核验并保存后才解除挑战；未决支付保护待迁移 |
 | M04 | SteamDT 榜单、参数、分页解析；两版 `steamdt/*`、`services/iflow_client.py` | 现有 MarketSource、MarketItem、scanner、market adapter | 部分实现：分页、预算、去重、范围解释；非全市场目录，未实测实时来源 |
-| M05 | BUFF 实价/卖单、Steam 买卖盘、nameid/SSR/分组商品解析、缓存；R `buff/buyer.py`、`services/buff_client.py`、`steam/market_orders.py`；A 增加买盘深度与价差 | domain/application/adapters 的 orderbook 与 buff_quotes；两类 provider/repository 端口 | Steam 匿名 TWD 样本通过；BUFF 账户绑定首屏适配、冷却/挑战与快照已实现但线上字段/CNY 未验收。SSR/分组页、histogram、FX 待迁移 |
-| M06 | 手续费、币种、金额单位、展示价与到账价；R `utils/money.py`、`services/workers.py` 汇率任务 | domain/money；后续 adapters/exchange_rates | 整数费用已接扫描/计划；共享日参考汇率、缓存/持久化、六币种显示/定价/预算已接；保留默认1.15估算，实际账户费用和平台换汇结算仍待验证 |
+| M05 | BUFF 实价/卖单、Steam 买卖盘、nameid/SSR/分组商品解析、缓存；R `buff/buyer.py`、`services/buff_client.py`、`steam/market_orders.py`；A 增加买盘深度与价差 | domain/application/adapters 的 orderbook 与 buff_quotes；两类 provider/repository 端口 | Steam 匿名 TWD 样本通过；BUFF 账户绑定首屏适配、冷却/挑战与快照已实现但线上字段/CNY 未验收。SSR/分组页、histogram 待迁移；FX已支持含UAH的七币种 |
+| M06 | 手续费、币种、金额单位、展示价与到账价；R `utils/money.py`、`services/workers.py` 汇率任务 | domain/money；后续 adapters/exchange_rates | 整数费用已接扫描/计划；共享日参考汇率、缓存/持久化、七币种显示/定价/预算（含UAH）已接；保留默认1.15估算，实际账户费用和平台换汇结算仍待验证 |
 | M07 | 壁垒/断层定价、少量低档忽略、偏移；R `steam/market_orders.py:compute_smart_list_price` | domain/pricing；复用统一订单簿 | 人民币策略基准和原币精确定价规则/解释已迁移，接共享汇率、盘口研究与原币费用模型；空盘/单档/墙量/阈值边界等已测，平台定价效果及策略/预算引用待验收，见 pricing.md |
 | M08 | IQR/VWAP、CV、回归趋势/R²、EMA、历史分位/数据窗口；R `analysis/stability.py`、`services/analysis_client.py`、`utils/trend.py` | domain/risk、history、stability；application/history；HistoryProvider | UTC 日聚合/P10、IQR证据、原始/清洗CV、自然日EMA7/30、趋势/R²与历史区间位置已接不可覆盖研究；布林带/动态阈值/完整策略和真实历史待验收，见stability.md |
 | M09 | 买卖策略注册、步骤顺序、依赖、参数、导入导出、声明式自定义条件、模拟；R `app/strategy_engine.py`、`routes/strategies.py` | domain/strategy；application/strategy；版本化策略仓储 | 部分实现：购入研究 v1 的六个类型化规则、版本追加/并发冲突、显式计划/历史和三态解释；出售/激活/导入导出/自定义条件待迁移，不代表完整策略引擎或实盘效果 |
@@ -39,7 +39,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
 | M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 已按原功能拆左侧分页导航与纸感视觉基线；现有扫描/预算/账号/研究/库存复用原模块，未迁移页明确标记；完整业务仍待迁移，见 frontend.md |
-| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前完整回归117项通过，2项默认忽略；策略研究/历史指标/定价/库存/BUFF使用合成夹具；公开FX/Steam及浏览器/凭据沿用独立证据；旧测试未逐项移植 |
+| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前完整回归126项通过，2项默认忽略；策略研究/历史指标/定价/库存/BUFF使用合成夹具；公开FX/Steam及浏览器/凭据沿用独立证据；旧测试未逐项移植 |
 
 ## 必须纠正的几处认知
 
@@ -93,3 +93,5 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 运行 `python tools/source_inventory.py` 生成完整索引，检查两版所有登记路径存在、225 个 Python 文件可解析。该脚本不验证外部接口、策略收益或原测试通过情况。没有启动登录、付款、下单、礼物结账等操作。
 
 当前购入策略研究切片完整回归117项通过、2项默认忽略；102为前阶段稳定性数字。新增15项，复用已有费用/仓位/历史/FX，明确版本、证据和三态解释；无新平台请求。真实历史/库存协议、BUFF字段、实际费用、完整策略与自动交易仍待验收/实现。合同见 [strategies.md](strategies.md)、[stability.md](stability.md)、[fx.md](fx.md)、[pricing.md](pricing.md)、[price-history.md](price-history.md)。
+
+UAH增量：原映射18已继承，可选请求币种、历史明确标记、原币费用/预算/策略与七币种汇率兼容接入；新增9项、完整126通过/2默认忽略，见 [uah.md](uah.md)。117为购入策略阶段历史数字。出售估值联动仍待继续，没有把此次货币适配算作出售策略完成。

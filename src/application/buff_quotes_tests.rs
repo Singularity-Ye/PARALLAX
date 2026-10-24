@@ -228,6 +228,7 @@ async fn empty_page_never_falls_back_and_both_legs_need_explicit_refresh() {
     );
     let steam = OrderBookSnapshot::new(
         OrderBookRequest {
+            currency: crate::domain::money::Currency::cny(),
             app_id: 730,
             market_hash_name: scan.candidates[0].item.key.clone(),
         },

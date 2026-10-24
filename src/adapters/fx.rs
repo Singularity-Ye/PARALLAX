@@ -49,7 +49,7 @@ fn scaled(value: &Value) -> Result<u64, String> {
 pub(crate) fn parse(v: &Value, at: u64) -> Result<FxSnapshot, String> {
     let rows = v
         .as_array()
-        .filter(|r| r.len() == 5)
+        .filter(|r| r.len() == SUPPORTED.len() - 1)
         .ok_or("汇率响应币种不完整")?;
     let today = chrono::DateTime::from_timestamp(at as i64, 0)
         .ok_or("时间无效")?
@@ -94,14 +94,16 @@ impl FxProvider for Frankfurter {
             .ok_or("时间无效")?
             .format("%Y-%m-%d")
             .to_string();
+        let quotes = SUPPORTED
+            .iter()
+            .copied()
+            .filter(|code| *code != "CNY")
+            .collect::<Vec<_>>()
+            .join(",");
         let mut response = self
             .client
             .get("https://api.frankfurter.dev/v2/rates")
-            .query(&[
-                ("base", "CNY"),
-                ("quotes", "USD,EUR,GBP,HKD,TWD"),
-                ("date", &day),
-            ])
+            .query(&[("base", "CNY"), ("quotes", quotes.as_str()), ("date", &day)])
             .send()
             .await
             .map_err(|_| "汇率网络请求失败；未采用固定或过期汇率")?;
@@ -146,6 +148,12 @@ mod tests {
             .collect();
         let mut v = serde_json::json!(rows);
         parse(&v, at).unwrap();
+        let mut incomplete = v.clone();
+        incomplete.as_array_mut().unwrap().pop();
+        assert!(
+            parse(&incomplete, at).is_err(),
+            "new responses must include UAH"
+        );
         v[0]["date"] = serde_json::json!("2099-01-01");
         assert!(parse(&v, at).is_err());
         v[0]["date"] = serde_json::json!("2026-10-23");

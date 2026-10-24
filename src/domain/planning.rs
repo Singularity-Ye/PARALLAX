@@ -508,6 +508,7 @@ mod tests {
         let name = report.candidates[0].item.key.clone();
         let snapshot = OrderBookSnapshot::new(
             OrderBookRequest {
+                currency: crate::domain::money::Currency::cny(),
                 app_id: 730,
                 market_hash_name: name.clone(),
             },
@@ -572,6 +573,7 @@ mod tests {
         let (mut report, mut request) = fixture();
         let mut snapshot = OrderBookSnapshot::new(
             OrderBookRequest {
+                currency: crate::domain::money::Currency::cny(),
                 app_id: 730,
                 market_hash_name: report.candidates[0].item.key.clone(),
             },

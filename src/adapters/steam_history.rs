@@ -133,6 +133,9 @@ fn currency(data: &Value) -> Result<Option<crate::domain::money::Currency>, E> {
         ("£" | "GBP", "") | ("" | "£", "GBP") => Some("GBP"),
         ("HK$" | "HKD", "") | ("" | "HK$", "HKD") => Some("HKD"),
         ("NT$" | "TWD", "") | ("" | "NT$", "TWD") => Some("TWD"),
+        ("UAH" | "₴" | "грн" | "грн.", "")
+        | ("", "UAH" | "₴" | "грн" | "грн.")
+        | ("₴" | "грн" | "грн.", "UAH") => Some("UAH"),
         _ => None,
     };
     code.map(|s| s.to_string().try_into().map_err(|_| E::InvalidPayload))

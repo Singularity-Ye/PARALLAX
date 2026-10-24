@@ -60,8 +60,9 @@ export interface BuffQuoteSnapshot {
   lowest_cash_cents:number|null;lowest_tier_visible_units:number;
 }
 export interface NativeMoney {minor:number;currency:string;}
+export interface OrderBookRequest {app_id:730;market_hash_name:string;currency?:'CNY'|'USD'|'EUR'|'GBP'|'HKD'|'TWD'|'UAH';}
 export interface OrderBookSnapshot {
-  id:string;request:{app_id:number;market_hash_name:string};observed_at:number;
+  id:string;request:OrderBookRequest;observed_at:number;
   source:'steam_public_query_action';identity_binding:'request_parameters';requested_currency:string;
   book:{currency:string;asks:{price_minor:number;quantity:number}[];bids:{price_minor:number;quantity:number}[];reported_sell_orders:number|null;reported_buy_orders:number|null};
   summary:{best_ask:NativeMoney|null;best_bid:NativeMoney|null;spread_minor:number|null;visible_ask_quantity:number;visible_bid_quantity:number};
@@ -111,7 +112,7 @@ export const parallax: {
   fetchBuffQuote(account:string,value:{scan_id:string;item_key:string}):Promise<BuffQuoteSnapshot>;
   orderBooks():Promise<{items:OrderBookSnapshot[]}>;
   orderBook(id:string):Promise<OrderBookSnapshot>;
-  fetchOrderBook(value:{app_id:730;market_hash_name:string}):Promise<OrderBookSnapshot>;
+  fetchOrderBook(value:OrderBookRequest):Promise<OrderBookSnapshot>;
   listingPricePreview(id:string,value:ListingPreviewRequest):Promise<ListingPricePreview>;
   orderBookValuation(id:string,value?:{display_currency?:string}):Promise<BookValuation>;
   health():Promise<{name:string; version:string; api_version:string; capabilities:Record<string,boolean>}>;
@@ -140,7 +141,7 @@ export interface BookValuation {snapshot_id:string;observed_at:number;native_cur
 export interface ListingPreviewRequest {display_currency?:string;policy:WallGapPolicy;max_quote_age_secs:number;fee_schedule?:{currency:string;platform_bps:number;publisher_bps:number;platform_min_minor:number;publisher_min_minor:number;increment_minor:number}|null;}
 export interface ListingPricePreview {
   fx:FxSnapshot|null;display_currency:string;display_gross_listing_estimate:NativeMoney|null;display_net_estimate:NativeMoney|null;
-  preview_only:true;snapshot_id:string;market:{app_id:730;market_hash_name:string};source:string;identity_binding:string;
+  preview_only:true;snapshot_id:string;market:OrderBookRequest;source:string;identity_binding:string;
   observed_at:number;computed_at:number;age_secs:number;freshness:'within_selected_age'|'historical_only';
   request:ListingPreviewRequest;
   analysis:{algorithm:'wall_gap_cny_v1'|'wall_gap_fx_v1';book_currency:string;native_gross_listing_estimate:NativeMoney|null;gross_listing_estimate:NativeMoney|null;reason:'empty_asks'|'single_level'|'regular_undercut'|'gap_jump';

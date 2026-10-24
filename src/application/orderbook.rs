@@ -302,6 +302,10 @@ pub struct BookValuation {
 }
 
 #[cfg(test)]
+#[path = "uah_tests.rs"]
+mod uah_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::{
@@ -447,6 +451,7 @@ mod tests {
         );
         let snapshot = OrderBookSnapshot::new(
             OrderBookRequest {
+                currency: crate::domain::money::Currency::cny(),
                 app_id: 730,
                 market_hash_name: "saved fixture".into(),
             },
@@ -547,6 +552,7 @@ mod tests {
         let fx = Arc::new(Rates(crate::domain::fx::tests::fixture(at)));
         let snapshot = OrderBookSnapshot::new(
             OrderBookRequest {
+                currency: crate::domain::money::Currency::cny(),
                 app_id: 730,
                 market_hash_name: "fx fixture".into(),
             },
@@ -693,6 +699,7 @@ mod tests {
         for (currency, at) in [("TWD", now()), ("CNY", now() + 600)] {
             let snapshot = OrderBookSnapshot::new(
                 OrderBookRequest {
+                    currency: crate::domain::money::Currency::cny(),
                     app_id: 730,
                     market_hash_name: "fixture".into(),
                 },
@@ -741,6 +748,7 @@ mod tests {
         );
         assert!(
             app.fetch(OrderBookRequest {
+                currency: crate::domain::money::Currency::cny(),
                 app_id: 570,
                 market_hash_name: "fixture".into()
             })

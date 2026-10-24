@@ -70,7 +70,7 @@ impl HistorySeries {
         }
         if let Some(currency) = &self.currency {
             let code: String = currency.clone().into();
-            if !["CNY", "USD", "GBP", "EUR", "HKD", "TWD"].contains(&code.as_str()) {
+            if !super::fx::SUPPORTED.contains(&code.as_str()) {
                 return Err("历史最小币种单位尚未适配".into());
             }
         }

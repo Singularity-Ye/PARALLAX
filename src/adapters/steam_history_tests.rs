@@ -99,3 +99,53 @@ fn history_windows_exclude_today_but_never_hide_bad_rows_duplicates_or_failed_re
             .is_empty()
     );
 }
+
+#[test]
+fn ukrainian_history_markers_precision_and_native_risk_are_preserved() {
+    for (prefix, suffix) in [
+        ("UAH", ""),
+        ("₴", ""),
+        ("", "₴"),
+        ("", " грн"),
+        ("", "грн."),
+        ("грн", ""),
+        ("₴", "UAH"),
+    ] {
+        assert_eq!(
+            String::from(
+                currency(&json!({"price_prefix":prefix,"price_suffix":suffix}))
+                    .unwrap()
+                    .unwrap()
+            ),
+            "UAH"
+        );
+    }
+    for (prefix, suffix) in [("$", "UAH"), ("грн", "USD"), ("UAH", "EUR")] {
+        assert!(
+            currency(&json!({"price_prefix":prefix,"price_suffix":suffix}))
+                .unwrap()
+                .is_none()
+        );
+    }
+    let rows: Vec<_> = (15..=22)
+        .map(|d| json!([format!("Oct {d} 2026 00: +0"), 125.6789, "10"]))
+        .collect();
+    let body = serde_json::to_vec(
+        &json!({"success":true,"price_prefix":"","price_suffix":" грн.","prices":rows}),
+    )
+    .unwrap();
+    let series = parse(&body, &request(), at()).unwrap();
+    assert_eq!(series.points[0].price_major_1e4, 1_256_789);
+    let analysis = crate::domain::history::analyze(&series, &request(), at()).unwrap();
+    let daily = analysis.daily_bars[0].vwap.as_ref().unwrap();
+    assert_eq!(daily.minor, 12567);
+    assert_eq!(String::from(daily.currency.clone()), "UAH");
+    let risk = analysis.risk.unwrap();
+    assert_eq!(risk.sample_count, 1);
+    assert_eq!(risk.return_p10_bps, Some(0));
+    assert_eq!(
+        String::from(risk.conservative_gross.unwrap().currency),
+        "UAH"
+    );
+    assert_eq!(analysis.stability.unwrap().raw_sample_cv_bps, Some(0));
+}

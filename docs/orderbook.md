@@ -24,7 +24,7 @@
 
 ## 币种、金额与数量
 
-请求 `currency=23` 不保证平台采用 CNY。**以返回的 eCurrency 为准**，保留原币；当前支持 USD/GBP/EUR/CNY/HKD/TWD，这六种按该协议的百分之一单位处理。其他币种明确拒绝，尤其不把 JPY 等零小数币种随意除以 100。映射参照原项目及 [steampy Currency](https://github.com/bukson/steampy/blob/master/steampy/models.py)，没有写入硬编码汇率。
+请求 `currency=23` 不保证平台采用 CNY。**以返回的 eCurrency 为准**，保留原币；当前支持 USD/GBP/EUR/CNY/HKD/TWD/UAH，这七种按该协议的百分之一单位处理。其他币种明确拒绝，尤其不把 JPY 等零小数币种随意除以 100。映射参照原项目及 [steampy Currency](https://github.com/bukson/steampy/blob/master/steampy/models.py)，没有写入硬编码汇率。
 
 价格全程整数。紧凑数组按价格/数量成对解析，卖盘升序、买盘降序，同价合并；奇数数组、负数、非整数、零价格/数量、溢出、摘要最高/最低价不一致都拒绝。单价/单档数量与报告数量上限 10^12，每侧最多 4096 档，响应最多 2 MiB；输出数值在前端整数安全范围内。
 
@@ -53,3 +53,7 @@ PlanRequest 新增可选 `steam_snapshot_ids`，默认空数组，最多 20 个�
 ## 下一步
 
 继续迁移完整历史稳定性、策略引用、预检和订单链路。挂牌参考暂不自动替换预算最低卖价；后续引用必须显式绑定算法、参数、来源/时效与费用。账户相关请求继续复用现有凭据代次、冷却与挑战保护。
+
+## 可选请求币种与UAH
+
+POST /api/steam/order-books新增可选currency，默认CNY，支持上述七币种；UAH请求映射18。CNY序列化仍省略该字段，旧JSON往返兼容。snapshot.requested_currency记录请求，book.currency记录实际响应，失配说明但不改标签。页面有请求币种与显示币种两个独立选项。UAH完整贯通与实测边界见 [uah.md](uah.md)。本轮匿名请求UAH仍收到TWD，保留实际原币并正确折UAH；这不证明原生乌币平台数据已验收。

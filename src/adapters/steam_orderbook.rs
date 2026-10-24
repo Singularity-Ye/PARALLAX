@@ -7,6 +7,35 @@ use serde_json::{Value, json};
 use std::{collections::BTreeMap, time::Duration};
 use tokio::sync::Mutex;
 
+const STEAM_CURRENCIES: [(u64, &str); 7] = [
+    (1, "USD"),
+    (2, "GBP"),
+    (3, "EUR"),
+    (18, "UAH"),
+    (23, "CNY"),
+    (29, "HKD"),
+    (30, "TWD"),
+];
+fn request_url(request: &OrderBookRequest) -> Result<reqwest::Url, Error> {
+    request.validate().map_err(|_| Error::InvalidPayload)?;
+    let code = String::from(request.currency.clone());
+    let id = STEAM_CURRENCIES
+        .iter()
+        .find(|(_, name)| *name == code)
+        .ok_or(Error::UnsupportedCurrency)?
+        .0;
+    let mut url = reqwest::Url::parse("https://steamcommunity.com/market/orderbook").unwrap();
+    url.query_pairs_mut()
+        .append_pair("q", "Load")
+        .append_pair(
+            "qp",
+            &json!([request.app_id, request.market_hash_name]).to_string(),
+        )
+        .append_pair("currency", &id.to_string())
+        .append_pair("l", "english");
+    Ok(url)
+}
+
 pub struct SteamOrderBook {
     client: reqwest::Client,
     retry_at: Mutex<u64>,
@@ -73,18 +102,15 @@ pub(crate) fn parse(payload: &Value) -> Result<OrderBook, Error> {
         return Err(Error::Rejected);
     }
     let data = &envelope["data"];
-    let currency = match uint(&data["eCurrency"])? {
-        1 => "USD",
-        2 => "GBP",
-        3 => "EUR",
-        23 => "CNY",
-        29 => "HKD",
-        30 => "TWD",
-        _ => return Err(Error::UnsupportedCurrency),
-    }
-    .to_string()
-    .try_into()
-    .map_err(|_| Error::InvalidPayload)?;
+    let currency_id = uint(&data["eCurrency"])?;
+    let currency = STEAM_CURRENCIES
+        .iter()
+        .find(|(id, _)| *id == currency_id)
+        .ok_or(Error::UnsupportedCurrency)?
+        .1
+        .to_string()
+        .try_into()
+        .map_err(|_| Error::InvalidPayload)?;
     let book = OrderBook {
         currency,
         asks: levels(&data["rgCompactSellOrders"], true)?,
@@ -107,22 +133,13 @@ pub(crate) fn parse(payload: &Value) -> Result<OrderBook, Error> {
 }
 impl OrderBookProvider for SteamOrderBook {
     async fn order_book(&self, request: &OrderBookRequest) -> Result<OrderBook, Error> {
-        request.validate().map_err(|_| Error::InvalidPayload)?;
+        let url = request_url(request)?;
         // Serial pacing, not an automatic retry loop. Errors never fall back to demo data.
         let mut retry = self.retry_at.lock().await;
         if *retry > now() {
             return Err(Error::RateLimited(*retry));
         }
         *retry = now() + 2;
-        let mut url = reqwest::Url::parse("https://steamcommunity.com/market/orderbook").unwrap();
-        url.query_pairs_mut()
-            .append_pair("q", "Load")
-            .append_pair(
-                "qp",
-                &json!([request.app_id, request.market_hash_name]).to_string(),
-            )
-            .append_pair("currency", "23")
-            .append_pair("l", "english");
         let mut response = self
             .client
             .get(url)
@@ -197,6 +214,48 @@ mod tests {
         assert!(matches!(parse(&failed), Err(Error::Rejected)));
     }
     #[test]
+    fn ukrainian_response_currency_18_keeps_native_prices_without_assuming_cny() {
+        let mut p = payload();
+        p["data"]["eCurrency"] = json!(18);
+        let b = parse(&p).unwrap();
+        assert_eq!(String::from(b.currency.clone()), "UAH");
+        assert_eq!(b.best_ask(), Some(100));
+        assert_eq!(b.best_bid(), Some(90));
+        assert_eq!(b.asks[0].quantity, 7);
+    }
+    #[test]
+    fn optional_request_currency_maps_to_steam_18_and_response_still_controls_the_native_unit() {
+        let legacy = serde_json::json!({"app_id":730,"market_hash_name":"fixture"});
+        let old: OrderBookRequest = serde_json::from_value(legacy.clone()).unwrap();
+        assert_eq!(serde_json::to_value(&old).unwrap(), legacy);
+        assert!(
+            request_url(&old)
+                .unwrap()
+                .query_pairs()
+                .any(|(key, value)| key == "currency" && value == "23")
+        );
+        let requested: OrderBookRequest = serde_json::from_value(
+            serde_json::json!({"app_id":730,"market_hash_name":"fixture","currency":"UAH"}),
+        )
+        .unwrap();
+        assert!(
+            request_url(&requested)
+                .unwrap()
+                .query_pairs()
+                .any(|(key, value)| key == "currency" && value == "18")
+        );
+        let response = parse(&payload()).unwrap();
+        let snapshot = OrderBookSnapshot::new(requested, response, now()).unwrap();
+        assert_eq!(String::from(snapshot.requested_currency), "UAH");
+        assert_eq!(String::from(snapshot.book.currency), "CNY");
+        assert!(snapshot.warnings.iter().any(|w| w.contains("与请求不同")));
+        let unsupported: OrderBookRequest = serde_json::from_value(
+            serde_json::json!({"app_id":730,"market_hash_name":"fixture","currency":"JPY"}),
+        )
+        .unwrap();
+        assert!(request_url(&unsupported).is_err());
+    }
+    #[test]
     fn malformed_prices_currency_depth_and_summary_do_not_produce_quotes() {
         for (field, value) in [
             ("rgCompactSellOrders", json!([100])),
@@ -223,6 +282,7 @@ mod tests {
         let provider = SteamOrderBook::new().unwrap();
         *provider.retry_at.lock().await = now() + 300;
         let request = OrderBookRequest {
+            currency: crate::domain::money::Currency::cny(),
             app_id: 730,
             market_hash_name: "fixture".into(),
         };

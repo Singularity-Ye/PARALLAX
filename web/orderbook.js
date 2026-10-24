@@ -33,7 +33,7 @@ function render(book) {
   updateValuation();
   const box=el('book-result'), {summary:s,book:depth}=book;
   box.replaceChildren(node('h3',`${book.request.market_hash_name} · ${depth.currency}`),
-    node('p',`快照 ${book.id} · 抓取于 ${new Date(book.observed_at*1000).toLocaleString()}`),
+    node('p',`快照 ${book.id} · 请求 ${book.requested_currency} / 实际返回 ${depth.currency} · 抓取于 ${new Date(book.observed_at*1000).toLocaleString()}`),
     node('p',`最低卖价 ${s.best_ask?native(s.best_ask.minor,depth.currency):'无卖单'} · 最高买价 ${s.best_bid?native(s.best_bid.minor,depth.currency):'无买单'} · 毛价差 ${s.spread_minor===null?'未知':native(s.spread_minor,depth.currency)}`),
     node('p',`返回档位的数量合计：卖盘 ${s.visible_ask_quantity} / 买盘 ${s.visible_bid_quantity}；不是日成交量，也不是 BUFF 可购买数量。`));
   const warnings=node('ul');for(const warning of book.warnings)warnings.append(node('li',warning==='平台实际返回非 CNY；保留原币，不换汇，不能用于人民币预算'?'平台实际返回非 CNY；保留原币，当前显示与预算通过独立有效汇率快照换算。':warning));box.append(warnings);
@@ -103,7 +103,8 @@ async function history() {
 el('order-book-form').onsubmit=async event=>{
   event.preventDefault();el('book-fetch').disabled=true;el('book-feedback').textContent='正在读取公开盘口…';
   try {
-    const book=await parallax.fetchOrderBook({app_id:730,market_hash_name:new FormData(event.target).get('market_hash_name')});
+    const data=new FormData(event.target);
+    const book=await parallax.fetchOrderBook({app_id:730,market_hash_name:data.get('market_hash_name'),currency:data.get('currency')});
     render(book);el('book-feedback').textContent='盘口快照已保存；请查看实际币种与限制。';
     try {await history();} catch(e){el('book-feedback').textContent=`快照已保存，历史列表刷新失败：${e.message}`;}
   } catch(e){el('book-feedback').textContent=`读取失败：${e.message}；输入与上次结果保留。`;}

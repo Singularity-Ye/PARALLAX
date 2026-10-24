@@ -3,7 +3,9 @@ use super::money::{Currency, Money};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 pub const SCALE: u64 = 100_000_000;
-pub const SUPPORTED: [&str; 6] = ["CNY", "USD", "EUR", "GBP", "HKD", "TWD"];
+pub const SUPPORTED: [&str; 7] = ["CNY", "USD", "EUR", "GBP", "HKD", "TWD", "UAH"];
+// Historical six-currency evidence remains valid; never invent the missing UAH leg.
+const LEGACY_REQUIRED: [&str; 6] = ["CNY", "USD", "EUR", "GBP", "HKD", "TWD"];
 pub fn supported(c: &Currency) -> bool {
     SUPPORTED.contains(&String::from(c.clone()).as_str())
 }
@@ -30,11 +32,17 @@ impl FxSnapshot {
         let today = chrono::DateTime::from_timestamp(at as i64, 0)
             .ok_or("时间无效")?
             .date_naive();
-        if self.rates.len() != 6 {
+        if !LEGACY_REQUIRED
+            .iter()
+            .all(|code| self.rates.contains_key(*code))
+            || self
+                .rates
+                .keys()
+                .any(|code| !SUPPORTED.contains(&code.as_str()))
+        {
             return Err("汇率币种不完整".into());
         }
-        for code in SUPPORTED {
-            let r = self.rates.get(code).ok_or("汇率缺失")?;
+        for (code, r) in &self.rates {
             let date = chrono::NaiveDate::parse_from_str(&r.date, "%Y-%m-%d")
                 .map_err(|_| "汇率日期无效")?;
             let age = (today - date).num_days();
@@ -47,6 +55,9 @@ impl FxSnapshot {
             }
         }
         Ok(())
+    }
+    pub fn covers_supported(&self) -> bool {
+        SUPPORTED.iter().all(|code| self.rates.contains_key(*code))
     }
     pub fn factor(&self, from: &Currency, to: &Currency) -> Result<(u64, u64), String> {
         if !supported(from) || !supported(to) {
@@ -135,5 +146,46 @@ pub(crate) mod tests {
         assert_eq!(fx.convert(&m, &Currency::cny()).unwrap().minor, 0);
         fx.rates.remove("USD");
         assert!(fx.validate(fx.fetched_at).is_err());
+    }
+    #[test]
+    fn uah_conversion_uses_snapshot_ratio_and_preserves_native_kopiykas() {
+        let mut fx = fixture(1_792_800_000);
+        fx.rates.get_mut("UAH").unwrap().units_per_cny_1e8 = 6 * SCALE;
+        let uah: Currency = "UAH".to_string().try_into().unwrap();
+        let amount = Money {
+            minor: 6001,
+            currency: uah.clone(),
+        };
+        assert_eq!(
+            fx.convert(&amount, &Currency::cny()).unwrap(),
+            Money::cny(1000)
+        );
+        assert_eq!(fx.convert(&Money::cny(1000), &uah).unwrap().minor, 6000);
+        assert_eq!(amount.minor, 6001);
+        assert_eq!(String::from(amount.currency), "UAH");
+    }
+    #[test]
+    fn legacy_six_currency_json_stays_valid_but_never_invents_a_uah_rate() {
+        let mut old = fixture(1_792_800_000);
+        old.rates.remove("UAH");
+        let raw = serde_json::to_string(&old).unwrap();
+        let saved: FxSnapshot = serde_json::from_str(&raw).unwrap();
+        saved.validate(saved.fetched_at).unwrap();
+        assert!(!saved.covers_supported());
+        assert!(
+            saved
+                .convert(&Money::cny(100), &"UAH".to_string().try_into().unwrap())
+                .is_err()
+        );
+        assert_eq!(serde_json::to_string(&saved).unwrap(), raw);
+        let mut unknown = saved;
+        unknown.rates.insert(
+            "XYZ".into(),
+            FxRate {
+                date: "2026-10-23".into(),
+                units_per_cny_1e8: SCALE,
+            },
+        );
+        assert!(unknown.validate(unknown.fetched_at).is_err());
     }
 }

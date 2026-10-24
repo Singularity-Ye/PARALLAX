@@ -26,6 +26,7 @@ impl<P: FxProvider, R: FxRepository> ExchangeRates<P, R> {
         let at = now();
         if let Some(saved) = self.repo.latest_fx().await?
             && saved.validate(at).is_ok()
+            && saved.covers_supported()
         {
             return Ok(saved);
         }
@@ -37,6 +38,11 @@ impl<P: FxProvider, R: FxRepository> ExchangeRates<P, R> {
         *retry = at + 300;
         let snapshot = self.provider.fetch_rates(at).await.map_err(AppError::Fx)?;
         snapshot.validate(now()).map_err(AppError::Fx)?;
+        if !snapshot.covers_supported() {
+            return Err(AppError::Fx(
+                "新汇率响应未覆盖已支持币种（含 UAH）；未保存不完整缓存".into(),
+            ));
+        }
         self.repo.insert_fx(snapshot.clone()).await?;
         *retry = 0;
         Ok(snapshot)
@@ -116,5 +122,62 @@ mod tests {
         assert!(matches!(fx.rates().await, Err(AppError::Conflict(_))));
         assert!(repo.latest_fx().await.unwrap().is_none());
         assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+    #[tokio::test]
+    async fn legacy_cache_is_refreshed_for_uah_without_overwriting_saved_evidence() {
+        let repo = Store::open(Path::new(":memory:")).unwrap();
+        let mut old = fixture(now());
+        old.rates.remove("UAH");
+        repo.insert_fx(old.clone()).await.unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let fx = ExchangeRates::new(
+            Source {
+                calls: calls.clone(),
+                fail: false,
+            },
+            repo.clone(),
+        );
+        let current = fx.rates().await.unwrap();
+        assert!(current.covers_supported());
+        assert_ne!(current.id, old.id);
+        assert_eq!(fx.rates().await.unwrap().id, current.id);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        old.validate(now()).unwrap();
+        assert!(!old.rates.contains_key("UAH"));
+        assert!(repo.insert_fx(old).await.is_err());
+    }
+    #[tokio::test]
+    async fn failed_uah_upgrade_keeps_legacy_cache_and_never_reports_a_complete_refresh() {
+        let repo = Store::open(Path::new(":memory:")).unwrap();
+        let mut old = fixture(now());
+        old.rates.remove("UAH");
+        repo.insert_fx(old.clone()).await.unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let fx = ExchangeRates::new(
+            Source {
+                calls: calls.clone(),
+                fail: true,
+            },
+            repo.clone(),
+        );
+        assert!(matches!(fx.rates().await, Err(AppError::Fx(_))));
+        assert!(matches!(fx.rates().await, Err(AppError::Conflict(_))));
+        assert_eq!(repo.latest_fx().await.unwrap().unwrap().id, old.id);
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+    #[tokio::test]
+    async fn incomplete_new_provider_result_is_not_saved_as_a_successful_upgrade() {
+        struct Incomplete;
+        impl FxProvider for Incomplete {
+            async fn fetch_rates(&self, at: u64) -> Result<FxSnapshot, String> {
+                let mut snapshot = fixture(at);
+                snapshot.rates.remove("UAH");
+                Ok(snapshot)
+            }
+        }
+        let repo = Store::open(Path::new(":memory:")).unwrap();
+        let fx = ExchangeRates::new(Incomplete, repo.clone());
+        assert!(matches!(fx.rates().await, Err(AppError::Fx(_))));
+        assert!(repo.latest_fx().await.unwrap().is_none());
     }
 }

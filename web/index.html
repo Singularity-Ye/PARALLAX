@@ -79,8 +79,8 @@
 <section class="page" data-page="steam-research" id="page-steam-research" hidden>
 <section class="card" id="steam-research"><div class="section-title"><h2>Steam 公开盘口研究</h2><span>READ ONLY / CS2</span></div>
 <p class="hint">匿名读取官方公开盘口，无需登录；准确输入市场英文名及磨损变体。实际币种以平台响应为准，公开深度不是成交承诺。</p>
-<label>显示币种（默认人民币）<select id="book-display-currency"><option value="CNY">人民币 CNY</option><option value="USD">美元 USD</option><option value="EUR">欧元 EUR</option><option value="GBP">英镑 GBP</option><option value="HKD">港元 HKD</option><option value="TWD">新台币 TWD</option></select></label>
-<form id="order-book-form"><label>市场名称<input name="market_hash_name" required maxlength="500" value="Prisma 2 Case" autocomplete="off"></label><button id="book-fetch">读取并保存盘口快照</button></form>
+<label>显示币种（默认人民币）<select id="book-display-currency"><option value="CNY">人民币 CNY</option><option value="UAH">乌克兰格里夫纳 UAH</option><option value="USD">美元 USD</option><option value="EUR">欧元 EUR</option><option value="GBP">英镑 GBP</option><option value="HKD">港元 HKD</option><option value="TWD">新台币 TWD</option></select></label>
+<form id="order-book-form"><label>市场名称<input name="market_hash_name" required maxlength="500" value="Prisma 2 Case" autocomplete="off"></label><label>请求盘口币种（平台可能返回不同币种）<select name="currency" id="book-request-currency"><option value="CNY">人民币 CNY</option><option value="UAH">乌克兰格里夫纳 UAH</option><option value="USD">美元 USD</option><option value="EUR">欧元 EUR</option><option value="GBP">英镑 GBP</option><option value="HKD">港元 HKD</option><option value="TWD">新台币 TWD</option></select></label><button id="book-fetch">读取并保存盘口快照</button></form>
 <p id="book-valuation-feedback" role="status" aria-live="polite">显示默认人民币；异币换算会按需获取并缓存公开日参考汇率，原盘口币种与时间保留。</p><div id="book-valuation-result"></div>
 <p id="book-feedback" role="status" aria-live="polite"></p><div id="book-result"></div><details><summary>最近十份盘口快照</summary><div id="book-history"></div></details>
 <details id="listing-preview-panel"><summary>壁垒／断层定价研究 · 人民币策略基准</summary>

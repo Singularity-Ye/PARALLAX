@@ -1,23 +1,29 @@
 //! Native-currency public depth evidence, distinct from account quotes and fills.
 use super::money::{Currency, Money};
 use serde::{Deserialize, Serialize};
+fn is_cny(currency: &Currency) -> bool {
+    *currency == Currency::cny()
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct OrderBookRequest {
     pub app_id: u32,
     pub market_hash_name: String,
+    #[serde(default = "Currency::cny", skip_serializing_if = "is_cny")]
+    pub currency: Currency,
 }
 impl OrderBookRequest {
     pub fn validate(&self) -> Result<(), String> {
         if self.app_id != 730
+            || !super::fx::supported(&self.currency)
             || self.market_hash_name.trim().is_empty()
             || self.market_hash_name != self.market_hash_name.trim()
             || self.market_hash_name.len() > 500
             || self.market_hash_name.chars().any(char::is_control)
         {
             return Err(
-                "当前盘口只支持 CS2（730）；需要准确、无首尾空白的市场名称，最多 500 字节".into(),
+                "当前盘口只支持 CS2（730）和已适配币种；需要准确、无首尾空白的市场名称，最多 500 字节".into(),
             );
         }
         Ok(())
@@ -108,8 +114,12 @@ impl OrderBookSnapshot {
     pub fn new(request: OrderBookRequest, book: OrderBook, at: u64) -> Result<Self, String> {
         request.validate()?;
         book.validate()?;
+        let requested_currency = request.currency.clone();
         let mut warnings =
             vec!["公开盘口为请求时快照，不保证深度完整；不是成交承诺或账户可执行报价".into()];
+        if book.currency != requested_currency {
+            warnings.push("平台实际币种与请求不同；以实际响应为准，不能直接换币种标签".into());
+        }
         if book.currency != Currency::cny() {
             warnings.push("平台实际返回非 CNY；保留原币，显示与预算需通过有效汇率快照换算".into());
         }
@@ -142,7 +152,7 @@ impl OrderBookSnapshot {
             observed_at: at,
             source: "steam_public_query_action".into(),
             identity_binding: "request_parameters".into(),
-            requested_currency: Currency::cny(),
+            requested_currency,
             book,
             summary,
             warnings,
@@ -180,6 +190,7 @@ mod tests {
     pub(super) fn fixture() -> OrderBookSnapshot {
         OrderBookSnapshot::new(
             OrderBookRequest {
+                currency: crate::domain::money::Currency::cny(),
                 app_id: 730,
                 market_hash_name: "Prisma 2 Case".into(),
             },

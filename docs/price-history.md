@@ -66,3 +66,7 @@ PlanRequest/PlanPreview 不变，不自动刷新 Steam/BUFF 报价、延长时�
 命令：`cargo test --locked --offline`、`cargo fmt --check`、`cargo clippy --locked --offline --all-targets -- -D warnings`、`node --check web/price-history.js`。初次历史切片新增11项合成测试，当时79项通过；当前新增7项稳定性/兼容测试，完整102项通过、2项默认忽略，HTTP/不可覆盖/重开与所有原模块回归通过。真实平台未验收。
 
 下一步：真实历史字段/币种/精度/空响应样本，以及动态阈值/布林带/版本化策略与显式指标引用；同时继续挂牌/未决来源与持仓合并、完整预检/订单。历史描述指标不等于实盘策略已完成。
+
+## UAH单位增量
+
+已适配明确UAH/₴/грн/грн.标记的乌克兰格里夫纳，冲突仍未知。先保留source1e4精度、按自然日聚合，再量化为百分之一UAH；日线/EMA/P10仍原币，不用今天汇率改历史形状。见 [uah.md](uah.md)。真实乌区登录历史仍待验收，本轮相关解析使用夹具。
