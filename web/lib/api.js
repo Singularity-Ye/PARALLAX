@@ -13,6 +13,9 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  preflights: () => request('/api/preflights'),
+  preflight: id => request(`/api/preflights/${encodeURIComponent(id)}`),
+  createPreflight: value => post('/api/preflights',value),
   strategies: () => request('/api/strategies'),
   createStrategy: value => post('/api/strategies',value),
   strategyVersions: id => request(`/api/strategies/${encodeURIComponent(id)}/versions`),

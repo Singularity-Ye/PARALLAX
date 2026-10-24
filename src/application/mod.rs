@@ -9,6 +9,7 @@ pub mod history;
 pub mod inventory;
 pub mod orderbook;
 pub mod ports;
+pub mod preflight;
 pub mod scanner;
 pub mod strategy;
 

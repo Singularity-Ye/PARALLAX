@@ -93,6 +93,9 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  preflights():Promise<{items:PreflightSummary[]}>;
+  preflight(id:string):Promise<Preflight>;
+  createPreflight(value:PreflightRequest):Promise<Preflight>;
   strategies():Promise<{items:StrategyVersion[]}>;
   createStrategy(value:StrategyDraft):Promise<StrategyVersion>;
   strategyVersions(id:string):Promise<{items:StrategyVersion[]}>;
@@ -198,4 +201,12 @@ export interface ExitValuation {
   algorithm:'wall_gap_p10_exit_v1';pricing:ListingPricePreview['analysis'];return_p10_bps:number;sample_count:number;slippage_bps:number;
   stress_base:'current_wall_gap_native_gross';stressed_gross_native:NativeMoney;
   normal_fees:FeeQuote|null;stressed_fees:FeeQuote|null;normal_net_cny:NativeMoney;stressed_net_cny:NativeMoney;
+}
+export interface PreflightRequest {evaluation_id:string;account_id:string|null;selections:{item_key:string;quantity:number}[];max_quote_age_secs:number;}
+export interface PreflightSummary {id:string;created_at:number;evaluation_id:string;account_id:string|null;status:ResearchStatus;evidence_status:ResearchStatus;selected_cash_cents:number;}
+export interface Preflight extends Omit<PreflightSummary,'evaluation_id'|'account_id'> {
+  algorithm:'saved_evidence_preflight_v1';mode:'saved_evidence_only';execution_allowed:false;
+  request:PreflightRequest;context:{account:Account;sessions:SessionView[];buff_retry_at:number;buff_blocked:boolean}|null;
+  source_evaluation:StrategyEvaluation;rechecked_evaluation:StrategyEvaluation;
+  checks:{module:string;status:ResearchStatus;reason:string;observed:unknown}[];
 }

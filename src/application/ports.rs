@@ -317,3 +317,22 @@ pub trait StrategyRepository: Send + Sync {
         Output = anyhow::Result<Vec<crate::domain::strategy::StrategyEvaluationSummary>>,
     > + Send;
 }
+
+pub trait PreflightRepository: Send + Sync {
+    /// Read account/session metadata and BUFF policy in a single read transaction.
+    fn preflight_context(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::preflight::AccountContext>>> + Send;
+    fn insert_preflight(
+        &self,
+        inspection: crate::domain::preflight::Preflight,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn preflight(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::preflight::Preflight>>> + Send;
+    fn preflights(
+        &self,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::preflight::PreflightSummary>>> + Send;
+}

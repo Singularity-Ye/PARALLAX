@@ -28,6 +28,8 @@ UAH已补齐：可请求乌币盘口、显示乌币折合价、解析明确乌�
 
 UI复用已进一步收拢：两个页面共用币种选项、定价/原币费用编辑器与剔除/断层证据展示；主题/样式/页面元数据/API继续分层。反重力接手先看 [组件清单与边界](docs/ui-reuse.md)，不在各页复制组件后分别美化。当前新增9项，完整135通过、2默认忽略；实际平台/订单边界不变。
 
+交易前**保存证据检查 v1**已接：明确选择研究、账户、商品与数量，重算原策略、检查报价时效/凭据代次/可见量及访问限制，保存不可覆盖结果。策略中心保留失败输入与记录；余额、完整持仓、真实费用和订单等缺项明确为unknown。没有签发交易令牌或创建订单。新增9项，完整144通过、0失败、2默认忽略；合同见 [预检](docs/preflight.md)。
+
 ## 快速运行
 
 主机使用 Rust 1.99.1（`rust-toolchain.toml` 锁定）、MSVC C++ Build Tools 与 Windows SDK。依赖版本记录在 `Cargo.lock`。SQLite 编译进程序。
@@ -54,6 +56,7 @@ UI复用已进一步收拢：两个页面共用币种选项、定价/原币费�
 src/
   domain/             业务事实和纯计算，不依赖网络、数据库或 Web
     accounts.rs       账户身份、凭据校验和脱敏会话模型
+    preflight.rs      选择绑定、证据重算、缺项与不可执行检查记录
     orderbook.rs      原币盘口、深度摘要和 CNY 估值约束
     pricing.rs        可解释的 CNY 壁垒/断层挂牌参考规则
     buff_quotes.rs    账户绑定的首屏现金报价与可见数量
@@ -169,6 +172,8 @@ web/
 | GET | /api/strategies/{id}/versions/{revision} | 精确不可覆盖版本 |
 | GET / POST | /api/strategy-evaluations | 最近研究概要 / 创建仅研究的预览 |
 | GET | /api/strategy-evaluations/{id} | 当时规则、计划、历史与解释 |
+| GET / POST | /api/preflights | 最近检查摘要 / 保存所选证据的检查（不授权交易） |
+| GET | /api/preflights/{id} | 原研究、重算、账户代次、选择与缺项快照 |
 | POST | /api/trades | 501，未创建订单 |
 
 创建计划的请求示例（scan_id 换成完成的扫描 ID）：

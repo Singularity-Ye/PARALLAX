@@ -27,7 +27,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M09 | 买卖策略注册、步骤顺序、依赖、参数、导入导出、声明式自定义条件、模拟；R `app/strategy_engine.py`、`routes/strategies.py` | domain/strategy；application/strategy；版本化策略仓储 | 部分实现：购入研究v1六规则、v2可选压力净卖出规则，版本追加/并发冲突、显式计划/历史和三态解释；出售/激活/导入导出/自定义条件待迁移，不代表完整策略引擎或实盘效果 |
 | M10 | 采购硬上限、日量比例、低价惩罚、已有同名持仓扣减；R `purchase_limit.py`、`pipeline_steps.py` | domain/positions；复用订单/持仓快照 | 已接手动账户仓位、未决量、预留、可买量和日量约束；真实账户同步与执行风控待迁移 |
 | M11 | 候选研究、慢卖/快卖/风险估值、七日 P10、压力场景、报价过期、目标游戏价格与余额组合；A `candidate_report.py`、`routes/candidates.py` | domain/valuation、portfolio；application/research；复用 scanner、报价/历史端口 | 预算显式引用 Steam/BUFF 快照，分别校验时间；BUFF 账户/代次绑定且只按最低档可见数限量。平台效果、风险组合与完整快/慢卖待验收/迁移 |
-| M12 | 下单前复核、绑定具体选择的单次短时 token；A `routes/candidates.py`；R 购买前二次复核 | application/preflight；持久化不可变报价与选择摘要 | 未迁移；复核余额、库存、费用、价差、风险、账户和凭据代次；不能直接执行历史预览 |
+| M12 | 下单前复核、绑定具体选择的单次短时 token；A `routes/candidates.py`；R 购买前二次复核 | domain/application/preflight；不可覆盖选择/研究/上下文检查 | 部分实现：保存证据检查、原策略重算、账户/代次/时效/可见量与缺项记录已接；[合同](preflight.md)。实时刷新/价差容差、余额/完整库存/实际费用、短时单次授权与原子消费仍未迁移，不能执行历史预览 |
 | M13 | 单笔/批量锁单、付款提示、核销、写入未知阻断（R）；单笔确认后的平台付款/取消核验（A）；两版 `pipeline_steps.py`、`buff/buyer.py`、R `services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 未迁移，`POST /api/trades` 仍 501；R 单笔不能视为已完整核验付款；组合 A 核验与 R 防重，未知结果先对账 |
 | M14 | 工作时间窗、目标余额、停止、互斥、维护锁、失败商品 TTL；R `pipeline.py`、`pipeline_context.py`、`state.py` | application/orchestrator、scheduler；复用纯规则与持久化订单 | 未迁移；区分停止新动作、等待已发请求和补偿/对账 |
 | M15 | BUFF 发货贸易单、接受 Steam offer、购买记录到 asset 的唯一匹配；R `receive_flow.py` | application/receipt；adapters/steam_trade、buff_trade | 未迁移；模糊/多重匹配留待人工复核，不按名称随意绑定 |

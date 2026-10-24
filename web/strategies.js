@@ -147,7 +147,7 @@ el('evaluation-form').onsubmit=async event=>{
   const request={strategy_id:loaded.strategy_id,revision:loaded.revision,plan_id:el('plan').value,account_id:el('account').value||null,history_snapshot_ids:[...el('history-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean),order_book_snapshot_ids:loaded.draft.rules.some(r=>r.module==='stress_exit_ratio')?[...el('book-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean):[]};
   lock(true);el('evaluation-feedback').textContent='正在按已保存版本研究证据…';
   try{
-    const e=await parallax.evaluateStrategy(request);render(e);el('evaluation-feedback').textContent='研究预览已保存，未发起平台请求或创建订单。';
+    const e=await parallax.evaluateStrategy(request);render(e);window.dispatchEvent(new Event('parallax:research-saved'));el('evaluation-feedback').textContent='研究预览已保存，未发起平台请求或创建订单。';
     try{await records();}catch(err){el('evaluation-feedback').textContent=`研究已保存，记录刷新失败：${err.message}`;}
   }catch(e){el('evaluation-feedback').textContent=`本次未保存新研究：${e.message}；输入与原结果保留。`;}
   finally{lock(false);}

@@ -45,6 +45,7 @@ async fn main() -> anyhow::Result<()> {
         parallax::adapters::steam_history::SteamHistory::new()?,
     );
     let strategies = parallax::application::strategy::StrategyResearch::new(store.clone());
+    let preflights = parallax::application::preflight::Preflights::new(store.clone());
     let state = Application::with_fx(Provider::new()?, store, fx);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -62,6 +63,7 @@ async fn main() -> anyhow::Result<()> {
             .merge(parallax::transport::inventory::router(inventory))
             .merge(parallax::transport::history::router(histories))
             .merge(parallax::transport::strategy::router(strategies))
+            .merge(parallax::transport::preflight::router(preflights))
             .merge(parallax::transport::orderbook::router(order_books))
             .merge(parallax::transport::browser_login::router(browser_logins)),
     )

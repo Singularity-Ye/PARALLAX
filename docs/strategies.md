@@ -75,4 +75,6 @@ v1规则共 1–6 项；v2最多7项并可在最后加入stress_exit_ratio（依
 
 ## 当前v2增量
 
+后续保存证据预检已接，见 [preflight.md](preflight.md)：从历史研究显式选择商品/数量，按当前时间重算原版本并检查账户/代次；保留原研究，不是订单或激活。余额/完整持仓/实时刷新等unknown不会得到执行许可。
+
 压力净卖出估值已作为可选研究条件接入，见 [exit-valuation.md](exit-valuation.md)。schema1原行为不变；schema2新记录algorithm=purchase_research_v2，order_book_snapshot_ids显式选择，结果含order_books和逐商品exit_valuation，旧JSON缺字段兼容。当前完整135通过、2默认忽略；上方117是v1阶段证据。定价/费用表单与证据展示由两页共用，交接见 [ui-reuse.md](ui-reuse.md)。完整卖出策略/订单仍待做。

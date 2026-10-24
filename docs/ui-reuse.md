@@ -47,6 +47,8 @@ const request = {pricing:pricing.read(), fees:fees.read()};
 
 ## 当前证据与后续
 
+预检卡片位于策略中心，`preflight.js`只编排选择/加载/保存/回看，复用现有纸感tokens、card/section-title/secondary类及`pricing-view`的node/nativeMoney；金额/时效/策略仍在Rust。`api.js`/`api.d.ts`集中合同。没有另建主题或重复费用表单。空选择、切页、列表刷新和回看已验证，输入/原结果保留。详见 [preflight.md](preflight.md)。
+
 浏览器检查：策略墙量25、定价页20，相互不串值；切回仍保留25，最终恢复20且未另存测试版本。新建表单重置恢复默认；原定价页使用已有TWD盘口计算原币费后结果正常。UAH选择器和schema2保存/unknown研究正常。完整Rust135项通过/2默认忽略，JS语法通过。
 
 后续列表/状态反馈/其他表单仍有重复，出现第二个真实相同用例时继续提取，不为“复用率”造未使用的万能组件、平行状态机或整站重写。后续独立构建/发布确有需要时，再评估框架。初版视觉保持；本次没有改成新的美术风格。

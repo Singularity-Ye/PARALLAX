@@ -5,4 +5,5 @@ pub mod history;
 pub mod http;
 pub mod inventory;
 pub mod orderbook;
+pub mod preflight;
 pub mod strategy;
