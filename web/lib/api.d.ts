@@ -92,6 +92,14 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  strategies():Promise<{items:StrategyVersion[]}>;
+  createStrategy(value:StrategyDraft):Promise<StrategyVersion>;
+  strategyVersions(id:string):Promise<{items:StrategyVersion[]}>;
+  strategyVersion(id:string,revision:number):Promise<StrategyVersion>;
+  reviseStrategy(id:string,value:{expected_revision:number;draft:StrategyDraft}):Promise<StrategyVersion>;
+  evaluateStrategy(value:StrategyEvaluationRequest):Promise<StrategyEvaluation>;
+  strategyEvaluations():Promise<{items:StrategyEvaluationSummary[]}>;
+  strategyEvaluation(id:string):Promise<StrategyEvaluation>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;
   priceHistory(account:string,id:string):Promise<HistorySnapshot>;
   fetchPriceHistory(account:string,value:HistoryRequest):Promise<HistorySnapshot>;
@@ -159,4 +167,23 @@ export interface StabilityAnalysis {
   ema7:{calendar_days:7;usable_days:number;ema:NativeMoney|null};ema30:{calendar_days:30;usable_days:number;ema:NativeMoney|null};
   trend7:{calendar_days:7;usable_days:number;relative_slope_bps_per_day:number|null;r_squared_bps:number|null};
   reference_utc_day:number|null;reference_range_position_bps:number|null;warnings:string[];
+}
+
+export type StrategyRule =
+  | {module:'strict_ratio';max_ratio_bps:number}
+  | {module:'position_capacity'}
+  | {module:'history_coverage';min_usable_days:number;max_missing_days:number;max_age_secs:number;max_reference_lag_days:number}
+  | {module:'sample_cv';basis:'raw'|'iqr_cleaned';max_cv_bps:number}
+  | {module:'trend7';min_points:number;min_slope_bps_per_day:number;max_slope_bps_per_day:number;min_r_squared_bps:number}
+  | {module:'calendar_p10';min_pairs:number;min_return_bps:number;slippage_bps:number};
+export interface StrategyDraft {schema_version:1;name:string;description:string;rules:StrategyRule[];}
+export interface StrategyVersion {strategy_id:string;revision:number;created_at:number;draft:StrategyDraft;}
+export interface StrategyEvaluationRequest {strategy_id:string;revision:number;plan_id:string;account_id:string|null;history_snapshot_ids?:string[];}
+export type ResearchStatus='pass'|'fail'|'unknown';
+export interface StrategyEvaluationSummary {id:string;created_at:number;strategy_id:string;strategy_name:string;revision:number;plan_id:string;status:ResearchStatus;item_count:number;}
+export interface StrategyEvaluation {
+  id:string;created_at:number;algorithm:'purchase_research_v1';status:ResearchStatus;preview_only:true;execution_allowed:false;
+  request:StrategyEvaluationRequest;strategy:StrategyVersion;plan:PlanPreview;histories:HistorySnapshot[];
+  items:{item_key:string;status:ResearchStatus;decisions:{module:string;status:ResearchStatus;reason:string;observed:unknown}[]}[];
+  execution_blockers:string[];
 }

@@ -22,6 +22,8 @@ Steam CS2 库存观察已接双区分页、账户认证门、局部范围与不�
 
 Steam 价格历史已接认证只读适配、扫描候选与账户绑定、UTC 日线/P10及不可覆盖研究快照；新增原始/清洗后CV、IQR证据、完整自然日EMA7/30、趋势/R²和历史区间位置。缺数据保持未知，原P10保留极端价，不刷新预算或自动放行交易。**真实历史协议、完整策略与收益仍待验收。** 见 [历史研究](docs/price-history.md) 与 [波动/趋势口径](docs/stability.md)。
 
+购入策略研究 v1 已打通保存版本、显式引用计划/历史、逐商品规则解释和不可覆盖记录。支持严格折算率、仓位额度、历史覆盖、CV、七日趋势及 P10；缺失/过期为未知，旧版本和旧研究不重算。策略中心沿用初版 UI，研究结果始终 `execution_allowed=false`；未接出售策略、激活或订单。见 [策略合同](docs/strategies.md)。
+
 ## 快速运行
 
 主机使用 Rust 1.99.1（`rust-toolchain.toml` 锁定）、MSVC C++ Build Tools 与 Windows SDK。依赖版本记录在 `Cargo.lock`。SQLite 编译进程序。
@@ -58,6 +60,8 @@ src/
     money.rs          币种金额、费率/最低费用与步长逆推
     positions.rs      手工仓位、未决量、流动性与可买量限额
     risk.rs           可复用日聚合与七自然日风险纯计算
+    stability.rs      原币日价描述指标，独立于策略阈值
+    strategy.rs       类型化购入规则、显式依赖和三态证据解释
     planning.rs       预算、数量、目标和报价时效，输出不可执行的计划预览
   application/        可由网页或未来调度器复用的用例
     accounts.rs       导入、验证、停用与核验后的凭据替换
@@ -68,6 +72,7 @@ src/
     accounts_inventory.rs 复用 Accounts 门与凭据的库存读取
     accounts_steam.rs 库存/历史共用 Steam 凭据访问与错误处理
     history.rs        当前真实候选的账户价格历史研究与持久化
+    strategy.rs       版本化购入研究，仓储取证、身份绑定与结果保存
     mod.rs            扫描任务、取消、计划创建和查询
     scanner.rs        分页、去重、覆盖统计和停止原因
     ports.rs          行情、仓储、凭据、验证与浏览器端口
@@ -90,6 +95,7 @@ src/
     buff_quotes.rs    账户 BUFF 报价路由
     inventory.rs      账户库存快照路由
     history.rs        账户价格历史研究路由
+    strategy.rs       策略版本、并发冲突与研究预览路由
   main.rs             组装依赖、配置、启动
 web/
   shell.js            左侧导航、独立视图与原生 hash 前进后退
@@ -97,6 +103,7 @@ web/
   lib/api.js          与 UI 无关的统一客户端
   lib/api.d.ts        前端字段类型与计量单位
   app.js              页面交互和展示
+  strategies.js       购入规则编辑、版本与证据研究；不在 JS 计算策略
   index.html          语义化布局
   style.css           引入主题与组件样式
   theme.css           纸底、字体、颜色和纹理 tokens
@@ -149,6 +156,11 @@ web/
 | GET | /api/accounts/{id}/inventories/{snapshot} | 账户绑定的库存历史，非当前可出售承诺 |
 | GET / POST | /api/accounts/{id}/price-histories | 最近十份价格历史研究 / 读取已完成真实扫描候选 |
 | GET | /api/accounts/{id}/price-histories/{snapshot} | 保存时的日线/P10；未重新读取或刷新预算 |
+| GET / POST | /api/strategies | 策略最新版本 / 保存 v1 |
+| GET / POST | /api/strategies/{id}/versions | 版本列表 / expected_revision 并发校验后追加 |
+| GET | /api/strategies/{id}/versions/{revision} | 精确不可覆盖版本 |
+| GET / POST | /api/strategy-evaluations | 最近研究概要 / 创建仅研究的预览 |
+| GET | /api/strategy-evaluations/{id} | 当时规则、计划、历史与解释 |
 | POST | /api/trades | 501，未创建订单 |
 
 创建计划的请求示例（scan_id 换成完成的扫描 ID）：
@@ -163,6 +175,8 @@ web/
 
 当前静态资源由 `include_str!` 嵌入，修改前端后重启 `cargo run` 才会更新。纯视觉工作可用自己的前端预览服务器联调。错误留在当前操作，保留输入；展示必须保留来源、范围、失败原因和 preview_only 标识。
 
+2026-10-24 购入研究切片：新增 15 项测试，完整 **117 通过、0 失败、2 默认忽略**；fmt、Clippy、JS 语法和 debug 构建通过。浏览器已核验规则保存、已有演示计划研究/unknown、历史记录回看和切页保留输入。仅新增一份明确标记的演示研究与一版研究草稿，没有真实平台操作。
+
 ## 下一步
 
 完整范围见 [原项目能力与迁移地图](docs/migration-map.md)，逐文件证据见 [源码盘点](docs/source-inventory.md)。已登记两版 337 个文件并静态解析 225 个 Python 文件；这是盘点覆盖，尚未达到行为迁移覆盖。
@@ -172,7 +186,7 @@ web/
 1. 验收已实现的独立浏览器登录/人工恢复；后续补地区币种、Guard/自动登录与后台续期。
 2. 迁移精确费用、盘口、历史稳定性和持仓限额，再接到现有扫描与预算模型。
 3. 迁移持久化订单、预检、付款核验、收货、冷却、挂牌和成交对账，保留两版互补的安全保护与结果账本。
-4. 按迁移地图补齐策略编辑、后台任务/通知、游戏折扣、礼物和其他原有界面；前端继续复用统一 API。
+4. 扩展购入研究为完整买卖策略、激活/调度，再按迁移地图补齐后台任务/通知、游戏折扣、礼物等；前端继续复用统一 API。
 
 重建本地静态索引：`python tools/source_inventory.py`（仅工程审计工具；Rust 应用运行不依赖 Python）。
 

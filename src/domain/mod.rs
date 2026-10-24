@@ -13,3 +13,4 @@ pub mod pricing;
 pub mod risk;
 pub mod selection;
 pub mod stability;
+pub mod strategy;

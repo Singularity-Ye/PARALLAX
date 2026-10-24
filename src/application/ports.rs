@@ -283,3 +283,37 @@ pub trait Repository: Send + Sync {
     ) -> impl Future<Output = anyhow::Result<Option<PlanPreview>>> + Send;
     fn list_plans(&self) -> impl Future<Output = anyhow::Result<Vec<PlanPreview>>> + Send;
 }
+
+pub trait StrategyRepository: Send + Sync {
+    /// Atomic compare-and-append: false means the expected revision is no longer current.
+    fn append_strategy(
+        &self,
+        version: crate::domain::strategy::StrategyVersion,
+        expected_revision: u32,
+    ) -> impl Future<Output = anyhow::Result<bool>> + Send;
+    fn strategy_version(
+        &self,
+        id: String,
+        revision: u32,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::strategy::StrategyVersion>>> + Send;
+    fn strategy_heads(
+        &self,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::strategy::StrategyVersion>>> + Send;
+    fn strategy_versions(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::strategy::StrategyVersion>>> + Send;
+    fn insert_evaluation(
+        &self,
+        evaluation: crate::domain::strategy::StrategyEvaluation,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn evaluation(
+        &self,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::strategy::StrategyEvaluation>>> + Send;
+    fn evaluations(
+        &self,
+    ) -> impl Future<
+        Output = anyhow::Result<Vec<crate::domain::strategy::StrategyEvaluationSummary>>,
+    > + Send;
+}

@@ -13,6 +13,14 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  strategies: () => request('/api/strategies'),
+  createStrategy: value => post('/api/strategies',value),
+  strategyVersions: id => request(`/api/strategies/${encodeURIComponent(id)}/versions`),
+  strategyVersion: (id,revision) => request(`/api/strategies/${encodeURIComponent(id)}/versions/${revision}`),
+  reviseStrategy: (id,value) => post(`/api/strategies/${encodeURIComponent(id)}/versions`,value),
+  evaluateStrategy: value => post('/api/strategy-evaluations',value),
+  strategyEvaluations: () => request('/api/strategy-evaluations'),
+  strategyEvaluation: id => request(`/api/strategy-evaluations/${encodeURIComponent(id)}`),
   priceHistories: account => request(`/api/accounts/${encodeURIComponent(account)}/price-histories`),
   priceHistory: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/price-histories/${encodeURIComponent(id)}`),
   fetchPriceHistory: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/price-histories`,value),

@@ -10,6 +10,7 @@ pub mod inventory;
 pub mod orderbook;
 pub mod ports;
 pub mod scanner;
+pub mod strategy;
 
 use crate::domain::{
     planning::{PlanPreview, PlanRequest, preview_with_fx_quotes},

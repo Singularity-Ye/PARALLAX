@@ -14,7 +14,7 @@ export const pages = [
   {id:'sales',title:'上架记录',group:1,kicker:'ASSETS / LISTINGS',description:'跟踪资产上架、确认、撤单与成交。',icon:'tag',pending:['按账户同步真实在售资产','记录上架、确认与撤单结果','将平台成交与采购资产逐项对账'],related:'inventory'},
   {id:'accounts',title:'账号管理',group:2,kicker:'ACCOUNT / SESSIONS',description:'管理账户与登录态，在官方页面完成身份验证。',icon:'user'},
   {id:'steam-guard',title:'Steam 令牌',group:2,kicker:'ACCOUNT / GUARD',description:'管理 Steam Guard 与自动登录流程。',icon:'shield',pending:['Guard 自动登录与挑战状态','令牌安全存储与后台续期'],related:'accounts'},
-  {id:'strategies',title:'策略中心',group:2,kicker:'AUTOMATION / STRATEGIES',description:'组织购入与出售策略，让规则可以复用。',icon:'sliders',pending:['内置策略模块与参数','步骤顺序、依赖和版本管理','模拟验证与交易前复核'],related:'planning'},
+  {id:'strategies',title:'策略中心',group:2,kicker:'AUTOMATION / STRATEGIES',description:'保存购入研究规则，用明确证据逐项验证。',icon:'sliders'},
   {id:'proxy',title:'代理池',group:2,kicker:'SYSTEM / NETWORK',description:'管理平台连接、代理路由与可用性。',icon:'globe',pending:['代理节点与路由配置','连通性检查及平台访问策略'],related:'accounts'},
   {id:'settings',title:'系统设置',group:2,kicker:'SYSTEM / PREFERENCES',description:'查看当前运行方式与配置边界。',icon:'sliders',kind:'settings'},
   {id:'debug',title:'运行日志',group:2,kicker:'SYSTEM / LOGS',description:'追踪运行事件和失败原因。',icon:'terminal',pending:['脱敏事件日志与任务状态','日志筛选及导出'],related:'purchase-history'},

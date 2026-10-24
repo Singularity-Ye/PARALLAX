@@ -106,6 +106,7 @@ details ul{padding-left:18px;margin-bottom:0}
 .history-row{display:flex;justify-content:space-between;gap:20px;width:100%;padding:15px 4px;background:transparent;color:var(--ink);border:0;border-bottom:1px solid var(--line);border-radius:0;font-size:12px;font-weight:400;text-align:left;white-space:normal;overflow-wrap:anywhere}
 .history-row:not(:disabled):hover{background:var(--soft)}
 .history-row>span{color:var(--muted)}
+#strategy-result pre{max-width:100%;overflow:auto;padding:12px;background:var(--soft);font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
 #planning .workspace{margin:20px 0 0}
 #plan-feedback{font-size:12px;overflow-wrap:anywhere;padding:5px 0}
 #plan-result{min-width:0;overflow-wrap:anywhere}
