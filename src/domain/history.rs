@@ -92,6 +92,8 @@ impl HistorySeries {
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct HistoryAnalysis {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stability: Option<super::stability::StabilityAnalysis>,
     pub status: String,
     pub daily_bars: Vec<DailyBar>,
     pub missing_calendar_days: u32,
@@ -108,6 +110,7 @@ pub fn analyze(
     request.validate()?;
     series.validate(request, at)?;
     let mut result = HistoryAnalysis {
+        stability: None,
         status: "unknown_currency".into(),
         daily_bars: vec![],
         missing_calendar_days: request.window_days
@@ -138,6 +141,12 @@ pub fn analyze(
         .map(|p| (p.at, p.price_major_1e4, p.volume))
         .collect();
     result.daily_bars = daily_bars_scaled(&points, currency, 100)?;
+    result.stability = Some(super::stability::analyze(
+        &result.daily_bars,
+        currency,
+        series.from_utc_day,
+        series.until_utc_day_exclusive,
+    )?);
     result.missing_calendar_days = request.window_days - result.daily_bars.len() as u32;
     result.below_minor_unit_days = result
         .daily_bars

@@ -25,6 +25,18 @@ function render(snapshot) {
     node('p',`七日配对 ${r?.sample_count??0} 个 · P10 ${r?.return_p10_bps==null?'未知':(r.return_p10_bps/100).toFixed(2)+'%'} · 参考历史日 ${a.reference_utc_day==null?'未知':day(a.reference_utc_day)} · 压力估算价 ${money(r?.conservative_gross)}`));
   for(const warning of a.warnings)box.append(node('p',warning));
   if(a.below_minor_unit_days)box.append(node('p',`${a.below_minor_unit_days} 个日期价格低于已适配最小单位，未当作零价。`));
+  const metrics=a.stability,pct=value=>value==null?'未知':`${(value/100).toFixed(2)}%`;
+  if(metrics){
+    const section=node('section');section.append(node('h3','波动与自然日趋势'),
+      node('p',`${metrics.algorithm} · 有效日 ${metrics.usable_days} · 缺失或价格不可用 ${metrics.missing_or_unusable_days} 日`),
+      node('p',`样本 CV：原日价 ${pct(metrics.raw_sample_cv_bps)} / IQR 清洗后 ${pct(metrics.clean_sample_cv_bps)}；清洗均价 ${money(metrics.clean_mean)} · 中位数 ${money(metrics.clean_median)}`),
+      node('p',`EMA7 ${money(metrics.ema7.ema)}（${metrics.ema7.usable_days}/7 个有效自然日） · EMA30 ${money(metrics.ema30.ema)}（${metrics.ema30.usable_days}/30）`),
+      node('p',`近七自然日趋势：${metrics.trend7.usable_days} 个日价点 · 相对斜率 ${pct(metrics.trend7.relative_slope_bps_per_day)}/日 · R² ${metrics.trend7.r_squared_bps==null?'未定义／样本不足':(metrics.trend7.r_squared_bps/10000).toFixed(4)}`),
+      node('p',`最后历史价的清洗区间位置 ${pct(metrics.reference_range_position_bps)}；为最低/最高价间位置，不是经验概率分位或实时价格。`));
+    const detail=node('details');detail.append(node('summary',`IQR 证据 · 保留 ${metrics.iqr.retained_days} 日 / 排除 ${metrics.iqr.excluded_utc_days.length} 日`),
+      node('p',metrics.iqr.method),node('p',metrics.iqr.excluded_utc_days.length?`仅清洗统计排除日期：${metrics.iqr.excluded_utc_days.map(day).join('、')}。原日线、EMA、趋势和 P10 不删除这些数据。`:'没有因 IQR 排除日价。'));
+    section.append(detail);for(const warning of metrics.warnings)section.append(node('p',warning));box.append(section);
+  }else box.append(node('p','此快照未包含稳定性指标（旧版本或币种未知）；不会在回看时静默重算。'));
   const list=node('ul');for(const b of a.daily_bars.slice(-14))list.append(node('li',`${day(b.utc_day)} · 日量加权样本价 ${money(b.vwap)} · 已知量 ${b.volume} · 零量样本 ${b.zero_volume_samples} · 缺量样本 ${b.missing_volume_samples}`));box.append(list);
   if(a.daily_bars.length>14)box.append(node('p','页面只展示最近 14 个有记录日期，完整数据保存在快照 API。'));
 }

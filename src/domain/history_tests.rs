@@ -89,3 +89,21 @@ fn history_bounds_duplicates_and_currency_evidence_cannot_be_bypassed_by_a_provi
         assert!(analyze(&s, &req(), 400 * 86400).is_err());
     }
 }
+#[test]
+fn stability_is_optional_in_old_json_and_never_changes_raw_daily_prices_or_p10() {
+    let s = series(vec![
+        sample(392, 0, 10000, Some(1)),
+        sample(399, 0, 20000, Some(1)),
+    ]);
+    let result = analyze(&s, &req(), 400 * 86400).unwrap();
+    let metrics = result.stability.as_ref().unwrap();
+    assert_eq!(metrics.usable_days, 2);
+    assert!(metrics.ema7.ema.is_none());
+    assert_eq!(result.risk.as_ref().unwrap().return_p10_bps, Some(10000));
+    let mut json = serde_json::to_value(&result).unwrap();
+    json.as_object_mut().unwrap().remove("stability");
+    let old: HistoryAnalysis = serde_json::from_value(json).unwrap();
+    assert!(old.stability.is_none());
+    assert_eq!(old.daily_bars[1].vwap.as_ref().unwrap().minor, 200);
+    assert_eq!(old.risk.unwrap().return_p10_bps, Some(10000));
+}

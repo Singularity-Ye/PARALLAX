@@ -159,6 +159,10 @@ async fn history_http_binds_candidate_account_and_saves_immutable_native_researc
             && !raw.contains("credential_key")
     );
     let saved: HistorySnapshot = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        saved.analysis.stability.as_ref().unwrap().algorithm,
+        "calendar_stability_v1"
+    );
     assert_eq!(saved.analysis.risk.as_ref().unwrap().sample_count, 1);
     assert_eq!(
         saved.analysis.reference_utc_day,
@@ -359,6 +363,11 @@ async fn historical_results_and_policy_survive_restart_without_recomputing_quote
                 .unwrap()
                 .sample_count,
             1
+        );
+        let restored = file.history(snapshot.id.clone()).await.unwrap().unwrap();
+        assert_eq!(
+            serde_json::to_value(&restored.analysis.stability).unwrap(),
+            serde_json::to_value(&snapshot.analysis.stability).unwrap()
         );
         assert!(file.insert_history(snapshot).await.is_err());
     }

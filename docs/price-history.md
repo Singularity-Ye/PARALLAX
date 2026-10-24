@@ -1,10 +1,10 @@
 # Parallax 价格历史与自然日研究
 
-状态：已接 Steam 只读 pricehistory 适配、账户/扫描候选绑定、UTC 日聚合与七自然日 P10、不可覆盖快照及最小页面。**79 项常规本地测试通过；真实 Steam 登录、历史接口字段/单位/币种尚未验收。** 这是研究结果，未自动改扫描规则、预算报价或交易策略。
+状态：已接 Steam 只读 pricehistory 适配、账户/扫描候选绑定、UTC 日聚合/P10及不可覆盖快照；新增IQR/CV/EMA/自然日趋势/R²基础描述，见 [stability.md](stability.md)。**当前102项常规本地测试通过、2默认忽略；真实Steam登录与历史协议尚未验收。** 研究未自动改变扫描、预算或交易策略。
 
 ## 原项目思路与复用
 
-继承 `steam/client.py:fetch_history`、`app/services/steam_client.py`、`analysis/stability.py` 和 audit 的 `candidate_report.py`。保留按商品读历史、日量加权、七日收益分位与压力滑点；修正按第 i/i-7 条记录冒充自然日、缺量补 1、按模糊符号猜人民币、默认汇率转换、无历史默认 -8% 等含混行为。IQR/CV/EMA/趋势/R²、价格分位、完整快慢卖与策略条件仍待迁移。
+继承 `steam/client.py:fetch_history`、`app/services/steam_client.py`、`analysis/stability.py` 和 audit 的 `candidate_report.py`。保留商品历史、日量加权、七日分位与压力滑点，修正记录索引冒充自然日、缺量补1、猜币种/默认FX和无历史默认-8%。IQR/CV/EMA/自然日趋势/R²与历史区间位置已接基础描述；完整快慢卖、动态阈值/布林带及策略条件仍待迁移。
 
 先检查现有 reqwest、Accounts、risk、SQLite。社区端点交叉核对来源：[InternalSteamWebAPI 协议记录](https://github.com/Revadike/InternalSteamWebAPI/wiki/Get-Market-Price-History)、[Go Steam 客户端的历史响应定义](https://github.com/doctype/steam/blob/master/market.go)；这些是第三方实现/记录，不能代替 Valve 官方合同或平台样本。没有引入 Go/Node 运行时或第二套登录态。
 
@@ -63,6 +63,6 @@ PlanRequest/PlanPreview 不变，不自动刷新 Steam/BUFF 报价、延长时�
 
 ## 验证与下一步
 
-命令：`cargo test --locked --offline`、`cargo fmt --check`、`cargo clippy --locked --offline --all-targets -- -D warnings`，以及 `node --check web/price-history.js`。新增 11 项合成测试：时区/闰日、精确小数/未知币种/零与缺量、窗口/坏数据、自然日/缺日/低于最小单位、账户/候选/代次/同源、认证互斥、冷却/错误、不可覆盖与数据库重启；库存全部原有测试也通过。常规 79 项通过、2 默认忽略，真实平台未验收。
+命令：`cargo test --locked --offline`、`cargo fmt --check`、`cargo clippy --locked --offline --all-targets -- -D warnings`、`node --check web/price-history.js`。初次历史切片新增11项合成测试，当时79项通过；当前新增7项稳定性/兼容测试，完整102项通过、2项默认忽略，HTTP/不可覆盖/重开与所有原模块回归通过。真实平台未验收。
 
-下一步：登录后的真实历史字段/币种/精度/空响应样本 → 原版剩余稳定性与趋势指标 → 显式研究/策略合同；同时继续挂牌/未决来源与持仓合并、完整预检/订单链路。历史存储/风控计算完成不等于实盘可用。
+下一步：真实历史字段/币种/精度/空响应样本，以及动态阈值/布林带/版本化策略与显式指标引用；同时继续挂牌/未决来源与持仓合并、完整预检/订单。历史描述指标不等于实盘策略已完成。

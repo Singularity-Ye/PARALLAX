@@ -146,7 +146,17 @@ export interface HistorySnapshot {
   series:{currency:string|null;currency_basis:'explicit_code_or_unique_marker'|'ambiguous_or_unsupported';
     points:{at:number;price_major_1e4:number;volume:number|null}[];response_rows:number;excluded_before_window:number;excluded_open_day:number;from_utc_day:number;until_utc_day_exclusive:number};
   analysis:{status:'unknown_currency'|'no_usable_daily_prices'|'insufficient_pairs'|'historical_pairs_available';
+    stability?:StabilityAnalysis;
     daily_bars:{utc_day:number;vwap:NativeMoney|null;volume:number;zero_volume_samples:number;missing_volume_samples:number}[];
     missing_calendar_days:number;below_minor_unit_days:number;reference_utc_day:number|null;
     risk:{algorithm:'calendar_p10_v1';sample_count:number;return_p10_bps:number|null;conservative_gross:NativeMoney|null;slippage_bps:number}|null;warnings:string[]};
+}
+export interface StabilityAnalysis {
+  algorithm:'calendar_stability_v1';basis:'positive_volume_daily_sample_prices_native_minor';
+  usable_days:number;missing_or_unusable_days:number;raw_sample_cv_bps:number|null;clean_sample_cv_bps:number|null;
+  clean_mean:NativeMoney|null;clean_median:NativeMoney|null;
+  iqr:{method:string;applied:boolean;retained_days:number;excluded_utc_days:number[];lower_minor_floor:number|null;upper_minor_ceil:number|null};
+  ema7:{calendar_days:7;usable_days:number;ema:NativeMoney|null};ema30:{calendar_days:30;usable_days:number;ema:NativeMoney|null};
+  trend7:{calendar_days:7;usable_days:number;relative_slope_bps_per_day:number|null;r_squared_bps:number|null};
+  reference_utc_day:number|null;reference_range_position_bps:number|null;warnings:string[];
 }
