@@ -2,8 +2,25 @@
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Parallax</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-<aside><a class="brand" href="/">◈ <span>PARALLAX</span></a><nav><a href="#workspace" class="active">◎ 选品工作台</a><a href="#planning">◇ 预算计划</a><a href="#history">◷ 扫描记录</a><a href="#roadmap">↗ 交易迁移</a></nav><p class="aside-foot">先看清市场，<br>再让交易有序发生。</p></aside>
-<main id="workspace"><header><div><span class="eyebrow">YOUR MARKET, IN FOCUS</span><h1>让每一次选品，有据可循。</h1><p>设定范围，查看覆盖，理解每一件商品的去留。</p></div><span class="badge">初版 · 扫描与计划</span></header>
+<a class="skip-link" href="#page-heading">跳到页面内容</a>
+<aside id="sidebar" aria-label="应用导航">
+  <a class="brand" href="#dashboard"><span class="brand-mark" aria-hidden="true">✦</span><span>PARALLAX<small>MARKET WORKSTATION</small></span></a>
+  <button id="nav-close" class="nav-close secondary" aria-label="关闭功能导航" type="button">关闭 ×</button>
+  <nav id="page-navigation" aria-label="功能页面"></nav>
+  <div class="aside-foot"><span class="status-dot" aria-hidden="true"></span><span id="sidebar-status">本地研究工作台</span><small>观其异，度其值。</small></div>
+</aside>
+<button id="nav-backdrop" class="nav-backdrop" aria-label="关闭功能导航" type="button" tabindex="-1" hidden></button>
+<main id="app">
+  <div class="topline"><button id="nav-toggle" class="nav-toggle secondary" aria-label="打开功能导航" aria-controls="sidebar" aria-expanded="false" type="button">☰ 导航</button><span id="page-breadcrumb">工作台 / 仪表盘</span><span class="mode-badge" id="mode-badge">本地研究模式</span></div>
+  <header class="page-header"><div><span class="eyebrow" id="page-kicker">YOUR MARKET, IN FOCUS</span><h1 id="page-heading" tabindex="-1">仪表盘</h1><p id="page-description">从行情、仓位到交易，让每一步都有依据。</p></div><span class="folio" aria-hidden="true">P / <span id="page-number">01</span></span></header>
+  <section class="page" data-page="dashboard" id="page-dashboard">
+    <div class="dashboard-hero"><div><span class="label-stamp">PARALLAX / WORKSPACE</span><h2>看清价差，<br>再做决定<span class="lime-star" aria-hidden="true">✦</span></h2><p>把市场、资产与计划放到同一张桌面。<br>先比较，再行动。</p><a class="button-link" href="#workspace">进入选品工作台 <span aria-hidden="true">↗</span></a></div><div class="hero-note"><span class="note-index">01—03</span><h3>交易，有它的次序。</h3><ol><li><b>看行情</b><span>读取来源，明确范围</span></li><li><b>做计划</b><span>衡量价格、预算与持仓</span></li><li><b>执行与对账</b><span>待接入 · 当前不会创建订单</span></li></ol></div></div>
+    <div class="dashboard-metrics"><article class="paper-stat"><span>本地服务</span><strong id="dashboard-service">检查中</strong><small id="dashboard-service-note">正在确认连接状态</small></article><article class="paper-stat"><span>当前扫描来源</span><strong id="dashboard-source">尚未选择</strong><small id="dashboard-scan-time">可从选品工作台或操作记录开始</small></article><article class="paper-stat"><span>预筛通过 / 已分析</span><strong id="dashboard-selection">—</strong><small>预筛结果不等于可执行订单</small></article></div>
+    <div class="section-title section-divider"><h2>各归其位</h2><span>ON YOUR DESK</span></div>
+    <div class="launch-grid"><a class="launch-card" href="#inventory"><span class="launch-index">01 / ASSETS</span><h3>库存与资产 <span>↗</span></h3><p>观察账户库存，保留资产与读取范围。</p></a><a class="launch-card" href="#analytics"><span class="launch-index">02 / RESEARCH</span><h3>行情与研究 <span>↗</span></h3><p>分开查看 Steam、BUFF 与价格历史。</p></a><a class="launch-card" href="#planning"><span class="launch-index">03 / PLANNING</span><h3>本轮预算 <span>↗</span></h3><p>引用报价，比较资金分配与约束。</p></a></div>
+    <div class="notice">自动买卖仍在迁移。当前可进行扫描、只读研究与预算预览；真实登录和部分平台协议尚待验收。</div>
+  </section>
+<section class="page" data-page="workspace" id="workspace" hidden>
 <section class="notice">当前支持演示扫描与 SteamDT 榜单读取。榜单通过仅代表预筛通过，尚未进行实时深度、历史风险和交易前复核；真实买卖正在迁移。</section>
 <div class="workspace"><section class="card controls"><div class="section-title"><h2>本轮选品范围</h2><span>01 / SCOPE</span></div>
 <form id="scan-form"><label>数据来源<select name="source"><option value="demo">演示数据 · 本地固定样例</option><option value="steamdt">SteamDT · BUFF → Steam 榜单</option></select></label>
@@ -22,6 +39,8 @@
 <section class="card results"><div class="section-title"><h2>扫描结果</h2><span id="source-label">等待开始</span></div><div id="feedback" role="status" aria-live="polite">选择范围后开始。演示数据可直接体验，无需登录账号。</div>
 <div class="metrics" id="metrics"></div><div class="result-toolbar"><strong id="result-summary">每件商品，都有理由</strong><label><input id="only-passed" type="checkbox"> 只看预筛通过</label></div>
 <div id="candidates" class="candidate-list"><div class="empty">◈<h3>市场很大，先画好范围。</h3><p>扫描后将在这里显示报价、折算率和逐条规则结果。</p></div></div></section></div>
+</section>
+<section class="page" data-page="planning" id="page-planning" hidden>
 <section class="card" id="planning"><div class="section-title"><h2>交易预算计划</h2><span>02 / PLAN</span></div>
 <p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>
 <div class="workspace"><form id="plan-form">
@@ -30,9 +49,9 @@
 <div class="pair"><label>每种数量上限（含填报持仓及未决买入）<input name="max_units" type="number" min="1" max="100" value="2" required></label><label>最多商品种类<input name="max_positions" type="number" min="1" max="100" value="3" required></label></div>
 <label>报价有效期 / 秒<input name="quote_age" type="number" min="1" max="3600" value="300" required></label>
 <label>引用 Steam 盘口快照 ID（选填，逗号分隔）<input id="steam-snapshot-ids" autocomplete="off" placeholder="仅接受当前真实扫描对应商品的 CNY 快照"></label>
-<label>引用 BUFF 现金报价 ID（选填，逗号分隔）<input id="buff-snapshot-ids" autocomplete="off" placeholder="属于下方 BUFF 研究区选中账户的快照"></label>
-<p class="hint">各侧只更新明确引用的报价，另一侧保留原时间；BUFF 引用绑定研究区账户并按最低价可见卖单数限量。演示扫描禁止混入真实报价。</p>
-<details><summary>手动填报仓位与可买量</summary><label><input type="checkbox" id="use-positions"> 使用这份手动快照；保留的 0 表示我填报为零，并非平台核验</label>
+<label>引用 BUFF 现金报价 ID（选填，逗号分隔）<input id="buff-snapshot-ids" autocomplete="off" placeholder="属于 BUFF 报价页所选账户的快照"></label>
+<p class="hint">各侧只更新明确引用的报价，另一侧保留原时间；BUFF 引用绑定 BUFF 报价页账户并按最低价可见卖单数限量。演示扫描禁止混入真实报价。</p>
+<details id="manual-positions"><summary>手动填报仓位与可买量</summary><label><input type="checkbox" id="use-positions"> 使用这份手动快照；保留的 0 表示我填报为零，并非平台核验</label>
 <fieldset id="position-fields" disabled><label>所属账户<select id="position-account" required></select></label><label>数据观察时间<input id="position-time" type="datetime-local" required></label><label>已预留现金 / 元<input id="position-reserved" type="number" min="0" step="0.01" value="0" required></label><label>快照有效期 / 秒<input id="position-age" type="number" min="1" max="3600" value="300" required></label>
 <label><input type="checkbox" id="use-liquidity"> 依据填报日成交量限制增购数量</label><fieldset id="liquidity-fields" disabled><div class="pair"><label>日量占比 / %<input id="daily-participation" type="number" min="0" max="100" step="0.01" value="5" required></label><label>低价界线 / 元<input id="low-threshold" type="number" min="0" step="0.01" value="5" required></label></div><div class="pair"><label>低价数量系数 / %<input id="low-penalty" type="number" min="0" max="100" step="0.01" value="50" required></label><label>低价数量上限<input id="low-cap" type="number" min="0" max="100" step="1" value="30" required></label></div></fieldset>
 <p class="hint">可买量和日成交量留空表示未知。启用日量约束时，缺少日量的商品会跳过；不会借用榜单成交量。持有数量包含已挂牌资产，未决买入与持有不要重复计数。</p><div id="position-entries"></div></fieldset></details>
@@ -40,17 +59,15 @@
 <button id="plan-create" type="submit" disabled>生成并保存预算预览</button>
 <div id="plan-feedback" role="status" aria-live="polite"></div>
 </form><div id="plan-result"><p class="hint">计划会保留报价快照、预算分配与跳过原因。</p></div></div>
-<details><summary>已保存的预算计划</summary><div id="plan-history"></div></details></section>
-<section class="card" id="steam-research"><div class="section-title"><h2>Steam 公开盘口研究</h2><span>READ ONLY / CS2</span></div>
-<p class="hint">匿名读取官方公开盘口，无需登录；准确输入市场英文名及磨损变体。实际币种以平台响应为准，公开深度不是成交承诺。</p>
-<form id="order-book-form"><label>市场名称<input name="market_hash_name" required maxlength="500" value="Prisma 2 Case" autocomplete="off"></label><button id="book-fetch">读取并保存盘口快照</button></form>
-<p id="book-feedback" role="status" aria-live="polite"></p><div id="book-result"></div><details><summary>最近十份盘口快照</summary><div id="book-history"></div></details></section>
-<section class="card" id="history"><div class="section-title"><h2>最近扫描</h2><span>02 / JOURNAL</span></div><div id="history-list">正在读取记录…</div></section>
-<section class="card" id="buff-research"><div class="section-title"><h2>BUFF 现金端研究</h2><span>AUTHENTICATED READ / CS2</span></div>
-<p class="hint">仅从已完成的真实 SteamDT 扫描选择候选。需先在账户区完成最近五分钟内的 BUFF 身份验证，并等待冷却结束。只读取首屏卖单，不锁单、不付款；CNY 价格协议尚未实测。</p>
-<form id="buff-quote-form"><label>报价账户<select id="buff-quote-account" required></select></label><label>扫描 ID<input id="buff-quote-scan" readonly required></label><label>候选<select id="buff-quote-item" required></select></label><button id="buff-quote-fetch" disabled>读取并保存 BUFF 报价</button></form>
-<p id="buff-quote-feedback" role="status" aria-live="polite"></p><div id="buff-quote-result"></div><details><summary>该账户最近十份报价</summary><div id="buff-quote-history"></div></details></section>
-<section class="card" id="roadmap"><div class="section-title"><h2>自动买卖迁移进度</h2><span>03 / BUILDING</span></div><div class="roadmap"><div><b>01 · 选品与范围</b><p>已接入分页扫描、去重、规则解释和记录保存。</p></div><div><b>02 · 分析与计划</b><p>预算预览已接入；待迁移历史稳定性与市场深度。</p></div><div><b>03 · 自动执行</b><p>待迁移付款核验、收货、上架确认和成交同步。</p></div></div></section>
+</section>
+</section>
+<section class="page" data-page="inventory" id="page-inventory" hidden>
+<section class="card" id="inventory"><div class="section-title"><h2>Steam 库存观察</h2><span>READ ONLY / CS2</span></div>
+<p class="hint">读取所选账户的 CS2 库存区 2 与 16。先完成最近五分钟内的 Steam 在线身份核验并等待冷却。每页 75 个资产；分页读完也不代表完整交易敞口，不含已挂牌和未决采购。线上协议尚未实测。</p>
+<form id="inventory-form"><label>库存账户<select id="inventory-account" required></select></label><label>每区最多页数<input id="inventory-pages" type="number" min="1" max="10" value="4" required></label><button id="inventory-fetch" disabled>读取并保存库存快照</button></form>
+<p id="inventory-feedback" role="status" aria-live="polite"></p><div id="inventory-result"></div><details><summary>该账户最近十份库存快照</summary><div id="inventory-history"></div></details></section>
+</section>
+<section class="page" data-page="accounts" id="page-accounts" hidden>
 <section class="card" id="accounts"><div class="section-title"><h2>账户与登录态</h2><span>04 / ACCOUNTS</span></div>
 <p class="hint">先创建账户，再选择独立浏览器登录或手动导入 Cookie。凭据保存在本机 Windows 凭据管理器；保存浏览器会话前核验平台身份。密码/Guard 自动登录尚未接入。</p>
 <div class="workspace"><form id="account-form"><label>账户备注<input name="label" required maxlength="80" autocomplete="off"></label><label>Steam ID（17 位数字）<input name="steam_id" required pattern="[0-9]{17}" inputmode="numeric" autocomplete="off"></label><button>创建账户</button></form>
@@ -58,13 +75,41 @@
 <div class="actions"><button id="browser-start" type="button" class="secondary">打开独立登录窗口</button><button id="browser-finish" type="button" class="secondary" disabled>完成登录并验证</button><button id="browser-cancel" type="button" class="secondary" disabled>取消登录</button></div>
 <p id="browser-feedback" role="status" aria-live="polite">在上方选择账户与平台，再打开独立窗口。密码与 Guard 码只输入官方页面；窗口十分钟后过期。</p>
 <p id="account-feedback" role="status" aria-live="polite"></p><div id="session-list"></div></section>
-<section class="card" id="inventory"><div class="section-title"><h2>Steam 库存观察</h2><span>READ ONLY / CS2</span></div>
-<p class="hint">读取所选账户的 CS2 库存区 2 与 16。先完成最近五分钟内的 Steam 在线身份核验并等待冷却。每页 75 个资产；分页读完也不代表完整交易敞口，不含已挂牌和未决采购。线上协议尚未实测。</p>
-<form id="inventory-form"><label>库存账户<select id="inventory-account" required></select></label><label>每区最多页数<input id="inventory-pages" type="number" min="1" max="10" value="4" required></label><button id="inventory-fetch" disabled>读取并保存库存快照</button></form>
-<p id="inventory-feedback" role="status" aria-live="polite"></p><div id="inventory-result"></div><details><summary>该账户最近十份库存快照</summary><div id="inventory-history"></div></details></section>
+</section>
+<section class="page" data-page="steam-research" id="page-steam-research" hidden>
+<section class="card" id="steam-research"><div class="section-title"><h2>Steam 公开盘口研究</h2><span>READ ONLY / CS2</span></div>
+<p class="hint">匿名读取官方公开盘口，无需登录；准确输入市场英文名及磨损变体。实际币种以平台响应为准，公开深度不是成交承诺。</p>
+<form id="order-book-form"><label>市场名称<input name="market_hash_name" required maxlength="500" value="Prisma 2 Case" autocomplete="off"></label><button id="book-fetch">读取并保存盘口快照</button></form>
+<p id="book-feedback" role="status" aria-live="polite"></p><div id="book-result"></div><details><summary>最近十份盘口快照</summary><div id="book-history"></div></details></section>
+</section>
+<section class="page" data-page="buff-research" id="page-buff-research" hidden>
+<section class="card" id="buff-research"><div class="section-title"><h2>BUFF 现金端研究</h2><span>AUTHENTICATED READ / CS2</span></div>
+<p class="hint">仅从已完成的真实 SteamDT 扫描选择候选。需先在账户区完成最近五分钟内的 BUFF 身份验证，并等待冷却结束。只读取首屏卖单，不锁单、不付款；CNY 价格协议尚未实测。</p>
+<form id="buff-quote-form"><label>报价账户<select id="buff-quote-account" required></select></label><label>扫描 ID<input id="buff-quote-scan" readonly required></label><label>候选<select id="buff-quote-item" required></select></label><button id="buff-quote-fetch" disabled>读取并保存 BUFF 报价</button></form>
+<p id="buff-quote-feedback" role="status" aria-live="polite"></p><div id="buff-quote-result"></div><details><summary>该账户最近十份报价</summary><div id="buff-quote-history"></div></details></section>
+</section>
+<section class="page" data-page="price-history" id="page-price-history" hidden>
 <section class="card" id="price-history"><div class="section-title"><h2>Steam 价格历史研究</h2><span>HISTORY / UTC CALENDAR</span></div>
 <p class="hint">从已完成的真实 SteamDT 扫描选择商品，使用最近五分钟内核验的 Steam 会话。仅研究结束的 UTC 日期；不猜人民币、不填补缺日、不刷新预算报价。线上历史协议尚未实测。</p>
 <form id="price-history-form"><label>历史账户<select id="price-history-account" required></select></label><label>扫描 ID<input id="price-history-scan" readonly required></label><label>研究商品<select id="price-history-item" required></select></label><div class="pair"><label>自然日窗口<input id="price-history-days" type="number" min="8" max="365" value="90" required></label><label>压力滑点 / bps<input id="price-history-slippage" type="number" min="0" max="10000" value="300" required></label></div><button id="price-history-fetch" disabled>读取并保存历史研究</button></form>
 <p id="price-history-feedback" role="status" aria-live="polite"></p><div id="price-history-result"></div><details><summary>该账户最近十份历史研究</summary><div id="price-history-saved"></div></details></section>
-<footer>Parallax <span>观其异，度其值。</span></footer></main><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script>
+</section>
+<section class="page" data-page="purchase-history" id="page-purchase-history" hidden>
+<p id="records-feedback" role="status" aria-live="polite"></p>
+<section class="card" id="history"><div class="section-title"><h2>最近扫描</h2><span>02 / JOURNAL</span></div><div id="history-list">正在读取记录…</div></section>
+<section class="card"><div class="section-title"><h2>预算记录</h2><span>PLAN / JOURNAL</span></div><p class="hint">保存时的预览，未创建订单或预留资金。</p><div id="plan-history"></div></section>
+</section>
+<section class="page" data-page="analytics" id="page-analytics" hidden>
+<div class="notice">每份研究都保留来源与观察时间。不同币种、历史价格和实时盘口各有自己的含义。</div><div class="launch-grid"><a class="launch-card" href="#steam-research"><span class="launch-index">STEAM / ORDER BOOK</span><h2>公开盘口 ↗</h2><p>原币买卖档位、深度与价差。</p></a><a class="launch-card" href="#buff-research"><span class="launch-index">BUFF / CASH QUOTES</span><h2>现金报价 ↗</h2><p>真实候选首屏卖单与可见数量。</p></a><a class="launch-card" href="#price-history"><span class="launch-index">STEAM / PRICE HISTORY</span><h2>价格历史 ↗</h2><p>UTC 日线、七日收益与未知缺口。</p></a></div><section class="card"><h2>把研究与决策分开</h2><p>历史 P10 是过去样本，不是未来损失上限。预算只采用明确引用且通过校验的报价，不会因浏览研究而自动下单。</p><a class="text-link" href="#planning">查看预算计划 →</a></section>
+</section>
+<section class="page" data-page="purchases" id="page-purchases" hidden>
+<section class="card capability-card"><span class="label-stamp neutral">部分可用 / 手工填报</span><h2>先明确仓位，再安排增购。</h2><p>预算页已支持填写持有数量、未决买入、预留现金与可买量。当前库存观察还不包含已挂牌与未决采购，尚不能合并为完整账户持仓。</p><div class="capability-columns"><div><h3>现在可以</h3><p>为当前扫描候选填报仓位，并在生成预算时应用数量与现金约束。</p></div><div><h3>接下来补齐</h3><p>挂牌、未决订单、采购资产与库存的逐项关联，以及自动同步、估值和对账。</p></div></div><a class="button-link" href="#planning" data-open-positions>填写预算仓位 ↗</a><a class="text-link" href="#inventory">查看库存观察 →</a></section>
+</section>
+<section class="page" data-page="settings" id="page-settings" hidden>
+<section class="card"><div class="section-title"><h2>当前运行方式</h2><span>LOCAL / PREVIEW</span></div><dl class="settings-list"><div><dt>运行范围</dt><dd>本机工作台，数据保存在本地</dd></div><div><dt>交易状态</dt><dd>自动交易未接入，预算仅作预览</dd></div><div><dt>账户选择</dt><dd>在各功能页显式选择，结果绑定对应账户</dd></div><div><dt>金额与币种</dt><dd>报价保留实际币种，费用按所选模型估算</dd></div></dl><p class="hint">配置编辑、导入导出与调度设置待接入。账户与登录态请在账号管理中维护。</p><a class="text-link" href="#accounts">管理账号与登录态 →</a></section>
+</section>
+<section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
+<footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
+<noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
+<script src="/shell.js" type="module"></script><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script>
 </body></html>

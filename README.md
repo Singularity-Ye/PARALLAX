@@ -2,6 +2,8 @@
 
 AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预算计划是入口。**
 
+界面按原项目的左侧导航与功能页组织，已建立仪表盘、选品、预算、库存、记录、研究及账号等独立视图；待迁移入口明确标注。视觉基线为暖白纸感、粗黑字与少量荧光绿，供后续统一精修。页面与复用合同见 [分页工作台](docs/frontend.md)。
+
 当前 0.1 已实现并通过本地测试：范围扫描 → 逐条解释 → 预算预览 → SQLite 保存与回看。真实下单、收货、冷却、上架、成交对账尚未迁移；`POST /api/trades` 返回 501。
 
 金额与预览已升级：可配置整数费用模型、账户手动仓位快照及持仓/预留/可买量约束接入扫描与计划。自然日 VWAP/P10 已接价格历史研究用例；真实历史协议尚未验收，不自动加入扫描/预算。合同见 [估值与仓位 v2](docs/valuation.md) 与 [历史研究](docs/price-history.md)。
@@ -85,11 +87,15 @@ src/
     history.rs        账户价格历史研究路由
   main.rs             组装依赖、配置、启动
 web/
+  shell.js            左侧导航、独立视图与原生 hash 前进后退
+  lib/pages.js        原版功能映射、分组与页面状态元数据
   lib/api.js          与 UI 无关的统一客户端
   lib/api.d.ts        前端字段类型与计量单位
   app.js              页面交互和展示
   index.html          语义化布局
-  style.css           视觉样式
+  style.css           引入主题与组件样式
+  theme.css           纸底、字体、颜色和纹理 tokens
+  components.css      导航、页面与业务组件样式
 ```
 
 依赖方向：`transport → application → domain`；`adapters` 实现应用层接口，`main` 组装具体实现。HTTP 层只做协议转换，任务不写在路由中；domain 不读取 SQLite、不请求平台。扫描器的测试可以替换来源，未来计划任务无需复制网页逻辑。

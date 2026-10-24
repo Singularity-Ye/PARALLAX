@@ -32,6 +32,8 @@ function render(quote) {
     const {buff_snapshot_ids:ids}=readBuffQuoteInputs();if(!ids.includes(quote.id))ids.push(quote.id);
     el('buff-snapshot-ids').value=ids.join(', ');
     el('buff-quote-feedback').textContent='已填写引用；生成计划时还会校验当前账户、代次、商品与时效。';
+    window.dispatchEvent(new CustomEvent('parallax:quote-referenced',{detail:{source:'BUFF'}}));
+    location.hash='planning';
   };box.append(use);
 }
 async function history() {

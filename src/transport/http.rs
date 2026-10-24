@@ -80,6 +80,8 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/", get(|| async { Html(include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
+        .route("/shell.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/shell.js")) }))
+        .route("/lib/pages.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pages.js")) }))
         .route("/accounts.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/accounts.js")) }))
         .route("/orderbook.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/orderbook.js")) }))
         .route("/buff-quotes.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/buff-quotes.js")) }))
@@ -88,6 +90,8 @@ pub fn router(state: AppState) -> Router {
         .route("/plan-inputs.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/plan-inputs.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
+        .route("/theme.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/theme.css")) }))
+        .route("/components.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/components.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
             "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":true,"steam_order_books":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
         .route("/api/scans", get(list).post(start))

@@ -1,6 +1,6 @@
 # Parallax 原项目能力与迁移地图
 
-核对日期：2026-10-23。目标是覆盖原有能力，再逐模块迁移。本文描述设计与差距，不代表真实交易已接通。
+更新日期：2026-10-24。目标是覆盖原有能力，再逐模块迁移。本文描述设计与差距，不代表真实交易已接通。
 
 ## 证据范围
 
@@ -38,7 +38,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M20 | Steam 游戏折扣采集、区域价格、断点恢复、历史低价、评分、折扣卡片；R `services/steam_deals.py`、`deal_cards.py`、`routes/steam_deals.py` | 独立 application/deals、adapters/steam_store、card_renderer | 未迁移；与饰品自动买卖共用账户/汇率/任务，不耦合订单流程 |
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
-| M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 当前有扫描、预算/历史、手动/浏览器会话、自填费用与仓位、双侧报价、库存观察与历史研究 UI；其余待迁移；统一客户端可供反重力复用 |
+| M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 已按原功能拆左侧分页导航与纸感视觉基线；现有扫描/预算/账号/研究/库存复用原模块，未迁移页明确标记；完整业务仍待迁移，见 frontend.md |
 | M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前 79 项常规测试通过；价格历史/库存/BUFF 用合成夹具，未在线验收；Steam/浏览器/凭据沿用前阶段证据；旧测试未逐项移植 |
 
 ## 必须纠正的几处认知

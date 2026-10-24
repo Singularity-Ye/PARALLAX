@@ -23,6 +23,8 @@ function render(book) {
       const ids=readSteamSnapshotIds();if(!ids.includes(book.id))ids.push(book.id);
       el('steam-snapshot-ids').value=ids.join(', ');
       el('book-feedback').textContent='已填写引用 ID；生成计划时后端仍会核对商品、币种和双方报价有效期。';
+      window.dispatchEvent(new CustomEvent('parallax:quote-referenced',{detail:{source:'Steam'}}));
+      location.hash='planning';
     };box.append(use);
   }
 }

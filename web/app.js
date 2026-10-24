@@ -12,6 +12,7 @@ function feedback(message, error = false) { el('feedback').textContent = message
 function node(tag, text, className) { const n = document.createElement(tag); if(text !== undefined) n.textContent = text; if(className) n.className = className; return n; }
 function render(report) {
   current = report;
+  window.dispatchEvent(new CustomEvent('parallax:scan-selected',{detail:report}));
   el('plan-create').disabled = report.status !== 'completed';
   el('plan-source').textContent = `基于当前扫描 ${report.id.slice(0,8)} · ${report.request.source === 'demo' ? '演示' : 'SteamDT'} · ${statusNames[report.status] || report.status}`;
   el('source-label').textContent = report.request.source === 'demo' ? '固定演示数据 · 非真实行情' : 'SteamDT / BUFF 榜单';
@@ -48,7 +49,7 @@ async function history() {
   el('history-list').replaceChildren(...data.items.map(report => {
     const button = node('button',undefined,'history-row');button.type='button';
     button.append(node('strong',`${report.request.source==='demo'?'演示':'SteamDT'} · ${statusNames[report.status] || report.status} · 通过 ${report.coverage.accepted} 件`),node('span',new Date(report.created_at*1000).toLocaleString()));
-    button.onclick=async()=>{try{render(await parallax.scan(report.id));}catch(e){feedback(e.message,true);}};return button;
+    button.onclick=async()=>{try{render(await parallax.scan(report.id));el('records-feedback').textContent='';location.hash='workspace';}catch(e){el('records-feedback').textContent=`扫描记录读取失败：${e.message}；列表保留。`;}};return button;
   }));
   if(!data.items.length) el('history-list').append(node('p','还没有扫描记录。','hint'));
   return data.items;
@@ -75,6 +76,7 @@ function planFeedback(message, failed = false) {
   el('plan-feedback').textContent = message;
   el('plan-feedback').classList.toggle('error', failed);
 }
+window.addEventListener('parallax:quote-referenced',({detail})=>planFeedback(`已添加 ${detail.source} 报价引用；生成计划时将重新校验商品、账户及双方时效。`));
 function renderPlan(plan) {
   const box = el('plan-result');
   const source = plan.source === 'demo' ? '固定演示数据' : `${plan.buff_valuations?.length?'BUFF 首屏现金报价':'SteamDT 现金榜单'} + ${plan.steam_valuations?.length?'Steam 盘口估值':'SteamDT 钱包估值'}`;
@@ -104,7 +106,7 @@ async function planHistory() {
   el('plan-history').replaceChildren(...items.map(plan => {
     const button = node('button', `${plan.source === 'demo' ? '演示' : 'SteamDT'} · ${money(plan.cash_total_cents)} · ${new Date(plan.created_at*1000).toLocaleString()}`, 'history-row');
     button.type='button';
-    button.onclick = async () => {try {renderPlan(await parallax.plan(plan.id));planFeedback('已读取保存的历史预览；它不是当前可执行报价。');} catch(e) {planFeedback(e.message,true);}};
+    button.onclick = async () => {try {renderPlan(await parallax.plan(plan.id));el('records-feedback').textContent='';planFeedback('已读取保存的历史预览；它不是当前可执行报价。');location.hash='planning';} catch(e) {el('records-feedback').textContent=`预算记录读取失败：${e.message}；列表保留。`;}};
     return button;
   }));
   if (!items.length) el('plan-history').append(node('p','还没有保存的预算计划。','hint'));
@@ -129,4 +131,4 @@ el('plan-form').addEventListener('submit', async event => {
   } catch(e) {planFeedback(e.message,true);}
   finally {el('plan-create').disabled=current?.status !== 'completed';}
 });
-planHistory().catch(e=>planFeedback(`计划记录读取失败：${e.message}`,true));
+planHistory().catch(e=>el('plan-history').textContent=`计划记录读取失败：${e.message}；请检查本地服务后重试。`);
