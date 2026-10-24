@@ -1,7 +1,11 @@
 import {parallax} from './lib/api.js';
+import {currencyOptions} from './lib/currencies.js';
+import {pricingEditor,feeEditor} from './lib/pricing-fields.js';
+import {node,nativeMoney as native,pricingTrace} from './lib/pricing-view.js';
 const el=id=>document.getElementById(id);
-const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
-const native=(minor,currency)=>new Intl.NumberFormat('zh-CN',{style:'currency',currency}).format(minor/100);
+const priceFields=pricingEditor(el('listing-policy-fields'));
+const feeFields=feeEditor(el('listing-fee-fields'));
+for(const id of ['book-display-currency','book-request-currency'])currencyOptions(el(id));
 let selectedBookId=null;
 let selectedBookCurrency=null;
 let pricingBusy=false;
@@ -23,7 +27,7 @@ export function readSteamSnapshotIds() {
 }
 function render(book) {
   selectedBookId=book.id;
-  selectedBookCurrency=book.book.currency;
+  selectedBookCurrency=book.book.currency;feeFields.setCurrency(selectedBookCurrency);
   el('listing-snapshot').value=`${book.request.market_hash_name} · ${book.book.currency} · ${book.id}`;
   el('listing-preview-create').disabled=pricingBusy;
   el('listing-fees-enabled').checked=false;el('listing-fees').disabled=true;
@@ -62,25 +66,15 @@ function renderListingPreview(preview) {
     node('p',`剔除最低档 ${a.ignored_lowest_tiers.length} 档 · ${a.stopped_by_blocking_volume?'阻挡量超限，停止继续找断层':'未因阻挡量停止'} · ${a.floor_applied?'已应用价格下限':'未触发价格下限'}`));
   if(a.wall)box.append(node('p',`墙分析截至原卖盘第 ${a.wall.level_index+1} 档，原币价 ${native(a.wall.price_minor,a.book_currency)}，剔除后累计 ${a.wall.cumulative_quantity} 件；${a.wall.reached_threshold?'达到所选墙量':'可见深度未达到墙量'}。`));
   if(preview.fx)box.append(node('p',`参考汇率 ${preview.fx.id} · 牌价日期 ${[...new Set(Object.values(preview.fx.rates).map(r=>r.date))].join(' / ')}；不是实际结算汇率。`));
-  const trace=node('details');trace.append(node('summary','剔除与断层依据'));
-  const rows=node('ul');
-  for(const tier of a.ignored_lowest_tiers)rows.append(node('li',`剔除 ${native(tier.price_minor,a.book_currency)} · ${tier.quantity} 件`));
-  for(const gap of a.gap_checks)rows.append(node('li',`${native(gap.lower_minor,a.book_currency)} → ${native(gap.upper_minor,a.book_currency)} · 阻挡量 ${gap.blocking_quantity} · 阈值取 ${native(gap.absolute_threshold_minor,'CNY')} 与 ${gap.relative_threshold_bps/100}% 中较高者 · ${gap.jumped?'严格超过，跳档':'未严格超过，不跳档'}`));
-  if(!rows.children.length)rows.append(node('li','没有剔除或可检查的相邻断层。'));
-  trace.append(rows);box.append(trace);
+  box.append(pricingTrace(a));
   const warnings=node('ul');for(const warning of preview.warnings)warnings.append(node('li',warning));box.append(warnings);
 }
 el('listing-fees-enabled').onchange=event=>{el('listing-fees').disabled=!event.target.checked;};
 el('listing-preview-form').onsubmit=async event=>{
   event.preventDefault();if(!selectedBookId||pricingBusy)return;
   const id=selectedBookId,display_currency=el('book-display-currency').value,data=new FormData(event.target),integer=name=>Number(data.get(name));
-  const policy={currency:'CNY'};
-  for(const key of ['wall_volume_threshold','max_ignore_volume','min_lowest_tier_volume','min_step_minor','min_floor_minor','offset_minor'])policy[key]=integer(key);
-  let fee_schedule=null;
-  if(data.has('estimate_fees')) {
-    fee_schedule={currency:selectedBookCurrency};
-    for(const key of ['platform_bps','publisher_bps','platform_min_minor','publisher_min_minor','increment_minor'])fee_schedule[key]=integer(key);
-  }
+  const policy=priceFields.read();
+  const fee_schedule=data.has('estimate_fees')?feeFields.read():null;
   pricingBusy=true;el('listing-preview-create').disabled=true;el('listing-preview-feedback').textContent='正在使用本地快照计算…';
   try {
     const preview=await parallax.listingPricePreview(id,{policy,display_currency,max_quote_age_secs:integer('max_quote_age_secs'),fee_schedule});

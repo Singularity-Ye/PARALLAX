@@ -45,6 +45,10 @@ pub enum StrategyRule {
         min_return_bps: i64,
         slippage_bps: u32,
     },
+    StressExitRatio {
+        max_ratio_bps: u32,
+        parameters: super::exit_valuation::ExitValuationPolicy,
+    },
 }
 impl StrategyRule {
     pub fn key(&self) -> &'static str {
@@ -55,6 +59,7 @@ impl StrategyRule {
             Self::SampleCv { .. } => "sample_cv",
             Self::Trend7 { .. } => "trend7",
             Self::CalendarP10 { .. } => "calendar_p10",
+            Self::StressExitRatio { .. } => "stress_exit_ratio",
         }
     }
     fn rank(&self) -> u8 {
@@ -65,21 +70,22 @@ impl StrategyRule {
             Self::SampleCv { .. } => 3,
             Self::Trend7 { .. } => 4,
             Self::CalendarP10 { .. } => 5,
+            Self::StressExitRatio { .. } => 6,
         }
     }
 }
 impl StrategyDraft {
     pub fn validate(&self) -> Result<(), String> {
-        if self.schema_version != 1
+        if ![1, 2].contains(&self.schema_version)
             || self.name.trim().is_empty()
             || self.name.len() > 120
             || self.description.len() > 2000
             || self.name.chars().any(char::is_control)
             || self.rules.is_empty()
-            || self.rules.len() > 6
+            || self.rules.len() > if self.schema_version == 1 { 6 } else { 7 }
         {
             return Err(
-                "策略需 schema_version=1、1–120 字节名称、至多 2000 字节说明及 1–6 个已支持规则"
+                "策略需schema_version=1（至多6规则）或2（至多7规则）、1–120字节名称及至多2000字节说明"
                     .into(),
             );
         }
@@ -91,11 +97,19 @@ impl StrategyDraft {
         for rule in &self.rules {
             if previous.is_some_and(|p| p >= rule.rank()) {
                 return Err(
-                    "规则不可重复，须按折算率、仓位、历史覆盖、CV、趋势、P10 顺序排列".into(),
+                    "规则不可重复，须按折算率、仓位、历史覆盖、CV、趋势、P10、压力净卖出顺序排列"
+                        .into(),
                 );
             }
             previous = Some(rule.rank());
             let valid = match rule {
+                StrategyRule::StressExitRatio {
+                    max_ratio_bps,
+                    parameters,
+                } => {
+                    parameters.validate()?;
+                    self.schema_version == 2 && coverage && (1..=20000).contains(max_ratio_bps)
+                }
                 StrategyRule::StrictRatio { max_ratio_bps } => (1..=20000).contains(max_ratio_bps),
                 StrategyRule::PositionCapacity => true,
                 StrategyRule::HistoryCoverage {
@@ -163,11 +177,14 @@ pub struct StrategyEvaluationRequest {
     pub account_id: Option<String>,
     #[serde(default)]
     pub history_snapshot_ids: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub order_book_snapshot_ids: Vec<String>,
 }
 impl StrategyEvaluationRequest {
     pub fn validate(&self) -> Result<(), String> {
         let valid_id = |s: &str| !s.is_empty() && s.len() <= 64 && !s.chars().any(char::is_control);
         let mut seen = std::collections::HashSet::new();
+        let mut books = std::collections::HashSet::new();
         if !valid_id(&self.strategy_id)
             || !valid_id(&self.plan_id)
             || self.revision == 0
@@ -178,6 +195,11 @@ impl StrategyEvaluationRequest {
                 .iter()
                 .any(|id| !valid_id(id) || !seen.insert(id))
             || (!self.history_snapshot_ids.is_empty() && self.account_id.is_none())
+            || self.order_book_snapshot_ids.len() > 100
+            || self
+                .order_book_snapshot_ids
+                .iter()
+                .any(|id| !valid_id(id) || !books.insert(id))
         {
             return Err(
                 "需明确策略版本、计划及有效引用；历史最多 100 份唯一快照并指定所属账户".into(),
@@ -205,6 +227,8 @@ pub struct ItemDecision {
     pub item_key: String,
     pub status: ResearchStatus,
     pub decisions: Vec<RuleDecision>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exit_valuation: Option<super::exit_valuation::ExitValuation>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct StrategyEvaluation {
@@ -219,6 +243,8 @@ pub struct StrategyEvaluation {
     /// Embed immutable inputs: later edits/reads cannot silently change the result.
     pub plan: PlanPreview,
     pub histories: Vec<HistorySnapshot>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub order_books: Vec<super::orderbook::OrderBookSnapshot>,
     pub items: Vec<ItemDecision>,
     pub execution_blockers: Vec<String>,
 }
@@ -280,6 +306,16 @@ pub fn evaluate(
     request: StrategyEvaluationRequest,
     at: u64,
 ) -> Result<StrategyEvaluation, String> {
+    evaluate_with_order_books(strategy, plan, histories, vec![], request, at)
+}
+pub fn evaluate_with_order_books(
+    strategy: StrategyVersion,
+    plan: PlanPreview,
+    histories: Vec<HistorySnapshot>,
+    order_books: Vec<super::orderbook::OrderBookSnapshot>,
+    request: StrategyEvaluationRequest,
+    at: u64,
+) -> Result<StrategyEvaluation, String> {
     strategy.draft.validate()?;
     request.validate()?;
     if strategy.strategy_id != request.strategy_id
@@ -290,8 +326,10 @@ pub fn evaluate(
     {
         return Err("策略版本或计划引用不匹配，且只接受预算预览".into());
     }
-    if plan.source == super::selection::SourceKind::Demo && !histories.is_empty() {
-        return Err("演示计划不能引用真实平台历史".into());
+    if plan.source == super::selection::SourceKind::Demo
+        && (!histories.is_empty() || !order_books.is_empty())
+    {
+        return Err("演示计划不能引用真实平台历史或盘口".into());
     }
     for account in plan
         .request
@@ -320,10 +358,32 @@ pub fn evaluate(
     {
         return Err("历史快照必须显式引用并匹配账户、扫描和计划商品，每件仅一份".into());
     }
+    let mut book_items = std::collections::HashSet::new();
+    if order_books.len() != request.order_book_snapshot_ids.len()
+        || (!order_books.is_empty()
+            && !strategy
+                .draft
+                .rules
+                .iter()
+                .any(|r| matches!(r, StrategyRule::StressExitRatio { .. })))
+        || order_books.iter().any(|b| {
+            !request.order_book_snapshot_ids.contains(&b.id)
+                || !plan
+                    .lines
+                    .iter()
+                    .any(|l| l.candidate.item.key == b.request.market_hash_name)
+                || !book_items.insert(&b.request.market_hash_name)
+        })
+    {
+        return Err(
+            "出售盘口需显式引用并匹配计划商品，每件一份且仅供启用的压力净卖出规则使用".into(),
+        );
+    }
     let mut items = vec![];
     for line in &plan.lines {
         let item = &line.candidate.item;
         let history = histories.iter().find(|h| h.request.item_key == item.key);
+        let mut exit_valuation = None;
         let mut decisions = vec![decision(
             "quote_freshness",
             if fresh(item.observed_at, at, plan.request.max_quote_age_secs)
@@ -503,6 +563,47 @@ pub fn evaluate(
                         json!({"risk":risk,"min_pairs":min_pairs,"min_return_bps":min_return_bps,"required_slippage_bps":slippage_bps}),
                     )
                 }
+                StrategyRule::StressExitRatio {
+                    max_ratio_bps,
+                    parameters,
+                } => {
+                    let book = order_books
+                        .iter()
+                        .find(|b| b.request.market_hash_name == item.key);
+                    let valuation = (|| {
+                        let b = book.ok_or("缺少此商品的显式出售盘口".to_string())?;
+                        b.native_ask(at, parameters.max_book_age_secs)?;
+                        let h = history.ok_or("缺少历史证据")?;
+                        let currency = h.series.currency.as_ref().ok_or("历史币种未知")?;
+                        let risk = h.analysis.risk.as_ref().ok_or("历史P10未知")?;
+                        super::exit_valuation::estimate(
+                            &b.book,
+                            currency,
+                            risk,
+                            parameters,
+                            plan.fx.as_ref(),
+                            at,
+                        )
+                    })();
+                    match valuation {
+                        Ok(v) => {
+                            let outcome = (item.cash_cents > 0).then(|| {
+                                u128::from(item.cash_cents) * 10000
+                                    < u128::from(v.stressed_net_cny.minor)
+                                        * u128::from(*max_ratio_bps)
+                            });
+                            let result = decision(
+                                rule.key(),
+                                outcome,
+                                "现金单价 / 压力净卖出估值严格小于阈值；先对当前壁垒参考施加历史跌幅/一次滑点，再扣原币费用和换算",
+                                json!({"book_snapshot_id":book.unwrap().id,"history_snapshot_id":history.unwrap().id,"cash_cents":item.cash_cents,"stress_net_cny_cents":v.stressed_net_cny.minor,"max_ratio_bps":max_ratio_bps}),
+                            );
+                            exit_valuation = Some(v);
+                            result
+                        }
+                        Err(reason) => decision(rule.key(), None, &reason, Value::Null),
+                    }
+                }
             };
             decisions.push(result);
         }
@@ -510,6 +611,7 @@ pub fn evaluate(
             item_key: item.key.clone(),
             status: aggregate(decisions.iter().map(|d| d.status)),
             decisions,
+            exit_valuation,
         });
     }
     let status = aggregate(items.iter().map(|i| i.status));
@@ -521,7 +623,12 @@ pub fn evaluate(
     Ok(StrategyEvaluation {
         id: uuid::Uuid::new_v4().to_string(),
         created_at: at,
-        algorithm: "purchase_research_v1".into(),
+        algorithm: if strategy.draft.schema_version == 2 {
+            "purchase_research_v2"
+        } else {
+            "purchase_research_v1"
+        }
+        .into(),
         status,
         preview_only: true,
         execution_allowed: false,
@@ -529,6 +636,7 @@ pub fn evaluate(
         strategy,
         plan,
         histories,
+        order_books,
         items,
         execution_blockers: blockers,
     })

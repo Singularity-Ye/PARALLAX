@@ -84,6 +84,20 @@ pub struct SevenDayRisk {
     pub conservative_gross: Option<Money>,
     pub slippage_bps: u32,
 }
+/// Rebase a saved historical return scenario onto an explicit current reference.
+/// Positive P10 never increases the reference; slippage is applied exactly once.
+pub fn stress_price(reference: &Money, p10: i64, slippage_bps: u32) -> Result<Money, String> {
+    if reference.minor == 0 || p10 < -10000 || slippage_bps > 10000 {
+        return Err("压力估值的参考价、P10或滑点无效".into());
+    }
+    Ok(Money {
+        minor: ((reference.minor as u128)
+            * (10000 + p10.min(0)) as u128
+            * u128::from(10000 - slippage_bps)
+            / 100_000_000) as u64,
+        currency: reference.currency.clone(),
+    })
+}
 pub fn seven_day_risk(
     bars: &[DailyBar],
     reference: &Money,
@@ -115,14 +129,9 @@ pub fn seven_day_risk(
     }
     returns.sort_unstable();
     let p10 = (!returns.is_empty()).then(|| returns[(returns.len() - 1) / 10]);
-    let conservative = p10.map(|r| {
-        let factor = (10_000 + r.min(0)) as u128;
-        Money {
-            minor: ((reference.minor as u128) * factor * u128::from(10_000 - slippage_bps)
-                / 100_000_000) as u64,
-            currency: reference.currency.clone(),
-        }
-    });
+    let conservative = p10
+        .map(|r| stress_price(reference, r, slippage_bps))
+        .transpose()?;
     Ok(SevenDayRisk {
         algorithm: "calendar_p10_v1".into(),
         sample_count: returns.len(),

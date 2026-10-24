@@ -19,7 +19,12 @@ struct RevisionRequest {
     draft: StrategyDraft,
 }
 pub fn router<
-    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + 'static,
+    R: StrategyRepository
+        + Repository
+        + HistoryRepository
+        + AccountRepository
+        + OrderBookRepository
+        + 'static,
 >(
     state: Arc<StrategyResearch<R>>,
 ) -> Router {
@@ -51,12 +56,16 @@ pub fn router<
         ))
         .with_state(state)
 }
-async fn heads<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn heads<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
 ) -> Result<Json<Value>, ApiError> {
     Ok(Json(json!({"items":app.heads().await.map_err(app_error)?})))
 }
-async fn versions<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn versions<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
@@ -64,13 +73,17 @@ async fn versions<R: StrategyRepository + Repository + HistoryRepository + Accou
         json!({"items":app.versions(id).await.map_err(app_error)?}),
     ))
 }
-async fn version<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn version<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
     Path((id, revision)): Path<(String, u32)>,
 ) -> Result<Json<StrategyVersion>, ApiError> {
     Ok(Json(app.version(id, revision).await.map_err(app_error)?))
 }
-async fn create<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn create<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
     body: Result<Json<StrategyDraft>, JsonRejection>,
 ) -> Result<(StatusCode, Json<StrategyVersion>), ApiError> {
@@ -79,7 +92,9 @@ async fn create<R: StrategyRepository + Repository + HistoryRepository + Account
         Json(app.create(input(body)?).await.map_err(app_error)?),
     ))
 }
-async fn revise<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn revise<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
     Path(id): Path<String>,
     body: Result<Json<RevisionRequest>, JsonRejection>,
@@ -94,7 +109,9 @@ async fn revise<R: StrategyRepository + Repository + HistoryRepository + Account
         ),
     ))
 }
-async fn evaluate<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn evaluate<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
     body: Result<Json<StrategyEvaluationRequest>, JsonRejection>,
 ) -> Result<(StatusCode, Json<StrategyEvaluation>), ApiError> {
@@ -103,12 +120,16 @@ async fn evaluate<R: StrategyRepository + Repository + HistoryRepository + Accou
         Json(app.evaluate(input(body)?).await.map_err(app_error)?),
     ))
 }
-async fn list<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn list<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
 ) -> Result<Json<Value>, ApiError> {
     Ok(Json(json!({"items":app.list().await.map_err(app_error)?})))
 }
-async fn detail<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>(
+async fn detail<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
     State(app): State<Arc<StrategyResearch<R>>>,
     Path(id): Path<String>,
 ) -> Result<Json<StrategyEvaluation>, ApiError> {

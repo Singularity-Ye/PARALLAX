@@ -228,3 +228,74 @@ async fn transport_rejects_cross_site_oversize_and_unrecognized_payloads() {
         StatusCode::NOT_FOUND
     );
 }
+
+#[tokio::test]
+async fn exit_valuation_http_persists_full_version_books_and_native_calculation_after_reopen() {
+    use crate::domain::exit_valuation::tests::strategy_fixture;
+    let path = std::env::temp_dir().join(format!("parallax-exit-{}.db", uuid::Uuid::new_v4()));
+    let repo = Store::open(&path).unwrap();
+    let (s, p, h, b, r) = strategy_fixture(now());
+    repo.add_account(Account {
+        id: h.account_id.clone(),
+        label: "fixture".into(),
+        steam_id: "76561198000000001".into(),
+        created_at: now(),
+    })
+    .await
+    .unwrap();
+    repo.append_strategy(s, 0).await.unwrap();
+    repo.insert_plan(p).await.unwrap();
+    repo.insert_history(h).await.unwrap();
+    repo.insert_order_book(b.clone()).await.unwrap();
+    let app = router(StrategyResearch::new(repo.clone()));
+    let (status, value) = call(app.clone(), "POST", "/api/strategy-evaluations", json!(r)).await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(value["algorithm"], "purchase_research_v2");
+    assert_eq!(
+        value["items"][0]["exit_valuation"]["stressed_net_cny"]["minor"],
+        7759
+    );
+    assert_eq!(value["order_books"][0]["id"], b.id);
+    assert_eq!(value["execution_allowed"], false);
+    let id = value["id"].as_str().unwrap().to_string();
+    assert!(
+        repo.insert_evaluation(serde_json::from_value(value.clone()).unwrap())
+            .await
+            .is_err()
+    );
+    drop(app);
+    drop(repo);
+    let reopened = Store::open(&path).unwrap();
+    assert_eq!(
+        serde_json::to_value(reopened.evaluation(id).await.unwrap().unwrap()).unwrap(),
+        value
+    );
+    drop(reopened);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[tokio::test]
+async fn exit_unknown_book_id_never_saves_a_research_record() {
+    use crate::domain::exit_valuation::tests::strategy_fixture;
+    let repo = Store::open(Path::new(":memory:")).unwrap();
+    let (s, p, h, _, r) = strategy_fixture(now());
+    repo.add_account(Account {
+        id: h.account_id.clone(),
+        label: "fixture".into(),
+        steam_id: "76561198000000001".into(),
+        created_at: now(),
+    })
+    .await
+    .unwrap();
+    repo.append_strategy(s, 0).await.unwrap();
+    repo.insert_plan(p).await.unwrap();
+    repo.insert_history(h).await.unwrap();
+    let app = router(StrategyResearch::new(repo.clone()));
+    assert_eq!(
+        call(app, "POST", "/api/strategy-evaluations", json!(r))
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+    assert!(repo.evaluations().await.unwrap().is_empty());
+}

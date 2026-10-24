@@ -124,6 +124,7 @@ pub(crate) fn fixture(
         plan_id: plan.id.clone(),
         account_id: Some(history.account_id.clone()),
         history_snapshot_ids: vec![history.id.clone()],
+        order_book_snapshot_ids: vec![],
     };
     (strategy, plan, history, evaluation)
 }

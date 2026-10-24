@@ -176,15 +176,26 @@ export type StrategyRule =
   | {module:'history_coverage';min_usable_days:number;max_missing_days:number;max_age_secs:number;max_reference_lag_days:number}
   | {module:'sample_cv';basis:'raw'|'iqr_cleaned';max_cv_bps:number}
   | {module:'trend7';min_points:number;min_slope_bps_per_day:number;max_slope_bps_per_day:number;min_r_squared_bps:number}
-  | {module:'calendar_p10';min_pairs:number;min_return_bps:number;slippage_bps:number};
-export interface StrategyDraft {schema_version:1;name:string;description:string;rules:StrategyRule[];}
+  | {module:'calendar_p10';min_pairs:number;min_return_bps:number;slippage_bps:number}
+  | {module:'stress_exit_ratio';max_ratio_bps:number;parameters:ExitValuationPolicy};
+export interface StrategyDraft {schema_version:1|2;name:string;description:string;rules:StrategyRule[];}
 export interface StrategyVersion {strategy_id:string;revision:number;created_at:number;draft:StrategyDraft;}
-export interface StrategyEvaluationRequest {strategy_id:string;revision:number;plan_id:string;account_id:string|null;history_snapshot_ids?:string[];}
+export interface StrategyEvaluationRequest {strategy_id:string;revision:number;plan_id:string;account_id:string|null;history_snapshot_ids?:string[];order_book_snapshot_ids?:string[];}
 export type ResearchStatus='pass'|'fail'|'unknown';
 export interface StrategyEvaluationSummary {id:string;created_at:number;strategy_id:string;strategy_name:string;revision:number;plan_id:string;status:ResearchStatus;item_count:number;}
 export interface StrategyEvaluation {
-  id:string;created_at:number;algorithm:'purchase_research_v1';status:ResearchStatus;preview_only:true;execution_allowed:false;
-  request:StrategyEvaluationRequest;strategy:StrategyVersion;plan:PlanPreview;histories:HistorySnapshot[];
-  items:{item_key:string;status:ResearchStatus;decisions:{module:string;status:ResearchStatus;reason:string;observed:unknown}[]}[];
+  id:string;created_at:number;algorithm:'purchase_research_v1'|'purchase_research_v2';status:ResearchStatus;preview_only:true;execution_allowed:false;
+  request:StrategyEvaluationRequest;strategy:StrategyVersion;plan:PlanPreview;histories:HistorySnapshot[];order_books?:OrderBookSnapshot[];
+  items:{item_key:string;status:ResearchStatus;decisions:{module:string;status:ResearchStatus;reason:string;observed:unknown}[];exit_valuation?:ExitValuation}[];
   execution_blockers:string[];
+}
+export interface ExitValuationPolicy {
+  pricing:ListingPreviewRequest['policy'];
+  fees:{currency:string;platform_bps:number;publisher_bps:number;platform_min_minor:number;publisher_min_minor:number;increment_minor:number};
+  min_pairs:number;slippage_bps:number;max_book_age_secs:number;
+}
+export interface ExitValuation {
+  algorithm:'wall_gap_p10_exit_v1';pricing:ListingPricePreview['analysis'];return_p10_bps:number;sample_count:number;slippage_bps:number;
+  stress_base:'current_wall_gap_native_gross';stressed_gross_native:NativeMoney;
+  normal_fees:FeeQuote|null;stressed_fees:FeeQuote|null;normal_net_cny:NativeMoney;stressed_net_cny:NativeMoney;
 }

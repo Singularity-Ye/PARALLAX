@@ -166,6 +166,7 @@ async fn uah_depth_fees_display_budget_and_strategy_retain_original_evidence() {
             plan_id: plan.id.clone(),
             account_id: None,
             history_snapshot_ids: vec![],
+            order_book_snapshot_ids: vec![],
         })
         .await
         .unwrap();

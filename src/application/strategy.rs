@@ -6,8 +6,9 @@ use std::sync::Arc;
 pub struct StrategyResearch<R> {
     repo: R,
 }
-impl<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>
-    StrategyResearch<R>
+impl<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+> StrategyResearch<R>
 {
     pub fn new(repo: R) -> Arc<Self> {
         Arc::new(Self { repo })
@@ -91,8 +92,18 @@ impl<R: StrategyRepository + Repository + HistoryRepository + AccountRepository>
                 .ok_or(AppError::Missing("账户价格历史快照不存在"))?;
             histories.push(history);
         }
+        let mut books = vec![];
+        for id in &request.order_book_snapshot_ids {
+            books.push(
+                self.repo
+                    .order_book(id.clone())
+                    .await?
+                    .ok_or(AppError::Missing("出售盘口快照不存在"))?,
+            );
+        }
         let evaluation =
-            evaluate(strategy, plan, histories, request, now()).map_err(AppError::Invalid)?;
+            evaluate_with_order_books(strategy, plan, histories, books, request, now())
+                .map_err(AppError::Invalid)?;
         self.repo.insert_evaluation(evaluation.clone()).await?;
         Ok(evaluation)
     }

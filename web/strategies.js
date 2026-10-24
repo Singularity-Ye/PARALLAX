@@ -1,24 +1,31 @@
 import {parallax} from './lib/api.js';
+import {pricingEditor,feeEditor} from './lib/pricing-fields.js';
+import {exitValuationView} from './lib/pricing-view.js';
 const el=id=>document.getElementById(`strategy-${id}`);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 const option=(value,text)=>{const n=node('option',text);n.value=value;return n;};
 const date=t=>new Date(t*1000).toLocaleString();
 const labels={pass:'满足研究规则',fail:'未满足',unknown:'无法判断'};
-const modules={quote_freshness:'报价有效期',fx_freshness:'汇率有效期',strict_ratio:'严格折算率',position_capacity:'仓位额度',history_coverage:'历史覆盖',sample_cv:'样本 CV',trend7:'七日趋势',calendar_p10:'七日收益 P10'};
+const modules={quote_freshness:'报价有效期',fx_freshness:'汇率有效期',strict_ratio:'严格折算率',position_capacity:'仓位额度',history_coverage:'历史覆盖',sample_cv:'样本 CV',trend7:'七日趋势',calendar_p10:'七日收益 P10',stress_exit_ratio:'压力净卖出折算率'};
+const exitPricing=pricingEditor(el('exit-pricing'));
+const exitFees=feeEditor(el('exit-fees'),{chooseCurrency:true});
 let loaded=null,plans=[],busy=false,refreshing=false,choicesRequest=0,versionRequest=0;
 const number=id=>Number(el(id).value);
 function fields(){
   el('history-fields').disabled=!el('history').checked;
+  el('exit-enabled').disabled=busy||!el('history').checked;
+  el('exit-fields').disabled=!el('history').checked||!el('exit-enabled').checked;
   for(const name of ['cv','trend','p10'])el(`${name}-fields`).disabled=!el(`${name}-enabled`).checked;
 }
-for(const id of ['history','cv-enabled','trend-enabled','p10-enabled'])el(id).onchange=fields;
+for(const id of ['history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(id).onchange=fields;
 function ready(){el('evaluate').disabled=busy||refreshing||!loaded||!el('plan').value;el('save').disabled=busy||refreshing||(!loaded&&!!el('select').value);}
 function showVersion(v){
   loaded=v;const d=v.draft;
   el('name').value=d.name;el('description').value=d.description;
-  for(const key of ['position','history','cv-enabled','trend-enabled','p10-enabled'])el(key).checked=false;
+  for(const key of ['position','history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(key).checked=false;
   for(const rule of d.rules){
     switch(rule.module){
+      case 'stress_exit_ratio':el('exit-enabled').checked=true;el('exit-ratio').value=rule.max_ratio_bps;el('exit-age').value=rule.parameters.max_book_age_secs;el('exit-pairs').value=rule.parameters.min_pairs;el('exit-slippage').value=rule.parameters.slippage_bps;exitPricing.set(rule.parameters.pricing);exitFees.set(rule.parameters.fees);break;
       case 'strict_ratio':el('ratio').value=rule.max_ratio_bps;break;
       case 'position_capacity':el('position').checked=true;break;
       case 'history_coverage':el('history').checked=true;el('min-days').value=rule.min_usable_days;el('missing-days').value=rule.max_missing_days;el('history-age').value=rule.max_age_secs;el('lag').value=rule.max_reference_lag_days;break;
@@ -39,7 +46,8 @@ function draft(){
     if(el('trend-enabled').checked)rules.push({module:'trend7',min_points:number('trend-points'),min_slope_bps_per_day:number('slope-min'),max_slope_bps_per_day:number('slope-max'),min_r_squared_bps:number('r2')});
     if(el('p10-enabled').checked)rules.push({module:'calendar_p10',min_pairs:number('pairs'),min_return_bps:number('p10'),slippage_bps:number('slippage')});
   }
-  return {schema_version:1,name:el('name').value.trim(),description:el('description').value,rules};
+  if(el('history').checked&&el('exit-enabled').checked)rules.push({module:'stress_exit_ratio',max_ratio_bps:number('exit-ratio'),parameters:{pricing:exitPricing.read(),fees:exitFees.read(),min_pairs:number('exit-pairs'),slippage_bps:number('exit-slippage'),max_book_age_secs:number('exit-age')}});
+  return {schema_version:rules.some(r=>r.module==='stress_exit_ratio')?2:1,name:el('name').value.trim(),description:el('description').value,rules};
 }
 async function versions(id,revision){
   const ticket=++versionRequest;
@@ -87,8 +95,9 @@ async function choices(){
   const ticket=++choicesRequest,id=el('account').value,plan=plans.find(p=>p.id===el('plan').value);
   const previous=new Map([...el('history-choices').querySelectorAll('select')].map(s=>[s.dataset.historyItem,s.value]));
   const fragment=document.createDocumentFragment();
+  const [histories,books]=await Promise.all([id&&plan?parallax.priceHistories(id):Promise.resolve({items:[]}),plan?parallax.orderBooks():Promise.resolve({items:[]})]);
   if(id&&plan){
-    const {items}=await parallax.priceHistories(id);
+    const {items}=histories;
     for(const line of plan.lines){
       const label=node('label',line.candidate.item.name),select=node('select');select.dataset.historyItem=line.candidate.item.key;
       select.append(option('','不引用历史（相关规则将无法判断）'));
@@ -97,10 +106,17 @@ async function choices(){
       label.append(select);fragment.append(label);
     }
   }else fragment.append(node('p','选择账户和计划后，可逐件引用已有历史；没有历史也能研究，但相关规则保持未知。'));
-  if(ticket===choicesRequest){el('history-choices').replaceChildren(fragment);ready();}
+  const bookFragment=document.createDocumentFragment(),previousBooks=new Map([...el('book-choices').querySelectorAll('select')].map(s=>[s.dataset.bookItem,s.value]));
+  if(plan&&plan.source==='steamdt')for(const line of plan.lines){
+    const label=node('label',`${line.candidate.item.name} · 出售盘口`),select=node('select');select.dataset.bookItem=line.candidate.item.key;select.append(option('','不引用盘口（压力净卖出规则将无法判断）'));
+    for(const b of books.items.filter(b=>b.request.market_hash_name===line.candidate.item.key))select.append(option(b.id,`${date(b.observed_at)} · 实际 ${b.book.currency} · ${b.id.slice(0,8)}`));
+    if([...select.options].some(o=>o.value===previousBooks.get(line.candidate.item.key)))select.value=previousBooks.get(line.candidate.item.key);label.append(select);bookFragment.append(label);
+  }
+  if(!bookFragment.childNodes.length)bookFragment.append(node('p','出售估值需真实计划中匹配商品的显式盘口；演示计划禁止引用平台证据。'));
+  if(ticket===choicesRequest){el('history-choices').replaceChildren(fragment);el('book-choices').replaceChildren(bookFragment);ready();}
 }
 for(const id of ['account','plan'])el(id).onchange=()=>{
-  choicesRequest++;el('history-choices').replaceChildren(node('p','正在读取可引用的历史…'));
+  choicesRequest++;el('history-choices').replaceChildren(node('p','正在读取可引用的历史…'));el('book-choices').replaceChildren();
   choices().catch(e=>{el('evaluation-feedback').textContent=`历史选择读取失败：${e.message}`;});ready();
 };
 function render(e){
@@ -112,6 +128,7 @@ function render(e){
       section.append(node('p',`${modules[rule.module]??rule.module}：${labels[rule.status]}。${rule.reason}`));
       if(rule.observed!==null){const details=node('details');details.append(node('summary','查看本项证据'),node('pre',JSON.stringify(rule.observed,null,2)));section.append(details);}
     }
+    if(item.exit_valuation)section.append(exitValuationView(item.exit_valuation));
     box.append(section);
   }
   for(const text of e.execution_blockers)box.append(node('p',text));
@@ -127,7 +144,7 @@ async function records(){
 }
 el('evaluation-form').onsubmit=async event=>{
   event.preventDefault();if(busy||!loaded)return;
-  const request={strategy_id:loaded.strategy_id,revision:loaded.revision,plan_id:el('plan').value,account_id:el('account').value||null,history_snapshot_ids:[...el('history-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean)};
+  const request={strategy_id:loaded.strategy_id,revision:loaded.revision,plan_id:el('plan').value,account_id:el('account').value||null,history_snapshot_ids:[...el('history-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean),order_book_snapshot_ids:loaded.draft.rules.some(r=>r.module==='stress_exit_ratio')?[...el('book-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean):[]};
   lock(true);el('evaluation-feedback').textContent='正在按已保存版本研究证据…';
   try{
     const e=await parallax.evaluateStrategy(request);render(e);el('evaluation-feedback').textContent='研究预览已保存，未发起平台请求或创建订单。';
