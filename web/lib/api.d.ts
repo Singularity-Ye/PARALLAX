@@ -93,6 +93,15 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  purchaseLots(account:string):Promise<{items:PurchaseLot[]}>;
+  createPurchaseLot(account:string,value:LotRequest):Promise<LedgerWrite>;
+  purchaseLot(account:string,id:string):Promise<PurchaseLot>;
+  lotEvents(account:string,id:string):Promise<{items:LotEvent[]}>;
+  appendLotEvent(account:string,id:string,value:LotEventRequest):Promise<LedgerWrite>;
+  holdingsPreview(account:string,value:{inventory_snapshot_id:string|null}):Promise<Holdings>;
+  saleResearches(account:string):Promise<{items:SaleResearchSummary[]}>;
+  saleResearch(account:string,id:string):Promise<SaleResearch>;
+  createSaleResearch(account:string,value:SaleResearchRequest):Promise<SaleResearch>;
   preflights():Promise<{items:PreflightSummary[]}>;
   preflight(id:string):Promise<Preflight>;
   createPreflight(value:PreflightRequest):Promise<Preflight>;
@@ -210,3 +219,23 @@ export interface Preflight extends Omit<PreflightSummary,'evaluation_id'|'accoun
   source_evaluation:StrategyEvaluation;rechecked_evaluation:StrategyEvaluation;
   checks:{module:string;status:ResearchStatus;reason:string;observed:unknown}[];
 }
+export interface LotRequest {client_key:string;item_key:string;quantity:number;cash_cost_cents:number;purchased_at:number;purchase_ref:string;}
+export type AssetStage='held'|'listed'|'sold';
+export interface LotAsset {asset:InventoryAsset;inventory_snapshot_id:string;received_at:number;state_observed_at:number;cost_cents:number;stage:AssetStage;listing:{listing_ref:string;gross:NativeMoney;listed_at:number}|null;sale:{sale_ref:string;net_wallet:NativeMoney;sold_at:number}|null;}
+export interface PurchaseLot {id:string;account_id:string;revision:number;created_at:number;updated_at:number;provenance:'manual_unverified';platform_verified:false;request:LotRequest;assets:LotAsset[];}
+export type LotAction=
+  | {kind:'receive';inventory_snapshot_id:string;asset_ids:string[]}
+  | {kind:'list';asset_id:string;listing_ref:string;gross:NativeMoney;listed_at:number}
+  | {kind:'cancel_listing';asset_id:string;listing_ref:string;cancelled_at:number}
+  | {kind:'sell';asset_id:string;listing_ref:string;sale_ref:string;net_wallet:NativeMoney;sold_at:number};
+export interface LotEventRequest {client_key:string;expected_revision:number;action:LotAction;}
+export interface LedgerWrite {lot:PurchaseLot;replayed:boolean;}
+export interface LotEvent {id:string;lot_id:string;account_id:string;recorded_at:number;request:LotEventRequest;result_revision:number;}
+export interface HoldingItem {item_key:string;pending_units:number;held_units:number;listed_units:number;sold_units:number;observed_untracked_units:number;open_cost_cents:number;sold_cost_cents:number;discrepancies:string[];}
+export interface Holdings {account_id:string;generated_at:number;provenance:'reported_ledger_with_inventory_observation';complete:false;inventory:InventorySnapshot|null;lots:PurchaseLot[];items:HoldingItem[];open_cost_cents:number;sold_cost_cents:number;reported_wallet_receipts:NativeMoney[];warnings:string[];}
+export interface TrendGate {min_points:number;min_r_squared_bps:number;rising_above_bps_per_day:number;}
+export type SellPolicy={mode:'pause'}|{mode:'immediate'}|{mode:'trend_wait';gate:TrendGate}|{mode:'profit_protect';min_wallet_return_bps:number;basis:'normal'|'stressed';trend:TrendGate|null};
+export interface SaleResearchRequest {lot_id:string;asset_id:string;evaluation_id:string;inventory_snapshot_id:string;max_inventory_age_secs:number;policy:SellPolicy;}
+export type SaleAction='hold'|'review_listing'|'unknown'|'blocked';
+export interface SaleResearchSummary {id:string;account_id:string;created_at:number;lot_id:string;asset_id:string;action:SaleAction;}
+export interface SaleResearch {id:string;account_id:string;created_at:number;algorithm:'reported_cost_sell_policy_v1';action:SaleAction;execution_allowed:false;request:SaleResearchRequest;lot:PurchaseLot;inventory:InventorySnapshot;context:NonNullable<Preflight['context']>;rechecked_evaluation:StrategyEvaluation;unit_cost_cents:number;estimated_wallet_surplus_cny_cents:number|null;estimated_wallet_return_bps:number|null;valuation:ExitValuation|null;checks:Preflight['checks'];execution_blockers:string[];}

@@ -13,6 +13,9 @@
 | 壁垒/断层参数 | web/lib/pricing-fields.js 的pricingEditor | 盘口研究、压力净卖出规则 |
 | 原币费用参数 | 同文件feeEditor | 盘口研究、压力净卖出规则 |
 | 剔除/断层证据 | web/lib/pricing-view.js 的pricingTrace | 挂牌参考结果、压力估值结果 |
+| 退出估值 / 原币金额 | 同文件exitValuationView / nativeMoney | 购入研究、出售研究、台账 |
+| 三态逐项解释 | web/lib/evidence-view.js 的decisionList | 预检、出售研究 |
+| 下拉选择 / 时间 / 幂等重试输入 | web/lib/forms.js | 台账与出售页，台账三类写入 |
 | 请求与字段契约 | web/lib/api.js / api.d.ts | 页面脚本；Rust才计算金额/策略 |
 
 纸纹仅在theme.css用本地内联SVG定义，导航图标路径集中在shell.js的iconPaths，不复制图片/图标到各页；当前没有额外图片素材库，未来新增图片再统一归入web/assets并登记用途。
@@ -46,6 +49,8 @@ const request = {pricing:pricing.read(), fees:fees.read()};
 静态资源嵌入Rust，改后 `cargo build --locked` 并重启本地服务；用自己的开发服务器时保持API同源代理。工程运行 `./dev.ps1 run`。主题换肤主要改tokens/共享类，结构调整改共享组件，页面特有流程留在页面脚本。
 
 ## 当前证据与后续
+
+本轮新增`lib/evidence-view.js`，预检和出售研究共用三态解释/明细；`lib/forms.js`共用保留选择的下拉列表、本地时间与幂等重试键。台账/出售页继续复用主题、卡片、币种选项和原币金额格式，退出估值复用`exitValuationView`，没有在JS加入业务公式。台账`ledger.js`、出售`sale-research.js`各管自身流程，不重建整站/引入框架。刷新/切页保留收货勾选、表单；保存成功与列表失败分开。上架记录现含研究，不代表真实挂牌接口可用。合同见 [ledger.md](ledger.md) 和 [sell-policies.md](sell-policies.md)。
 
 预检卡片位于策略中心，`preflight.js`只编排选择/加载/保存/回看，复用现有纸感tokens、card/section-title/secondary类及`pricing-view`的node/nativeMoney；金额/时效/策略仍在Rust。`api.js`/`api.d.ts`集中合同。没有另建主题或重复费用表单。空选择、切页、列表刷新和回看已验证，输入/原结果保留。详见 [preflight.md](preflight.md)。
 

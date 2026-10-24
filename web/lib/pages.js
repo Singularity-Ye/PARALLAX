@@ -11,7 +11,7 @@ export const pages = [
   {id:'steam-research',title:'Steam 盘口',group:1,kicker:'RESEARCH / STEAM',description:'保留实际币种，查看公开买卖深度。',icon:'chart',child:true},
   {id:'buff-research',title:'BUFF 报价',group:1,kicker:'RESEARCH / BUFF',description:'读取候选的首屏卖单，明确可见价格与数量。',icon:'chart',child:true},
   {id:'price-history',title:'价格历史',group:1,kicker:'RESEARCH / HISTORY',description:'按自然日研究变化，保留缺口和未知。',icon:'chart',child:true},
-  {id:'sales',title:'上架记录',group:1,kicker:'ASSETS / LISTINGS',description:'跟踪资产上架、确认、撤单与成交。',icon:'tag',pending:['按账户同步真实在售资产','记录上架、确认与撤单结果','将平台成交与采购资产逐项对账'],related:'inventory'},
+  {id:'sales',title:'上架记录',group:1,kicker:'ASSETS / LISTINGS',description:'研究原币净卖出价值、持仓成本与出售条件。',icon:'tag'},
   {id:'accounts',title:'账号管理',group:2,kicker:'ACCOUNT / SESSIONS',description:'管理账户与登录态，在官方页面完成身份验证。',icon:'user'},
   {id:'steam-guard',title:'Steam 令牌',group:2,kicker:'ACCOUNT / GUARD',description:'管理 Steam Guard 与自动登录流程。',icon:'shield',pending:['Guard 自动登录与挑战状态','令牌安全存储与后台续期'],related:'accounts'},
   {id:'strategies',title:'策略中心',group:2,kicker:'AUTOMATION / STRATEGIES',description:'保存购入研究规则，用明确证据逐项验证。',icon:'sliders'},

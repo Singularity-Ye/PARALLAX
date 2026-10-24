@@ -11,8 +11,10 @@ mod buff_quotes;
 mod fx;
 mod history;
 mod inventory;
+mod ledger;
 mod orderbook;
 mod preflight;
+mod sale_research;
 mod steam_policy;
 mod strategy;
 
@@ -38,7 +40,12 @@ impl Store {
             CREATE TABLE IF NOT EXISTS exchange_rate_snapshots (id TEXT PRIMARY KEY, fetched_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS strategy_versions (strategy_id TEXT NOT NULL, revision INTEGER NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL, PRIMARY KEY(strategy_id, revision));
             CREATE TABLE IF NOT EXISTS strategy_evaluations (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS preflight_inspections (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
+            CREATE TABLE IF NOT EXISTS preflight_inspections (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS purchase_lots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, client_key TEXT NOT NULL, purchase_ref TEXT NOT NULL, snapshot TEXT NOT NULL, UNIQUE(account_id,client_key), UNIQUE(account_id,purchase_ref));
+            CREATE TABLE IF NOT EXISTS purchase_lot_events (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, lot_id TEXT NOT NULL, client_key TEXT NOT NULL, revision INTEGER NOT NULL, snapshot TEXT NOT NULL, UNIQUE(account_id,client_key), UNIQUE(lot_id,revision));
+            CREATE TABLE IF NOT EXISTS purchase_asset_claims (account_id TEXT NOT NULL, asset_id TEXT NOT NULL, lot_id TEXT NOT NULL, PRIMARY KEY(account_id,asset_id));
+            CREATE TABLE IF NOT EXISTS purchase_external_claims (account_id TEXT NOT NULL, kind TEXT NOT NULL, reference TEXT NOT NULL, lot_id TEXT NOT NULL, PRIMARY KEY(account_id,kind,reference));
+            CREATE TABLE IF NOT EXISTS sale_research (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
         // A restarted process cannot continue an old in-memory scan. Preserve evidence honestly.
         let reports = {
             let mut stmt = db.prepare("SELECT report FROM scans")?;

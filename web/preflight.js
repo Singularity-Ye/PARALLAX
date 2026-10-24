@@ -1,8 +1,8 @@
 import {parallax} from './lib/api.js';
 import {node,nativeMoney} from './lib/pricing-view.js';
+import {decisionList,decisionLabels as label} from './lib/evidence-view.js';
 const el=id=>document.getElementById(`preflight-${id}`);
 const date=t=>new Date(t*1000).toLocaleString();
-const label={pass:'证据满足',fail:'存在阻断',unknown:'仍有未知'};
 const names={source:'来源',selected_strategy:'所选策略重算',selected_quote_age:'报价时效',buff_binding:'BUFF 账户／价格／数量',steam_quote:'Steam 盘口',history_generation:'历史凭据代次',steam_session_metadata:'Steam 登录态元数据',buff_session_metadata:'BUFF 登录态元数据',buff_policy:'BUFF 访问限制',live_quote_refresh:'实时刷新',balance:'可用资金',position_ledger:'完整持仓',platform_fees:'平台实际费用',order_executor:'订单与对账'};
 const option=(value,text)=>{const n=node('option',text);n.value=value;return n;};
 let loaded=null,busy=false;
@@ -10,11 +10,7 @@ function lock(value){busy=value;for(const control of el('form').elements)control
 function render(p){
   const box=el('result');box.replaceChildren();
   box.append(node('h3',`${label[p.status]} · ${date(p.created_at)}`),node('p',`所选证据：${label[p.evidence_status]} · 现金合计 ${nativeMoney(p.selected_cash_cents,'CNY')} · 未获交易许可`),node('p',`绑定研究 ${p.request.evaluation_id} · 策略 v${p.source_evaluation.strategy.revision} · ${p.context?.account.label??'未指定账户'}`));
-  for(const c of p.checks){
-    const details=node('details');details.append(node('summary',`${label[c.status]} · ${names[c.module]??c.module}`),node('p',c.reason));
-    if(c.observed!==null)details.append(node('pre',JSON.stringify(c.observed,null,2)));
-    box.append(details);
-  }
+  box.append(decisionList(p.checks,names));
 }
 function selections(e){
   const rows=[];

@@ -13,6 +13,15 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  purchaseLots: account => request(`/api/accounts/${encodeURIComponent(account)}/purchase-lots`),
+  createPurchaseLot: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/purchase-lots`,value),
+  purchaseLot: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/purchase-lots/${encodeURIComponent(id)}`),
+  lotEvents: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/purchase-lots/${encodeURIComponent(id)}/events`),
+  appendLotEvent: (account,id,value) => post(`/api/accounts/${encodeURIComponent(account)}/purchase-lots/${encodeURIComponent(id)}/events`,value),
+  holdingsPreview: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/holdings-preview`,value),
+  saleResearches: account => request(`/api/accounts/${encodeURIComponent(account)}/sale-research`),
+  saleResearch: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/sale-research/${encodeURIComponent(id)}`),
+  createSaleResearch: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/sale-research`,value),
   preflights: () => request('/api/preflights'),
   preflight: id => request(`/api/preflights/${encodeURIComponent(id)}`),
   createPreflight: value => post('/api/preflights',value),

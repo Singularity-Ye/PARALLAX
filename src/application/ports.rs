@@ -336,3 +336,50 @@ pub trait PreflightRepository: Send + Sync {
         &self,
     ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::preflight::PreflightSummary>>> + Send;
 }
+
+pub trait LedgerRepository: Send + Sync {
+    fn create_lot(
+        &self,
+        account: String,
+        request: crate::domain::ledger::LotRequest,
+        at: u64,
+    ) -> impl Future<Output = anyhow::Result<crate::domain::ledger::LedgerOutcome>> + Send;
+    fn append_lot_event(
+        &self,
+        account: String,
+        id: String,
+        request: crate::domain::ledger::LotEventRequest,
+        inventory: Option<crate::domain::inventory::InventorySnapshot>,
+        at: u64,
+    ) -> impl Future<Output = anyhow::Result<crate::domain::ledger::LedgerOutcome>> + Send;
+    fn lot(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::ledger::PurchaseLot>>> + Send;
+    fn lots(
+        &self,
+        account: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::ledger::PurchaseLot>>> + Send;
+    fn lot_events(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::ledger::LotEvent>>> + Send;
+}
+pub trait SaleResearchRepository: Send + Sync {
+    fn insert_sale_research(
+        &self,
+        value: crate::domain::sale_research::SaleResearch,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn sale_research(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::sale_research::SaleResearch>>> + Send;
+    fn sale_researches(
+        &self,
+        account: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::sale_research::SaleResearchSummary>>>
+    + Send;
+}
