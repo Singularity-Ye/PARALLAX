@@ -1,5 +1,7 @@
 # Parallax
 
+GitHub：<https://github.com/Singularity-Ye/PARALLAX>。项目采用 GPL-3.0-only，保留原项目来源说明；见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
+
 AetherSwap 的 Rust 重制版。**自动化买卖是主线，透明选品和预算计划是入口。**
 
 界面按原项目的左侧导航与功能页组织，已建立仪表盘、选品、预算、库存、记录、研究及账号等独立视图；待迁移入口明确标注。暖白纸感、粗黑字与少量荧光绿已由用户确认为初版 UI，后续按需求精修。页面与复用合同见 [分页工作台](docs/frontend.md)。
