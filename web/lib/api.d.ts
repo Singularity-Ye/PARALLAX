@@ -202,15 +202,16 @@ export type StrategyRule =
   | {module:'trend7';min_points:number;min_slope_bps_per_day:number;max_slope_bps_per_day:number;min_r_squared_bps:number}
   | {module:'calendar_p10';min_pairs:number;min_return_bps:number;slippage_bps:number}
   | {module:'stress_exit_ratio';max_ratio_bps:number;parameters:ExitValuationPolicy};
-export interface StrategyDraft {schema_version:1|2;name:string;description:string;rules:StrategyRule[];}
+export type ResearchObjective = 'wallet_conversion'|'holding';
+export interface StrategyDraft {schema_version:1|2|3;objective?:ResearchObjective;name:string;description:string;rules:StrategyRule[];}
 export interface StrategyVersion {strategy_id:string;revision:number;created_at:number;draft:StrategyDraft;}
 export interface StrategyEvaluationRequest {strategy_id:string;revision:number;plan_id:string;account_id:string|null;history_snapshot_ids?:string[];order_book_snapshot_ids?:string[];}
 export type ResearchStatus='pass'|'fail'|'unknown';
 export interface StrategyEvaluationSummary {id:string;created_at:number;strategy_id:string;strategy_name:string;revision:number;plan_id:string;status:ResearchStatus;item_count:number;}
 export interface StrategyEvaluation {
-  id:string;created_at:number;algorithm:'purchase_research_v1'|'purchase_research_v2';status:ResearchStatus;preview_only:true;execution_allowed:false;
+  id:string;created_at:number;algorithm:'purchase_research_v1'|'purchase_research_v2'|'purchase_research_v3';status:ResearchStatus;preview_only:true;execution_allowed:false;
   request:StrategyEvaluationRequest;strategy:StrategyVersion;plan:PlanPreview;histories:HistorySnapshot[];order_books?:OrderBookSnapshot[];
-  items:{item_key:string;status:ResearchStatus;decisions:{module:string;status:ResearchStatus;reason:string;observed:unknown}[];exit_valuation?:ExitValuation}[];
+  items:{item_key:string;status:ResearchStatus;decisions:{module:string;status:ResearchStatus;reason:string;observed:unknown}[];exit_valuation?:ExitValuation;review?:DecisionReview}[];
   execution_blockers:string[];
 }
 export interface ExitValuationPolicy {
@@ -267,3 +268,9 @@ export interface ObservedOrder {order_id:string;state_code:string|number|null;pa
 export interface OrderHistoryPage {page_num:number;page_size:number;reported_total:number|null;orders:ObservedOrder[];}
 export interface OrderHistorySnapshot {id:string;account_id:string;principal:string;credential_generation:string;started_at:number;observed_at:number;source:'buff_buy_history_readonly';protocol_live_verified:false;request:OrderHistoryRequest;pages:OrderHistoryPage[];stop_reason:'short_page'|'reported_end'|'page_budget';complete:false;execution_allowed:false;}
 export interface OrderLookup {snapshot_id:string;order_id:string;found:boolean;order:ObservedOrder|null;payment_evidence:'awaiting_payment_at_observation'|'unknown';reason:string;observation_age_secs:number|null;execution_allowed:false;}
+
+export interface DecisionReview {
+  objective:ResearchObjective;conclusion_scope:'configured_rules_on_saved_plan_only';
+  cash_price_basis:'demo'|'steamdt_reference'|'buff_visible_sell_snapshot';price_evidence_at:number;cash_snapshot_id:string|null;
+  unchecked_rules:string[];unassessed:string[];manual_checks:string[];holding_value_established:false;
+}

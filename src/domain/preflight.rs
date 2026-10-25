@@ -124,6 +124,9 @@ pub fn inspect(
 ) -> Result<Preflight, String> {
     use ResearchStatus::{Fail, Pass, Unknown};
     request.validate()?;
+    if source.strategy.draft.objective == super::strategy::ResearchObjective::Holding {
+        return Err("持有观察结果仅供人工研究，不能作为采购预检或本地资金预留依据".into());
+    }
     if request.evaluation_id != source.id
         || context.as_ref().map(|c| &c.account.id) != request.account_id.as_ref()
         || source

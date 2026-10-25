@@ -299,3 +299,48 @@ async fn exit_unknown_book_id_never_saves_a_research_record() {
     );
     assert!(repo.evaluations().await.unwrap().is_empty());
 }
+
+#[tokio::test]
+async fn holding_v3_http_persists_objective_and_evidence_scope_without_platform_access() {
+    use crate::domain::strategy::ResearchObjective;
+    let path = std::env::temp_dir().join(format!(
+        "parallax-holding-objective-{}.db",
+        uuid::Uuid::new_v4()
+    ));
+    let store = Store::open(&path).unwrap();
+    let (mut s, p, h, mut r) = fixture(now());
+    s.draft.schema_version = 3;
+    s.draft.objective = ResearchObjective::Holding;
+    s.draft.rules.remove(0);
+    store
+        .add_account(Account {
+            id: h.account_id.clone(),
+            label: "fixture".into(),
+            steam_id: "76561198000000001".into(),
+            created_at: now(),
+        })
+        .await
+        .unwrap();
+    store.insert_plan(p).await.unwrap();
+    store.insert_history(h).await.unwrap();
+    let app = router(StrategyResearch::new(store.clone()));
+    let (status, v) = call(app.clone(), "POST", "/api/strategies", json!(s.draft)).await;
+    assert_eq!(status, StatusCode::CREATED);
+    r.strategy_id = v["strategy_id"].as_str().unwrap().into();
+    let (status, e) = call(app.clone(), "POST", "/api/strategy-evaluations", json!(r)).await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(e["algorithm"], "purchase_research_v3");
+    assert_eq!(e["items"][0]["review"]["objective"], "holding");
+    assert_eq!(e["items"][0]["review"]["holding_value_established"], false);
+    assert_eq!(e["execution_allowed"], false);
+    let id = e["id"].as_str().unwrap().to_string();
+    drop(app);
+    drop(store);
+    let reopened = Store::open(&path).unwrap();
+    assert_eq!(
+        serde_json::to_value(reopened.evaluation(id).await.unwrap().unwrap()).unwrap(),
+        e
+    );
+    drop(reopened);
+    std::fs::remove_file(path).unwrap();
+}

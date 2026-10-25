@@ -150,6 +150,7 @@ async fn uah_depth_fees_display_budget_and_strategy_retain_original_evidence() {
     let research = StrategyResearch::new(repo.clone());
     let strategy = research
         .create(StrategyDraft {
+            objective: Default::default(),
             schema_version: 1,
             name: "UAH fixture research".into(),
             description: "fixture only".into(),

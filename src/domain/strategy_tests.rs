@@ -88,6 +88,7 @@ pub(crate) fn fixture(
         revision: 1,
         created_at: at,
         draft: StrategyDraft {
+            objective: Default::default(),
             schema_version: 1,
             name: "购入研究".into(),
             description: "合成测试，不访问平台".into(),
@@ -391,4 +392,123 @@ fn demo_evaluation_remains_demo_and_rejects_platform_history() {
     let e = evaluate(s, p, vec![], r, at).unwrap();
     assert_eq!(e.plan.source, SourceKind::Demo);
     assert!(!e.execution_allowed);
+}
+
+#[test]
+fn holding_objective_rejects_wallet_rules_and_requires_explicit_v3_history() {
+    let (mut s, _, _, _) = fixture(10000 * 86400 + 120);
+    s.draft.objective = ResearchObjective::Holding;
+    assert!(s.draft.validate().is_err());
+    s.draft.schema_version = 3;
+    assert!(s.draft.validate().is_err());
+    s.draft.rules.remove(0);
+    assert!(s.draft.validate().is_ok());
+    let mut missing = s.draft.clone();
+    missing.rules.remove(0);
+    assert!(missing.validate().is_err());
+    s.draft.objective = ResearchObjective::WalletConversion;
+    assert!(s.draft.validate().is_err());
+}
+#[test]
+fn holding_rule_match_does_not_use_wallet_value_or_establish_fair_cash_value() {
+    let at = 10000 * 86400 + 120;
+    let (mut s, mut p, h, mut r) = fixture(at);
+    s.draft.schema_version = 3;
+    s.draft.objective = ResearchObjective::Holding;
+    s.draft.rules.remove(0);
+    p.lines[0].candidate.estimated_wallet_cents = 0;
+    let e = evaluate(s.clone(), p.clone(), vec![h], r.clone(), at).unwrap();
+    assert_eq!(e.algorithm, "purchase_research_v3");
+    assert_eq!(e.status, ResearchStatus::Pass);
+    assert!(!e.execution_allowed);
+    assert!(
+        !e.items[0]
+            .decisions
+            .iter()
+            .any(|d| d.module == "strict_ratio")
+    );
+    let review = e.items[0].review.as_ref().unwrap();
+    assert_eq!(review.objective, ResearchObjective::Holding);
+    assert!(!review.holding_value_established);
+    assert_eq!(review.cash_price_basis, "steamdt_reference");
+    assert!(!review.unassessed.is_empty());
+    let inspection = crate::domain::preflight::PreflightRequest {
+        evaluation_id: e.id.clone(),
+        account_id: None,
+        selections: vec![crate::domain::preflight::Selection {
+            item_key: e.items[0].item_key.clone(),
+            quantity: 1,
+        }],
+        max_quote_age_secs: 300,
+    };
+    assert!(
+        crate::domain::preflight::inspect(inspection, e, None, at)
+            .unwrap_err()
+            .contains("持有观察")
+    );
+    r.history_snapshot_ids.clear();
+    assert_eq!(
+        evaluate(s, p, vec![], r, at).unwrap().status,
+        ResearchStatus::Unknown
+    );
+}
+#[test]
+fn legacy_drafts_and_saved_results_are_not_silently_reinterpreted() {
+    let at = 10000 * 86400 + 120;
+    let (s, p, h, r) = fixture(at);
+    let old = serde_json::to_value(&s.draft).unwrap();
+    assert!(old.get("objective").is_none());
+    let draft: StrategyDraft = serde_json::from_value(old.clone()).unwrap();
+    assert_eq!(draft.objective, ResearchObjective::WalletConversion);
+    assert_eq!(serde_json::to_value(draft).unwrap(), old);
+    let mut old_result = serde_json::to_value(evaluate(s, p, vec![h], r, at).unwrap()).unwrap();
+    old_result["items"][0]
+        .as_object_mut()
+        .unwrap()
+        .remove("review");
+    let decoded: StrategyEvaluation = serde_json::from_value(old_result.clone()).unwrap();
+    assert!(decoded.items[0].review.is_none());
+    assert_eq!(serde_json::to_value(decoded).unwrap(), old_result);
+}
+#[test]
+fn reference_price_review_keeps_unchecked_risks_visible_even_for_passing_rules() {
+    let at = 10000 * 86400 + 120;
+    let (mut s, p, _, mut r) = fixture(at);
+    s.draft.rules.truncate(1);
+    r.history_snapshot_ids.clear();
+    let e = evaluate(s, p, vec![], r, at).unwrap();
+    assert_eq!(e.status, ResearchStatus::Pass);
+    let review = e.items[0].review.as_ref().unwrap();
+    assert!(review.unchecked_rules.contains(&"history_coverage".into()));
+    assert!(review.unchecked_rules.contains(&"position_capacity".into()));
+    assert_eq!(
+        review.conclusion_scope,
+        "configured_rules_on_saved_plan_only"
+    );
+    assert_eq!(review.cash_snapshot_id, None);
+    assert!(!review.holding_value_established);
+}
+#[test]
+fn price_review_uses_snapshot_lineage_without_calling_it_an_executable_quote() {
+    use crate::domain::planning::BuffValuationEvidence;
+    let (s, mut p, _, _) = fixture(10000 * 86400 + 120);
+    p.buff_valuations.push(BuffValuationEvidence {
+        snapshot_id: "quote".into(),
+        account_id: "account".into(),
+        credential_generation: "generation".into(),
+        item_key: p.lines[0].candidate.item.key.clone(),
+        goods_id: 1,
+        observed_at: 50,
+        unit_cash_cents: Some(100),
+        lowest_tier_visible_units: 2,
+    });
+    let review = crate::domain::strategy_review::review(&s.draft, &p, &p.lines[0]);
+    assert_eq!(review.cash_price_basis, "buff_visible_sell_snapshot");
+    assert_eq!(review.price_evidence_at, 50);
+    assert_eq!(review.cash_snapshot_id.as_deref(), Some("quote"));
+    p.source = crate::domain::selection::SourceKind::Demo;
+    assert_eq!(
+        crate::domain::strategy_review::review(&s.draft, &p, &p.lines[0]).cash_price_basis,
+        "demo"
+    );
 }

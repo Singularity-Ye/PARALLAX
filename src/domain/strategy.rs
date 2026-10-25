@@ -7,9 +7,23 @@ use serde_json::{Value, json};
 #[serde(deny_unknown_fields)]
 pub struct StrategyDraft {
     pub schema_version: u32,
+    #[serde(default, skip_serializing_if = "ResearchObjective::is_wallet")]
+    pub objective: ResearchObjective,
     pub name: String,
     pub description: String,
     pub rules: Vec<StrategyRule>,
+}
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResearchObjective {
+    #[default]
+    WalletConversion,
+    Holding,
+}
+impl ResearchObjective {
+    fn is_wallet(&self) -> bool {
+        *self == Self::WalletConversion
+    }
 }
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -76,7 +90,7 @@ impl StrategyRule {
 }
 impl StrategyDraft {
     pub fn validate(&self) -> Result<(), String> {
-        if ![1, 2].contains(&self.schema_version)
+        if ![1, 2, 3].contains(&self.schema_version)
             || self.name.trim().is_empty()
             || self.name.len() > 120
             || self.description.len() > 2000
@@ -85,11 +99,29 @@ impl StrategyDraft {
             || self.rules.len() > if self.schema_version == 1 { 6 } else { 7 }
         {
             return Err(
-                "策略需schema_version=1（至多6规则）或2（至多7规则）、1–120字节名称及至多2000字节说明"
+                "策略需schema_version=1（至多6规则）或2/3（至多7规则）、1–120字节名称及至多2000字节说明"
                     .into(),
             );
         }
-        if !matches!(self.rules.first(), Some(StrategyRule::StrictRatio { .. })) {
+        if self.objective == ResearchObjective::Holding {
+            if self.schema_version != 3
+                || !self
+                    .rules
+                    .iter()
+                    .any(|r| matches!(r, StrategyRule::HistoryCoverage { .. }))
+                || self.rules.iter().any(|r| {
+                    matches!(
+                        r,
+                        StrategyRule::StrictRatio { .. } | StrategyRule::StressExitRatio { .. }
+                    )
+                })
+            {
+                return Err(
+                    "持有观察需要schema_version=3与历史覆盖规则，不能用钱包折算率判定持有价值"
+                        .into(),
+                );
+            }
+        } else if !matches!(self.rules.first(), Some(StrategyRule::StrictRatio { .. })) {
             return Err("购入研究必须以 strict_ratio 开始".into());
         }
         let mut previous = None;
@@ -108,7 +140,7 @@ impl StrategyDraft {
                     parameters,
                 } => {
                     parameters.validate()?;
-                    self.schema_version == 2 && coverage && (1..=20000).contains(max_ratio_bps)
+                    self.schema_version >= 2 && coverage && (1..=20000).contains(max_ratio_bps)
                 }
                 StrategyRule::StrictRatio { max_ratio_bps } => (1..=20000).contains(max_ratio_bps),
                 StrategyRule::PositionCapacity => true,
@@ -227,6 +259,8 @@ pub struct ItemDecision {
     pub item_key: String,
     pub status: ResearchStatus,
     pub decisions: Vec<RuleDecision>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub review: Option<super::strategy_review::DecisionReview>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exit_valuation: Option<super::exit_valuation::ExitValuation>,
 }
@@ -610,6 +644,7 @@ pub fn evaluate_with_order_books(
         items.push(ItemDecision {
             item_key: item.key.clone(),
             status: aggregate(decisions.iter().map(|d| d.status)),
+            review: Some(super::strategy_review::review(&strategy.draft, &plan, line)),
             decisions,
             exit_valuation,
         });
@@ -623,7 +658,9 @@ pub fn evaluate_with_order_books(
     Ok(StrategyEvaluation {
         id: uuid::Uuid::new_v4().to_string(),
         created_at: at,
-        algorithm: if strategy.draft.schema_version == 2 {
+        algorithm: if strategy.draft.schema_version == 3 {
+            "purchase_research_v3"
+        } else if strategy.draft.schema_version == 2 {
             "purchase_research_v2"
         } else {
             "purchase_research_v1"

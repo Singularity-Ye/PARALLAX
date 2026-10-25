@@ -155,7 +155,8 @@
 <div class="actions"><button id="strategy-new" type="button">新建策略</button><button id="strategy-refresh" type="button">刷新记录</button></div>
 <p id="strategy-version-info" class="hint">尚未保存。以下为研究参数示例，效果需要另行验证。</p>
 <form id="strategy-form"><label>策略名称<input id="strategy-name" required maxlength="40" value="购入规则研究"></label><label>说明<input id="strategy-description" maxlength="600" value="对已保存的购入计划做逐项研究，不创建订单。"></label>
-<label>折算率严格上限 / bps<input id="strategy-ratio" type="number" min="1" max="20000" step="1" value="9000" required></label>
+<label>研究目标<select id="strategy-objective"><option value="holding" selected>持有观察（不评定低估）</option><option value="wallet_conversion">换 Steam 余额</option></select></label><p id="strategy-objective-help" class="hint"></p>
+<label>钱包折算率严格上限 / bps<input id="strategy-ratio" type="number" min="1" max="20000" step="1" value="9000" required></label>
 <label><span><input id="strategy-position" type="checkbox" checked>要求仓位覆盖且未超过持仓、未决与日量额度</span></label>
 <label><span><input id="strategy-history" type="checkbox" checked>使用显式历史证据</span></label>
 <fieldset id="strategy-history-fields"><legend>历史覆盖与指标</legend>

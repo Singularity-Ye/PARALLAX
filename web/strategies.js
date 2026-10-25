@@ -6,21 +6,27 @@ const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)
 const option=(value,text)=>{const n=node('option',text);n.value=value;return n;};
 const date=t=>new Date(t*1000).toLocaleString();
 const labels={pass:'满足研究规则',fail:'未满足',unknown:'无法判断'};
-const modules={quote_freshness:'报价有效期',fx_freshness:'汇率有效期',strict_ratio:'严格折算率',position_capacity:'仓位额度',history_coverage:'历史覆盖',sample_cv:'样本 CV',trend7:'七日趋势',calendar_p10:'七日收益 P10',stress_exit_ratio:'压力净卖出折算率'};
+const modules={quote_freshness:'报价有效期',fx_freshness:'汇率有效期',strict_ratio:'钱包折算率',position_capacity:'仓位额度',history_coverage:'历史覆盖',sample_cv:'样本 CV',trend7:'七日趋势',calendar_p10:'七日收益 P10',stress_exit_ratio:'压力净卖出折算率'};
 const exitPricing=pricingEditor(el('exit-pricing'));
 const exitFees=feeEditor(el('exit-fees'),{chooseCurrency:true});
 let loaded=null,plans=[],busy=false,refreshing=false,choicesRequest=0,versionRequest=0;
 const number=id=>Number(el(id).value);
 function fields(){
+  const holding=el('objective').value==='holding';
+  el('ratio').disabled=busy||holding;
+  if(holding)el('history').checked=true;
+  el('history').disabled=busy||holding;
+  el('objective-help').textContent=holding?'持有观察仅检查所选历史/仓位规则，不评定低估或未来收益。研究对象仍来自预算预筛，尚未成为独立持有选品。':'钱包方案比较现金成本与估算Steam净钱包；钱包金额不等于可提现现金。';
   el('history-fields').disabled=!el('history').checked;
-  el('exit-enabled').disabled=busy||!el('history').checked;
-  el('exit-fields').disabled=!el('history').checked||!el('exit-enabled').checked;
+  el('exit-enabled').disabled=busy||holding||!el('history').checked;
+  el('exit-fields').disabled=holding||!el('history').checked||!el('exit-enabled').checked;
   for(const name of ['cv','trend','p10'])el(`${name}-fields`).disabled=!el(`${name}-enabled`).checked;
 }
-for(const id of ['history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(id).onchange=fields;
+for(const id of ['objective','history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(id).onchange=fields;
 function ready(){el('evaluate').disabled=busy||refreshing||!loaded||!el('plan').value;el('save').disabled=busy||refreshing||(!loaded&&!!el('select').value);}
 function showVersion(v){
   loaded=v;const d=v.draft;
+  el('objective').value=d.objective??'wallet_conversion';
   el('name').value=d.name;el('description').value=d.description;
   for(const key of ['position','history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(key).checked=false;
   for(const rule of d.rules){
@@ -38,7 +44,8 @@ function showVersion(v){
   fields();ready();
 }
 function draft(){
-  const rules=[{module:'strict_ratio',max_ratio_bps:number('ratio')}];
+  const objective=el('objective').value,holding=objective==='holding';
+  const rules=holding?[]:[{module:'strict_ratio',max_ratio_bps:number('ratio')}];
   if(el('position').checked)rules.push({module:'position_capacity'});
   if(el('history').checked){
     rules.push({module:'history_coverage',min_usable_days:number('min-days'),max_missing_days:number('missing-days'),max_age_secs:number('history-age'),max_reference_lag_days:number('lag')});
@@ -46,8 +53,8 @@ function draft(){
     if(el('trend-enabled').checked)rules.push({module:'trend7',min_points:number('trend-points'),min_slope_bps_per_day:number('slope-min'),max_slope_bps_per_day:number('slope-max'),min_r_squared_bps:number('r2')});
     if(el('p10-enabled').checked)rules.push({module:'calendar_p10',min_pairs:number('pairs'),min_return_bps:number('p10'),slippage_bps:number('slippage')});
   }
-  if(el('history').checked&&el('exit-enabled').checked)rules.push({module:'stress_exit_ratio',max_ratio_bps:number('exit-ratio'),parameters:{pricing:exitPricing.read(),fees:exitFees.read(),min_pairs:number('exit-pairs'),slippage_bps:number('exit-slippage'),max_book_age_secs:number('exit-age')}});
-  return {schema_version:rules.some(r=>r.module==='stress_exit_ratio')?2:1,name:el('name').value.trim(),description:el('description').value,rules};
+  if(!holding&&el('history').checked&&el('exit-enabled').checked)rules.push({module:'stress_exit_ratio',max_ratio_bps:number('exit-ratio'),parameters:{pricing:exitPricing.read(),fees:exitFees.read(),min_pairs:number('exit-pairs'),slippage_bps:number('exit-slippage'),max_book_age_secs:number('exit-age')}});
+  return {schema_version:3,objective,name:el('name').value.trim(),description:el('description').value,rules};
 }
 async function versions(id,revision){
   const ticket=++versionRequest;
@@ -120,10 +127,21 @@ for(const id of ['account','plan'])el(id).onchange=()=>{
   choices().catch(e=>{el('evaluation-feedback').textContent=`历史选择读取失败：${e.message}`;});ready();
 };
 function render(e){
-  const box=el('result');box.replaceChildren(node('h3',`${e.strategy.draft.name} · v${e.strategy.revision} · ${labels[e.status]}`),node('p',`${date(e.created_at)} · ${e.plan.source==='demo'?'演示数据':'SteamDT 候选'} · ${e.items.length} 件计划商品 · 仅研究，未下单`));
+  const holding=e.strategy.draft.objective==='holding';
+  const outcome=e.status==='pass'&&holding?'满足持有观察规则（非买入建议）':labels[e.status];
+  const box=el('result');box.replaceChildren(node('h3',`${e.strategy.draft.name} · v${e.strategy.revision} · ${outcome}`),node('p',`${date(e.created_at)} · ${holding?'持有观察':'换Steam余额'} · ${e.plan.source==='demo'?'演示数据':'SteamDT 候选'} · ${e.items.length} 件计划商品 · 仅研究，未下单`));
   if(!e.items.length)box.append(node('p','计划中没有可研究的商品，不能作为通过。'));
   for(const item of e.items){
     const section=node('details');section.open=true;section.append(node('summary',`${item.item_key} · ${labels[item.status]}`));
+    if(item.review){
+      const review=item.review,basis={demo:'演示数据',steamdt_reference:'SteamDT参考价（非实时可成交卖单）',buff_visible_sell_snapshot:'历史BUFF可见卖单快照（非锁定报价）'};
+      section.append(node('p',`现金价格依据：${basis[review.cash_price_basis]??review.cash_price_basis} · 证据时间 ${date(review.price_evidence_at)}`));
+      if(review.unchecked_rules.length)section.append(node('p',`未启用的规则：${review.unchecked_rules.map(k=>modules[k]??k).join('、')}；不属于本次已检查范围。`));
+      const gaps=node('details');gaps.append(node('summary','未评估事项与人工复核'));
+      for(const text of review.unassessed)gaps.append(node('p',text));
+      for(const text of review.manual_checks)gaps.append(node('p',`人工确认：${text}`));
+      section.append(gaps);
+    }else section.append(node('p','旧研究未保存目标/价格依据与未评估清单，不在回看时补算。'));
     for(const rule of item.decisions){
       section.append(node('p',`${modules[rule.module]??rule.module}：${labels[rule.status]}。${rule.reason}`));
       if(rule.observed!==null){const details=node('details');details.append(node('summary','查看本项证据'),node('pre',JSON.stringify(rule.observed,null,2)));section.append(details);}
