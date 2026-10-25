@@ -48,6 +48,7 @@ pub(crate) fn fixture(
     let today = at / 86400;
     let hrequest = HistoryRequest {
         inventory_snapshot_id: None,
+        manual_item: false,
         scan_id: plan.request.scan_id.clone(),
         item_key: "fixture-item".into(),
         window_days: 30,

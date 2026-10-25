@@ -4,6 +4,7 @@ fn request() -> HistoryRequest {
     HistoryRequest {
         scan_id: "fixture".into(),
         inventory_snapshot_id: None,
+        manual_item: false,
         item_key: "fixture".into(),
         window_days: 8,
         slippage_bps: 300,

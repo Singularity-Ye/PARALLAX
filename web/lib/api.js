@@ -13,6 +13,10 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  holdingResearches: account => request(`/api/accounts/${encodeURIComponent(account)}/holding-research`),
+  holdingResearch: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/holding-research/${encodeURIComponent(id)}`),
+  createHoldingResearch: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/holding-research`,value),
+
   buffOrderObservations: account => request(`/api/accounts/${encodeURIComponent(account)}/buff-order-observations`),
   observeBuffOrders: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/buff-order-observations`,value),
   buffOrderObservation: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/buff-order-observations/${encodeURIComponent(id)}`),

@@ -30,7 +30,9 @@ impl<
     ) -> Result<HistorySnapshot, AppError> {
         request.validate().map_err(AppError::Invalid)?;
         self.accounts.account(account).await?;
-        let identity_binding = if let Some(id) = &request.inventory_snapshot_id {
+        let identity_binding = if request.manual_item {
+            "manual_market_name_and_request_parameters"
+        } else if let Some(id) = &request.inventory_snapshot_id {
             let inventory = self
                 .repo
                 .inventory(id.clone())

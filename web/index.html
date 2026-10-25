@@ -102,8 +102,8 @@
 </section>
 <section class="page" data-page="price-history" id="page-price-history" hidden>
 <section class="card" id="price-history"><div class="section-title"><h2>Steam 价格历史研究</h2><span>HISTORY / UTC CALENDAR</span></div>
-<p class="hint">从已完成的真实 SteamDT 扫描或账户库存快照选择商品，使用最近五分钟内核验的 Steam 会话。仅研究结束的 UTC 日期；不猜人民币、不填补缺日、不刷新预算报价。历史研究不代表当前成交价或交易授权。</p>
-<form id="price-history-form"><label>历史账户<select id="price-history-account" required></select></label><label>来源 ID（扫描或库存快照）<input id="price-history-scan" readonly required></label><label>研究商品<select id="price-history-item" required></select></label><div class="pair"><label>自然日窗口<input id="price-history-days" type="number" min="8" max="365" value="90" required></label><label>压力滑点 / bps<input id="price-history-slippage" type="number" min="0" max="10000" value="300" required></label></div><button id="price-history-fetch" disabled>读取并保存历史研究</button></form>
+<p class="hint">可从扫描/库存选择商品，也可指定准确市场名称；使用最近五分钟内核验的 Steam 会话。仅研究结束的 UTC 日期；不猜人民币、不填补缺日、不刷新预算报价。历史研究不代表当前成交价或交易授权。</p>
+<form id="price-history-form"><label>商品入口<select id="price-history-origin"><option value="bound">扫描候选或库存商品</option><option value="manual">指定市场名称（无需榜单）</option></select></label><label>准确市场名称<input id="price-history-manual" maxlength="500" placeholder="例如 Prisma 2 Case" disabled required></label><label>历史账户<select id="price-history-account" required></select></label><label>来源 ID（扫描或库存快照）<input id="price-history-scan" readonly required></label><label>研究商品<select id="price-history-item" required></select></label><div class="pair"><label>自然日窗口<input id="price-history-days" type="number" min="8" max="365" value="90" required></label><label>压力滑点 / bps<input id="price-history-slippage" type="number" min="0" max="10000" value="300" required></label></div><button id="price-history-fetch" disabled>读取并保存历史研究</button></form>
 <p id="price-history-feedback" role="status" aria-live="polite"></p><div id="price-history-result"></div><details><summary>该账户最近十份历史研究</summary><div id="price-history-saved"></div></details></section>
 </section>
 <section class="page" data-page="purchase-history" id="page-purchase-history" hidden>
@@ -149,12 +149,12 @@
 <section class="card"><h2>出售研究记录</h2><p class="hint">最近20份，保留当时批次版本、成本、原币费用、证据与规则；回看不重算。</p><div id="sale-records"></div><a class="text-link" href="#purchases">管理采购与资产台账 →</a></section>
 </section>
 <section class="page" data-page="strategies" id="page-strategies" hidden>
-<div class="notice">购入研究初版：规则只复核已保存计划中的商品，不重排预算或自动交易。演示、过期与未知结果保留原貌。</div>
+<div class="notice">规则支持预算计划复核与独立商品历史研究，不自动交易。演示、过期与未知结果保留原貌。</div>
 <section class="card"><div class="section-title"><h2>规则与版本</h2><span>01 / REUSABLE RULES</span></div>
 <div class="pair"><label>已保存策略<select id="strategy-select"><option value="">新策略</option></select></label><label>历史版本<select id="strategy-version" disabled></select></label></div>
 <div class="actions"><button id="strategy-new" type="button">新建策略</button><button id="strategy-refresh" type="button">刷新记录</button></div>
 <p id="strategy-version-info" class="hint">尚未保存。以下为研究参数示例，效果需要另行验证。</p>
-<form id="strategy-form"><label>策略名称<input id="strategy-name" required maxlength="40" value="购入规则研究"></label><label>说明<input id="strategy-description" maxlength="600" value="对已保存的购入计划做逐项研究，不创建订单。"></label>
+<form id="strategy-form"><label>策略名称<input id="strategy-name" required maxlength="40" value="购入规则研究"></label><label>说明<input id="strategy-description" maxlength="600" value="对明确选择的保存证据做逐项研究，不创建订单。"></label>
 <label>研究目标<select id="strategy-objective"><option value="holding" selected>持有观察（不评定低估）</option><option value="wallet_conversion">换 Steam 余额</option></select></label><p id="strategy-objective-help" class="hint"></p>
 <label>钱包折算率严格上限 / bps<input id="strategy-ratio" type="number" min="1" max="20000" step="1" value="9000" required></label>
 <label><span><input id="strategy-position" type="checkbox" checked>要求仓位覆盖且未超过持仓、未决与日量额度</span></label>
@@ -178,6 +178,11 @@
 <p class="hint">研究使用上方已保存版本，未保存的参数不会参与。引用的历史必须与计划的扫描、商品和账户一致；每件可选一份。历史日价不替代实时购入报价。</p>
 <form id="strategy-evaluation-form"><label>预算计划<select id="strategy-plan" required></select></label><label>研究账户<select id="strategy-account"><option value="">未指定</option></select></label><div id="strategy-history-choices"></div><div id="strategy-book-choices"></div><button id="strategy-evaluate" disabled>保存研究预览</button></form>
 <p id="strategy-evaluation-feedback" role="status" aria-live="polite"></p><div id="strategy-result"></div></section>
+<section class="card"><div class="section-title"><h2>独立持有研究</h2><span>NO RANKING / NO BUDGET</span></div>
+<p class="hint">使用上方已保存的持有观察策略与研究账户。明确选择历史商品即可，无需预算计划；可在价格历史页指定准确市场名称或从库存进入。不会自动采集。启用仓位规则时，因没有完整持仓/买入数量，结果保持未知。</p>
+<form id="strategy-holding-form"><div id="strategy-holding-choices"></div><button id="strategy-holding-evaluate" disabled>保存独立持有研究</button></form>
+<p id="strategy-holding-feedback" role="status"></p><div id="strategy-holding-result"></div>
+<details><summary>该账户最近十份独立研究</summary><div id="strategy-holding-records"></div></details></section>
 <section class="card"><div class="section-title"><h2>研究记录</h2><span>03 / IMMUTABLE EVIDENCE</span></div><p class="hint">回看当时的参数和证据，不刷新行情；最多展示最近 20 份。</p><div id="strategy-records"></div></section>
 <section class="card"><div class="section-title"><h2>交易前证据检查</h2><span>04 / PREFLIGHT</span></div>
 <p class="hint">从研究记录中选择商品与数量，重新检查时效、账户和登录态代次。当前仅检查本地已存证据，不刷新平台、不签发交易令牌；余额、完整持仓与订单等缺项逐一列出。</p>

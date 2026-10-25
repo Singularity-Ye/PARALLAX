@@ -16,14 +16,14 @@ function fields(){
   el('ratio').disabled=busy||holding;
   if(holding)el('history').checked=true;
   el('history').disabled=busy||holding;
-  el('objective-help').textContent=holding?'持有观察仅检查所选历史/仓位规则，不评定低估或未来收益。研究对象仍来自预算预筛，尚未成为独立持有选品。':'钱包方案比较现金成本与估算Steam净钱包；钱包金额不等于可提现现金。';
+  el('objective-help').textContent=holding?'可在独立持有研究中选择保存历史，无需榜单或预算；满足规则不代表低估或未来收益。':'钱包方案比较现金成本与估算Steam净钱包；钱包金额不等于可提现现金。';
   el('history-fields').disabled=!el('history').checked;
   el('exit-enabled').disabled=busy||holding||!el('history').checked;
   el('exit-fields').disabled=holding||!el('history').checked||!el('exit-enabled').checked;
   for(const name of ['cv','trend','p10'])el(`${name}-fields`).disabled=!el(`${name}-enabled`).checked;
 }
 for(const id of ['objective','history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(id).onchange=fields;
-function ready(){el('evaluate').disabled=busy||refreshing||!loaded||!el('plan').value;el('save').disabled=busy||refreshing||(!loaded&&!!el('select').value);}
+function ready(){el('holding-evaluate').disabled=busy||refreshing||!loaded||loaded.draft.objective!=='holding'||!el('account').value||!el('holding-choices').querySelector('input:checked');el('evaluate').disabled=busy||refreshing||!loaded||!el('plan').value;el('save').disabled=busy||refreshing||(!loaded&&!!el('select').value);}
 function showVersion(v){
   loaded=v;const d=v.draft;
   el('objective').value=d.objective??'wallet_conversion';
@@ -84,7 +84,7 @@ async function heads(){
   if(items.some(v=>v.strategy_id===previous))el('select').value=previous;
 }
 function lock(value){
-  busy=value;for(const id of ['form','evaluation-form'])for(const control of el(id).querySelectorAll('button,input,select'))control.disabled=value;
+  busy=value;for(const id of ['form','evaluation-form','holding-form'])for(const control of el(id).querySelectorAll('button,input,select'))control.disabled=value;
   for(const id of ['new','select','version','refresh'])el(id).disabled=value;
   if(!value){fields();el('version').disabled=!loaded;ready();}
 }
@@ -102,7 +102,7 @@ async function choices(){
   const ticket=++choicesRequest,id=el('account').value,plan=plans.find(p=>p.id===el('plan').value);
   const previous=new Map([...el('history-choices').querySelectorAll('select')].map(s=>[s.dataset.historyItem,s.value]));
   const fragment=document.createDocumentFragment();
-  const [histories,books]=await Promise.all([id&&plan?parallax.priceHistories(id):Promise.resolve({items:[]}),plan?parallax.orderBooks():Promise.resolve({items:[]})]);
+  const [histories,books]=await Promise.all([id?parallax.priceHistories(id):Promise.resolve({items:[]}),plan?parallax.orderBooks():Promise.resolve({items:[]})]);
   if(id&&plan){
     const {items}=histories;
     for(const line of plan.lines){
@@ -120,9 +120,10 @@ async function choices(){
     if([...select.options].some(o=>o.value===previousBooks.get(line.candidate.item.key)))select.value=previousBooks.get(line.candidate.item.key);label.append(select);bookFragment.append(label);
   }
   if(!bookFragment.childNodes.length)bookFragment.append(node('p','出售估值需真实计划中匹配商品的显式盘口；演示计划禁止引用平台证据。'));
-  if(ticket===choicesRequest){el('history-choices').replaceChildren(fragment);el('book-choices').replaceChildren(bookFragment);ready();}
+  if(ticket===choicesRequest){holdingChoices(histories.items);el('history-choices').replaceChildren(fragment);el('book-choices').replaceChildren(bookFragment);ready();await holdingRecords(id);}
 }
 for(const id of ['account','plan'])el(id).onchange=()=>{
+  if(id==='account'){holdingChoices([]);el('holding-result').replaceChildren();el('holding-records').replaceChildren();el('holding-feedback').textContent='';}
   choicesRequest++;el('history-choices').replaceChildren(node('p','正在读取可引用的历史…'));el('book-choices').replaceChildren();
   choices().catch(e=>{el('evaluation-feedback').textContent=`历史选择读取失败：${e.message}`;});ready();
 };
@@ -142,10 +143,7 @@ function render(e){
       for(const text of review.manual_checks)gaps.append(node('p',`人工确认：${text}`));
       section.append(gaps);
     }else section.append(node('p','旧研究未保存目标/价格依据与未评估清单，不在回看时补算。'));
-    for(const rule of item.decisions){
-      section.append(node('p',`${modules[rule.module]??rule.module}：${labels[rule.status]}。${rule.reason}`));
-      if(rule.observed!==null){const details=node('details');details.append(node('summary','查看本项证据'),node('pre',JSON.stringify(rule.observed,null,2)));section.append(details);}
-    }
+    renderRuleDecisions(section,item);
     if(item.exit_valuation)section.append(exitValuationView(item.exit_valuation));
     box.append(section);
   }
@@ -193,3 +191,38 @@ async function refresh(){
 el('refresh').onclick=()=>refresh().catch(e=>el('evaluation-feedback').textContent=e.message);
 window.addEventListener('parallax:pagechange',event=>{if(event.detail.id==='strategies')refresh().catch(e=>el('evaluation-feedback').textContent=e.message);});
 fields();refresh().catch(e=>el('evaluation-feedback').textContent=e.message);
+
+function holdingChoices(items){
+  const checked=new Set([...el('holding-choices').querySelectorAll('input:checked')].map(n=>n.value));
+  const fragment=document.createDocumentFragment();
+  for(const h of items){const label=node('label'),input=node('input');input.type='checkbox';input.value=h.id;input.checked=checked.has(h.id);input.onchange=ready;
+    label.append(input,node('span',`${h.request.item_key} · ${h.series.currency??'币种未知'} · ${date(h.observed_at)} · ${h.request.manual_item?'指定名称':h.request.inventory_snapshot_id?'库存来源':'扫描来源'}`));fragment.append(label);}
+  if(!items.length)fragment.append(node('p','当前账户暂无历史。请到价格历史页指定市场名称读取，或从库存商品进入。选择账户后刷新可用证据。'));
+  el('holding-choices').replaceChildren(fragment);
+}
+function renderHolding(report){
+  const box=el('holding-result');box.replaceChildren(node('h3',`${report.strategy.draft.name} · ${labels[report.status]} · 仅历史观察`),node('p',`${date(report.created_at)} · ${report.items.length} 个显式选择商品 · 不依赖榜单或预算`));
+  if(report.unchecked_rules.length)box.append(node('p',`未启用规则：${report.unchecked_rules.map(k=>modules[k]??k).join('、')}`));
+  for(const item of report.items){const section=node('details');section.open=true;section.append(node('summary',`${item.item_key} · ${labels[item.status]}`));renderRuleDecisions(section,item);box.append(section);}
+  for(const text of report.limitations)box.append(node('p',text,'hint'));
+}
+async function holdingRecords(account){
+  if(!account){el('holding-records').replaceChildren();return;}
+  const {items}=await parallax.holdingResearches(account);if(account!==el('account').value)return;
+  const buttons=items.map(r=>{const b=node('button',`${r.strategy_name} · ${labels[r.status]} · ${date(r.created_at)}`);b.type='button';b.className='history-row';b.onclick=async()=>{try{const report=await parallax.holdingResearch(account,r.id);if(el('account').value!==account)return;renderHolding(report);el('holding-feedback').textContent='已载入保存时的独立研究，未重新采集或计算。';}catch(e){el('holding-feedback').textContent=e.message;}};return b;});
+  el('holding-records').replaceChildren(...buttons);
+}
+el('holding-form').onsubmit=async event=>{
+  event.preventDefault();if(busy||!loaded)return;const account=el('account').value;
+  const request={strategy_id:loaded.strategy_id,revision:loaded.revision,history_snapshot_ids:[...el('holding-choices').querySelectorAll('input:checked')].map(n=>n.value)};
+  lock(true);el('holding-feedback').textContent='正在研究明确选择的保存历史，不请求平台…';
+  try{const report=await parallax.createHoldingResearch(account,request);renderHolding(report);el('holding-feedback').textContent='独立研究已保存，未创建预算或订单。';try{await holdingRecords(account);}catch(e){el('holding-feedback').textContent=`研究已保存，列表刷新失败：${e.message}`;}}
+  catch(e){el('holding-feedback').textContent=`未保存新研究：${e.message}；选择与原结果保留。`;}
+  finally{lock(false);}
+};
+function renderRuleDecisions(section,item){
+  for(const rule of item.decisions){
+    section.append(node('p',`${modules[rule.module]??rule.module}：${labels[rule.status]}。${rule.reason}`));
+    if(rule.observed!==null){const details=node('details');details.append(node('summary','查看本项证据'),node('pre',JSON.stringify(rule.observed,null,2)));section.append(details);}
+  }
+}

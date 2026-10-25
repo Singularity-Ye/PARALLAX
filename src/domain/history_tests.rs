@@ -4,6 +4,7 @@ fn req() -> HistoryRequest {
     HistoryRequest {
         scan_id: "fixture".into(),
         inventory_snapshot_id: None,
+        manual_item: false,
         item_key: "fixture".into(),
         window_days: 8,
         slippage_bps: 300,
@@ -137,5 +138,24 @@ fn history_origin_is_exclusive_and_legacy_scan_json_remains_compatible() {
         assert!(r.validate().is_err());
     }
     r.inventory_snapshot_id = None;
+    assert!(r.validate().is_err());
+}
+
+#[test]
+fn explicit_market_history_is_mutually_exclusive_and_canonical() {
+    let mut r = req();
+    r.scan_id.clear();
+    r.manual_item = true;
+    assert!(r.validate().is_ok());
+    let json = serde_json::to_value(&r).unwrap();
+    assert_eq!(json["manual_item"], true);
+    assert!(json.get("scan_id").is_none());
+    r.scan_id = "scan".into();
+    assert!(r.validate().is_err());
+    r.scan_id.clear();
+    r.inventory_snapshot_id = Some("inventory".into());
+    assert!(r.validate().is_err());
+    r.inventory_snapshot_id = None;
+    r.item_key = " leading ".into();
     assert!(r.validate().is_err());
 }

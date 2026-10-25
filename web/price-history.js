@@ -4,6 +4,15 @@ const account=el('price-history-account');
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 let fetching=false;
 let inventoryOrigin=null;
+const manual=()=>el('price-history-origin').value==='manual';
+function readyHistory(){el('price-history-fetch').disabled=fetching||!account.value||!(manual()?el('price-history-manual').value.trim():el('price-history-item').value);}
+function originFields(){
+  el('price-history-manual').disabled=!manual();el('price-history-item').disabled=manual();
+  el('price-history-manual').closest('label').hidden=!manual();el('price-history-scan').closest('label').hidden=manual();el('price-history-item').closest('label').hidden=manual();readyHistory();
+}
+el('price-history-origin').onchange=originFields;
+el('price-history-manual').oninput=readyHistory;
+
 const day=d=>new Date(d*86400000).toISOString().slice(0,10);
 const money=m=>m?`${m.currency} ${(m.minor/100).toFixed(2)}`:'未知';
 export function renderHistoryCandidates(report) {
@@ -15,14 +24,14 @@ export function renderHistoryCandidates(report) {
     for(const {item} of report.candidates){const o=node('option',item.key);o.value=item.key;el('price-history-item').append(o);}
   }
   if([...el('price-history-item').options].some(o=>o.value===previous))el('price-history-item').value=previous;
-  el('price-history-fetch').disabled=fetching||!account.value||!el('price-history-item').value;
+  readyHistory();
   if(report.request.source==='demo')el('price-history-feedback').textContent='演示扫描禁止向 Steam 请求虚构商品的历史。';
 }
 function render(snapshot) {
   const a=snapshot.analysis,s=snapshot.series,r=a.risk;
   const status={unknown_currency:'币种含糊或单位未适配',no_usable_daily_prices:'没有可用日价格',insufficient_pairs:'缺少七自然日配对',historical_pairs_available:'已计算历史配对'};
   const box=el('price-history-result');box.replaceChildren(node('h3',snapshot.request.item_key),
-    node('p',snapshot.request.inventory_snapshot_id?`来源：库存快照 ${snapshot.request.inventory_snapshot_id} · 商品级市场历史，不是该资产成交或成本记录`:`来源：SteamDT 扫描 ${snapshot.request.scan_id}`),
+    node('p',snapshot.request.manual_item?'来源：指定市场名称 · 按请求参数绑定，不是库存或资产证明':snapshot.request.inventory_snapshot_id?`来源：库存快照 ${snapshot.request.inventory_snapshot_id} · 商品级市场历史，不是该资产成交或成本记录`:`来源：SteamDT 扫描 ${snapshot.request.scan_id}`),
     node('p',`账户 ${snapshot.account_id} · 快照 ${snapshot.id} · 读取于 ${new Date(snapshot.observed_at*1000).toLocaleString()}`),
     node('p',`${status[a.status]??a.status} · 币种 ${s.currency??'未知'} · UTC 窗口 ${day(s.from_utc_day)} 至 ${day(s.until_utc_day_exclusive)}（不含结束日）`),
     node('p',`响应 ${s.response_rows} 条 · 窗口内 ${s.points.length} 条 · 排除窗口前 ${s.excluded_before_window} 条、当天 ${s.excluded_open_day} 条 · 缺少 ${a.missing_calendar_days} 个日期`),
@@ -58,18 +67,18 @@ async function loadAccounts() {
   const previous=account.value;const {items}=await parallax.accounts();account.replaceChildren();
   for(const a of items){const o=node('option',a.label);o.value=a.id;account.append(o);}
   if(items.some(a=>a.id===previous))account.value=previous;
-  el('price-history-fetch').disabled=fetching||!account.value||!el('price-history-item').value;await history();
+  readyHistory();await history();
 }
 account.onchange=()=>{
   if(inventoryOrigin&&inventoryOrigin.account_id!==account.value){inventoryOrigin=null;el('price-history-scan').value='';el('price-history-item').replaceChildren();el('price-history-fetch').disabled=true;}
-  el('price-history-result').replaceChildren();history().catch(e=>el('price-history-feedback').textContent=e.message);
+  readyHistory();el('price-history-result').replaceChildren();history().catch(e=>el('price-history-feedback').textContent=e.message);
 };
 window.addEventListener('parallax:inventory-history',async({detail})=>{
   if(fetching){el('inventory-feedback').textContent='价格历史正在读取，请完成后再选择库存商品。';return;}
   try{
     await loadAccounts();
     if(![...account.options].some(o=>o.value===detail.account_id))throw new Error('库存所属账户已不存在');
-    account.value=detail.account_id;inventoryOrigin=detail;
+    account.value=detail.account_id;inventoryOrigin=detail;el('price-history-origin').value='bound';originFields();
     el('price-history-scan').value=detail.inventory_snapshot_id;
     const option=node('option',detail.item_key);option.value=detail.item_key;el('price-history-item').replaceChildren(option);
     el('price-history-result').replaceChildren();el('price-history-fetch').disabled=false;
@@ -82,12 +91,13 @@ el('price-history-form').onsubmit=async event=>{
   el('price-history-feedback').textContent='正在读取价格历史，按 UTC 自然日研究；不会创建交易或刷新预算报价。';
   const id=account.value;
   try {
-    const origin=inventoryOrigin?{inventory_snapshot_id:inventoryOrigin.inventory_snapshot_id}:{scan_id:el('price-history-scan').value};
-    const snapshot=await parallax.fetchPriceHistory(id,{...origin,item_key:el('price-history-item').value,window_days:Number(el('price-history-days').value),slippage_bps:Number(el('price-history-slippage').value)});
+    const origin=manual()?{manual_item:true}:inventoryOrigin?{inventory_snapshot_id:inventoryOrigin.inventory_snapshot_id}:{scan_id:el('price-history-scan').value};
+    const snapshot=await parallax.fetchPriceHistory(id,{...origin,item_key:manual()?el('price-history-manual').value.trim():el('price-history-item').value,window_days:Number(el('price-history-days').value),slippage_bps:Number(el('price-history-slippage').value)});
     if(account.value===id)render(snapshot);el('price-history-feedback').textContent='研究快照已保存，未加入预算或交易策略。';
     try{await history();}catch(e){el('price-history-feedback').textContent=`快照已保存，历史列表刷新失败：${e.message}`;}
   }catch(e){el('price-history-feedback').textContent=`本次未保存新快照：${e.message}；输入及原结果保留。`;}
-  finally{fetching=false;account.disabled=false;el('price-history-fetch').disabled=!account.value||!el('price-history-item').value;}
+  finally{fetching=false;account.disabled=false;readyHistory();}
 };
+originFields();
 window.addEventListener('parallax:account-created',()=>loadAccounts().catch(e=>el('price-history-feedback').textContent=e.message));
 loadAccounts().catch(e=>el('price-history-feedback').textContent=e.message);

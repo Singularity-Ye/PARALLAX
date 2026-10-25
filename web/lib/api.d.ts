@@ -125,6 +125,9 @@ export const parallax: {
   evaluateStrategy(value:StrategyEvaluationRequest):Promise<StrategyEvaluation>;
   strategyEvaluations():Promise<{items:StrategyEvaluationSummary[]}>;
   strategyEvaluation(id:string):Promise<StrategyEvaluation>;
+  holdingResearches(account:string):Promise<{items:HoldingResearchSummary[]}>;
+  holdingResearch(account:string,id:string):Promise<HoldingResearchReport>;
+  createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;
   priceHistory(account:string,id:string):Promise<HistorySnapshot>;
   fetchPriceHistory(account:string,value:HistoryRequest):Promise<HistorySnapshot>;
@@ -158,7 +161,7 @@ export const parallax: {
   plan(id:string):Promise<PlanPreview>;
   createPlan(request:PlanRequest):Promise<PlanPreview>;
 };
-export type HistoryRequest = ({scan_id:string;inventory_snapshot_id?:never}|{scan_id?:never;inventory_snapshot_id:string}) & {item_key:string;window_days:number;slippage_bps:number;};
+export type HistoryRequest = ({scan_id:string;inventory_snapshot_id?:never;manual_item?:false}|{scan_id?:never;inventory_snapshot_id:string;manual_item?:false}|{scan_id?:never;inventory_snapshot_id?:never;manual_item:true}) & {item_key:string;window_days:number;slippage_bps:number;};
 export interface WallGapPolicy {currency:'CNY';wall_volume_threshold:number;max_ignore_volume:number;min_lowest_tier_volume:number;min_step_minor:number;min_floor_minor:number;offset_minor:number;}
 export interface FxSnapshot {id:string;source:'frankfurter_v2_blended';fetched_at:number;rates:Record<string,{date:string;units_per_cny_1e8:number}>;}
 export interface BookValuation {snapshot_id:string;observed_at:number;native_currency:string;display_currency:string;best_ask:NativeMoney|null;best_bid:NativeMoney|null;fx:FxSnapshot|null;}
@@ -175,7 +178,7 @@ export interface ListingPricePreview {
 }
 export interface HistorySnapshot {
   id:string;account_id:string;credential_generation:string;request:HistoryRequest;started_at:number;observed_at:number;
-  source:'steam_authenticated_pricehistory';identity_binding:'scan_candidate_and_request_parameters'|'inventory_snapshot_and_request_parameters';platform_verified:false;
+  source:'steam_authenticated_pricehistory';identity_binding:'scan_candidate_and_request_parameters'|'inventory_snapshot_and_request_parameters'|'manual_market_name_and_request_parameters';platform_verified:false;
   series:{currency:string|null;currency_basis:'explicit_code_or_unique_marker'|'ambiguous_or_unsupported';
     points:{at:number;price_major_1e4:number;volume:number|null}[];response_rows:number;excluded_before_window:number;excluded_open_day:number;from_utc_day:number;until_utc_day_exclusive:number};
   analysis:{status:'unknown_currency'|'no_usable_daily_prices'|'insufficient_pairs'|'historical_pairs_available';
@@ -274,3 +277,11 @@ export interface DecisionReview {
   cash_price_basis:'demo'|'steamdt_reference'|'buff_visible_sell_snapshot';price_evidence_at:number;cash_snapshot_id:string|null;
   unchecked_rules:string[];unassessed:string[];manual_checks:string[];holding_value_established:false;
 }
+
+export interface HoldingResearchRequest {strategy_id:string;revision:number;history_snapshot_ids:string[];}
+export interface HoldingResearchReport {
+ id:string;account_id:string;created_at:number;algorithm:'independent_holding_research_v1';input_scope:'explicit_history_snapshots';
+ status:ResearchStatus;preview_only:true;execution_allowed:false;holding_value_established:false;
+ request:HoldingResearchRequest;strategy:StrategyVersion;histories:HistorySnapshot[];items:StrategyEvaluation['items'];unchecked_rules:string[];limitations:string[];
+}
+export interface HoldingResearchSummary {id:string;created_at:number;strategy_name:string;status:ResearchStatus;item_count:number;}

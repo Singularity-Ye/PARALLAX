@@ -1,3 +1,4 @@
+mod holding_research;
 use crate::domain::selection::{ScanReport, now};
 use crate::{application::ports::Repository, domain::planning::PlanPreview};
 use anyhow::Result;
@@ -42,6 +43,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS price_history_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS exchange_rate_snapshots (id TEXT PRIMARY KEY, fetched_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS strategy_versions (strategy_id TEXT NOT NULL, revision INTEGER NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL, PRIMARY KEY(strategy_id, revision));
+            CREATE TABLE IF NOT EXISTS holding_research (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS strategy_evaluations (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS preflight_inspections (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS purchase_lots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, client_key TEXT NOT NULL, purchase_ref TEXT NOT NULL, snapshot TEXT NOT NULL, UNIQUE(account_id,client_key), UNIQUE(account_id,purchase_ref));

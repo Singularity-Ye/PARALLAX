@@ -124,6 +124,7 @@ fn request(scan: &ScanReport) -> HistoryRequest {
     HistoryRequest {
         scan_id: scan.id.clone(),
         inventory_snapshot_id: None,
+        manual_item: false,
         item_key: "fixture".into(),
         window_days: 30,
         slippage_bps: 300,
@@ -449,4 +450,29 @@ async fn inventory_history_binds_account_and_observed_market_item_before_platfor
         repo.inventory(snapshot.id).await.unwrap().unwrap().assets[0].asset_id,
         "100"
     );
+}
+
+#[tokio::test]
+async fn explicit_history_uses_existing_auth_gate_without_a_scan_or_inventory() {
+    let (repo, auth, id, scan) = fixture().await;
+    let src = source(None);
+    let calls = src.calls.clone();
+    let app = HistoryResearch::new(repo.clone(), auth.clone(), src);
+    let mut r = request(&scan);
+    r.scan_id.clear();
+    r.manual_item = true;
+    let mut invalid = r.clone();
+    invalid.inventory_snapshot_id = Some("both".into());
+    assert!(app.fetch(&id, invalid).await.is_err());
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let h = app.fetch(&id, r.clone()).await.unwrap();
+    assert_eq!(
+        h.identity_binding,
+        "manual_market_name_and_request_parameters"
+    );
+    assert!(h.request.scan_id.is_empty());
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    auth.revoke(&id, Platform::Steam).await.unwrap();
+    assert!(app.fetch(&id, r).await.is_err());
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
 }

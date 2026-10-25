@@ -475,3 +475,22 @@ pub trait BuffOrderRepository: Send + Sync {
         account: String,
     ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::buff_orders::OrderHistorySnapshot>>> + Send;
 }
+
+pub trait HoldingResearchRepository: Send + Sync {
+    fn insert_holding_research(
+        &self,
+        report: crate::domain::holding_research::HoldingResearchReport,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn holding_research(
+        &self,
+        id: String,
+    ) -> impl Future<
+        Output = anyhow::Result<Option<crate::domain::holding_research::HoldingResearchReport>>,
+    > + Send;
+    fn holding_researches(
+        &self,
+        account: String,
+    ) -> impl Future<
+        Output = anyhow::Result<Vec<crate::domain::holding_research::HoldingResearchSummary>>,
+    > + Send;
+}

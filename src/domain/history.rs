@@ -12,19 +12,27 @@ pub struct HistoryRequest {
     pub scan_id: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inventory_snapshot_id: Option<String>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub manual_item: bool,
     pub item_key: String,
     pub window_days: u32,
     pub slippage_bps: u32,
 }
+fn is_false(v: &bool) -> bool {
+    !*v
+}
 impl HistoryRequest {
     pub fn validate(&self) -> Result<(), String> {
         let valid_id = |s: &str| !s.is_empty() && s.len() <= 64 && !s.chars().any(char::is_control);
-        let valid_origin = match &self.inventory_snapshot_id {
-            Some(id) => self.scan_id.is_empty() && valid_id(id),
-            None => valid_id(&self.scan_id),
-        };
+        let sources = usize::from(!self.scan_id.is_empty())
+            + usize::from(self.inventory_snapshot_id.is_some())
+            + usize::from(self.manual_item);
+        let valid_origin = sources == 1
+            && (self.scan_id.is_empty() || valid_id(&self.scan_id))
+            && self.inventory_snapshot_id.as_deref().is_none_or(valid_id);
         if !valid_origin
             || self.item_key.is_empty()
+            || self.item_key.trim() != self.item_key
             || self.item_key.len() > 500
             || self
                 .scan_id
@@ -34,7 +42,7 @@ impl HistoryRequest {
             || !(8..=365).contains(&self.window_days)
             || self.slippage_bps > 10000
         {
-            return Err("历史研究需且仅需扫描或库存快照来源、商品标识、8–365 个自然日窗口与 0–10000 bps 滑点".into());
+            return Err("历史研究需且仅需扫描、库存快照或显式市场名称来源、商品标识、8–365 个自然日窗口与 0–10000 bps 滑点".into());
         }
         Ok(())
     }

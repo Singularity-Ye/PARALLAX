@@ -9,7 +9,7 @@ StrategyDraft新增objective：wallet_conversion（缺省）或holding。旧sche
 - wallet_conversion：必须以strict_ratio开始，可使用压力净钱包折算率；现金成本/估算净Steam钱包不解释为可提现现金收益。
 - holding：仅schema3，必须启用history_coverage，禁止strict_ratio/stress_exit_ratio。复用仓位、历史覆盖、CV、趋势、P10，但规则通过只表示满足观察条件，不建立公允现金价值、低估结论或未来持有收益。
 
-两目标仍复核已保存计划条目；holding并没有绕开上游SteamDT榜单、折算率预筛及预算分配。独立持有选品与更广商品集合仍待接入。不能将本切片说成完整长期投资策略。
+原计划入口仍复核已分配条目；新增[独立持有研究](independent-holding.md)可直接选择保存历史，绕开榜单、折算率和预算。它仍仅覆盖显式选择的商品，不是全市场目录或完整长期投资策略。
 
 ## 最小请求
 

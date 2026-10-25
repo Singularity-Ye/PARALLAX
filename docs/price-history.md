@@ -92,3 +92,7 @@ PlanRequest/PlanPreview 不变，不自动刷新 Steam/BUFF 报价、延长时�
 结果identity_binding为inventory_snapshot_and_request_parameters，保存inventory_snapshot_id；旧扫描结果仍为scan_candidate_and_request_parameters，旧JSON可读取。此为商品级市场历史，不包含该资产成本或个人成交记录。采购策略仍要求原扫描绑定，库存来源历史不混入已有采购计划；持仓出售研究可按原商品/账户规则显式引用。
 
 验证：新增来源互斥/旧JSON兼容、库存账户与精确市场商品绑定两项测试；跨账户、缺失、不匹配和不可上市均在平台调用前拒绝。采购策略原绑定测试扩展为拒绝库存来源。完整186通过/2忽略；真实页面单个库存商品UAH历史保存成功（窗口内763条、90个有效日），未访问BUFF或创建订单。
+
+## 指定名称与独立研究
+
+新增manual_item=true作为第三种互斥来源，准确名称直接读取，无需扫描/库存；复用原认证/冷却/分析。独立研究可显式选择三类保存历史，不要求预算。原计划入口仍按扫描绑定；完整合同见[独立商品研究](independent-holding.md)。

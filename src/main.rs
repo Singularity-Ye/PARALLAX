@@ -55,6 +55,8 @@ async fn main() -> anyhow::Result<()> {
     let checkout = parallax::application::checkout::CheckoutPreparation::new(store.clone());
     let sale_research =
         parallax::application::sale_research::SaleResearchService::new(store.clone());
+    let holding_research =
+        parallax::application::holding_research::HoldingResearchService::new(store.clone());
     let state = Application::with_fx(Provider::new()?, store, fx);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -73,6 +75,9 @@ async fn main() -> anyhow::Result<()> {
             .merge(parallax::transport::inventory::router(inventory))
             .merge(parallax::transport::history::router(histories))
             .merge(parallax::transport::strategy::router(strategies))
+            .merge(parallax::transport::holding_research::router(
+                holding_research,
+            ))
             .merge(parallax::transport::preflight::router(preflights))
             .merge(parallax::transport::ledger::router(ledger))
             .merge(parallax::transport::checkout::router(checkout))

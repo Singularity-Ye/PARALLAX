@@ -8,6 +8,7 @@ pub mod buff_quotes;
 pub mod checkout;
 pub mod fx;
 pub mod history;
+pub mod holding_research;
 pub mod inventory;
 pub mod ledger;
 pub mod orderbook;
