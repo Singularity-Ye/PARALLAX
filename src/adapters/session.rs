@@ -63,11 +63,54 @@ fn classify(status: StatusCode, retry_after: Option<&str>) -> Option<Verificatio
         _ => None,
     }
 }
-fn steam_payload(body: &str, expected: &str) -> Verification {
+// /my/ is the authenticated route. A redirect from it to a numeric profile
+// identifies the signed-in account; fetching someone's public XML does not.
+fn steam_my_redirect(
+    from: &reqwest::Url,
+    next: &reqwest::Url,
+    expected: &str,
+) -> Option<Verification> {
+    if from.scheme() != "https"
+        || from.host_str() != Some("steamcommunity.com")
+        || next.scheme() != "https"
+        || next.host_str() != Some("steamcommunity.com")
+        || next.port_or_known_default() != Some(443)
+        || !next.username().is_empty()
+        || next.password().is_some()
+        || from.path().trim_end_matches('/') != "/my"
+    {
+        return None;
+    }
+    let parts: Vec<_> = next.path().trim_matches('/').split('/').collect();
+    match parts.as_slice() {
+        ["profiles", id] if id.len() == 17 && id.bytes().all(|b| b.is_ascii_digit()) => {
+            Some(if *id == expected {
+                result(
+                    SessionStatus::Valid,
+                    "Steam 在线身份验证通过",
+                    Some(expected.into()),
+                )
+            } else {
+                result(SessionStatus::Invalid, "在线 Steam 身份与账户不匹配", None)
+            })
+        }
+        _ => None,
+    }
+}
+fn steam_profile_path(url: &reqwest::Url) -> bool {
+    let parts: Vec<_> = url.path().trim_matches('/').split('/').collect();
+    matches!(parts.as_slice(), ["profiles" | "id", id] if !id.is_empty())
+}
+// Public XML only identifies an account after the authenticated /my/ route
+// has resolved that account's vanity profile. It is never login proof alone.
+fn steam_profile_payload(body: &str, expected: &str, authenticated_profile: bool) -> Verification {
+    if !authenticated_profile {
+        return unknown();
+    }
     let id = body
         .split_once("<steamID64>")
         .and_then(|(_, s)| s.split_once("</steamID64>"))
-        .map(|(s, _)| s.trim());
+        .map(|(id, _)| id.trim());
     match id {
         Some(id) if id == expected => result(
             SessionStatus::Valid,
@@ -138,12 +181,13 @@ impl SessionVerifier for OnlineVerifier {
         secret: Credentials,
     ) -> Verification {
         let mut url = match platform {
-            Platform::Steam => "https://steamcommunity.com/my/?xml=1",
+            Platform::Steam => "https://steamcommunity.com/my/",
             Platform::Buff => {
                 "https://buff.163.com/account/api/user/info/v2?meta_list=buy_order_state"
             }
         }
         .to_string();
+        let mut steam_profile_resolved = false;
         // Explicit same-host redirects; never forward Cookie to an arbitrary Location.
         for _ in 0..4 {
             let ua = if secret.user_agent.is_empty() {
@@ -192,8 +236,22 @@ impl SessionVerifier for OnlineVerifier {
                 {
                     return unknown();
                 }
-                if next.path().contains("/login") {
-                    return result(SessionStatus::Invalid, "平台跳转登录页，登录态已失效", None);
+                if next.path().trim_end_matches('/') == "/login"
+                    || next.path().starts_with("/login/")
+                {
+                    return if platform == Platform::Steam && steam_profile_resolved {
+                        result(
+                            SessionStatus::Unknown,
+                            "Steam 身份路由发生登录跳转，无法确认会话；请在独立窗口检查 /my/",
+                            None,
+                        )
+                    } else {
+                        result(
+                            SessionStatus::Invalid,
+                            "平台返回登录页，程序尚未确认有效登录态",
+                            None,
+                        )
+                    };
                 }
                 if platform == Platform::Buff {
                     return result(
@@ -202,7 +260,15 @@ impl SessionVerifier for OnlineVerifier {
                         None,
                     );
                 }
-                next.set_query(Some("xml=1"));
+                if let Some(identity) = steam_my_redirect(response.url(), &next, &account.steam_id)
+                {
+                    return identity;
+                }
+                if response.url().path().trim_end_matches('/') == "/my" && steam_profile_path(&next)
+                {
+                    steam_profile_resolved = true;
+                    next.set_query(Some("xml=1"));
+                }
                 url = next.to_string();
                 continue;
             }
@@ -221,7 +287,9 @@ impl SessionVerifier for OnlineVerifier {
                 return unknown();
             };
             return match platform {
-                Platform::Steam => steam_payload(body, &account.steam_id),
+                Platform::Steam => {
+                    steam_profile_payload(body, &account.steam_id, steam_profile_resolved)
+                }
                 Platform::Buff => buff_payload(body, &account.steam_id),
             };
         }
@@ -233,25 +301,95 @@ impl SessionVerifier for OnlineVerifier {
 mod tests {
     use super::*;
     #[test]
+    fn steam_my_redirect_verifies_exact_numeric_identity_only_on_the_authenticated_route() {
+        let from = reqwest::Url::parse("https://steamcommunity.com/my/").unwrap();
+        let own =
+            reqwest::Url::parse("https://steamcommunity.com/profiles/76561198000000001/").unwrap();
+        assert_eq!(
+            steam_my_redirect(&from, &own, "76561198000000001")
+                .unwrap()
+                .status,
+            SessionStatus::Valid
+        );
+        assert_eq!(
+            steam_my_redirect(&from, &own, "76561198000000002")
+                .unwrap()
+                .status,
+            SessionStatus::Invalid
+        );
+        assert!(
+            steam_my_redirect(&own, &own, "76561198000000001").is_none(),
+            "a public profile visit is not authentication"
+        );
+        for bad in [
+            "https://evil.test/profiles/76561198000000001/",
+            "http://steamcommunity.com/profiles/76561198000000001/",
+            "https://user@steamcommunity.com/profiles/76561198000000001/",
+            "https://steamcommunity.com:8443/profiles/76561198000000001/",
+            "https://steamcommunity.com/profiles/76561198000000001/inventory/",
+        ] {
+            assert!(
+                steam_my_redirect(
+                    &from,
+                    &reqwest::Url::parse(bad).unwrap(),
+                    "76561198000000001"
+                )
+                .is_none()
+            );
+        }
+    }
+    #[test]
+    fn steam_vanity_identity_requires_a_prior_authenticated_my_redirect() {
+        let from = reqwest::Url::parse("https://steamcommunity.com/my/").unwrap();
+        let vanity =
+            reqwest::Url::parse("https://steamcommunity.com/id/login-is-a-valid-vanity/").unwrap();
+        assert!(steam_profile_path(&vanity));
+        assert!(steam_my_redirect(&from, &vanity, "76561198000000001").is_none());
+        let public_xml = "<profile><steamID64>76561198000000001</steamID64></profile>";
+        assert_eq!(
+            steam_profile_payload(public_xml, "76561198000000001", false).status,
+            SessionStatus::Unknown
+        );
+        assert_eq!(
+            steam_profile_payload(public_xml, "76561198000000001", true).status,
+            SessionStatus::Valid
+        );
+        assert_eq!(
+            steam_profile_payload(public_xml, "76561198000000002", true).status,
+            SessionStatus::Invalid
+        );
+        assert_eq!(
+            steam_profile_payload(
+                "<html>login or redirect loop</html>",
+                "76561198000000001",
+                true
+            )
+            .status,
+            SessionStatus::Unknown
+        );
+    }
+    #[test]
     fn identity_unknown_and_challenge_are_distinct() {
         assert_eq!(
-            steam_payload(
+            steam_profile_payload(
                 "<steamID64>76561198000000001</steamID64>",
-                "76561198000000001"
+                "76561198000000001",
+                true
             )
             .status,
             SessionStatus::Valid
         );
         assert_eq!(
-            steam_payload(
+            steam_profile_payload(
                 "<steamID64>76561198000000002</steamID64>",
-                "76561198000000001"
+                "76561198000000001",
+                true
             )
             .status,
             SessionStatus::Invalid
         );
         assert_eq!(
-            steam_payload("<html>maintenance</html>", "76561198000000001").status,
+            steam_profile_payload("<html>maintenance</html>", "76561198000000001", true).status,
             SessionStatus::Unknown
         );
         assert_eq!(

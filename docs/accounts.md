@@ -17,7 +17,7 @@
 
 运行 `./dev.ps1 run` 后，在页面底部创建账户（备注与 17 位 Steam ID）。选择 Steam 或 BUFF，粘贴 **Cookie 请求头**，可附浏览器 User-Agent。保存只会得到 unverified；点击在线验证才会发出只读请求。
 
-Steam 通过 `/my/?xml=1` 解析服务器返回的 steamID64，与账户比对；跳转登录页视为失效，未知页面或网络异常视为 unknown。BUFF 使用旧版同一 `account/api/user/info/v2` 协议，要求返回用户 ID 与匹配的绑定 Steam ID；缺少可识别身份返回 unknown。这些非公开页面/协议可能变化，尚待用户新导入凭据进行实测。
+Steam 首先读取不带XML参数的 `/my/`：同源HTTPS返回准确数字profile时直接比对SteamID；vanity路径需先经过此认证路由，再从对应profile的XML核对身份。公开XML本身不证明登录。已解析profile后再次跳登录/循环为unknown，未建立认证上下文的登录响应表示尚未验证成功；网络异常保持unknown。BUFF 使用旧版同一 `account/api/user/info/v2` 协议，要求返回用户 ID 与匹配的绑定 Steam ID；缺少可识别身份返回 unknown。这些非公开页面/协议可能变化，尚待用户新导入凭据进行实测。
 
 ## API
 
@@ -55,3 +55,11 @@ platform 为 steam/buff；类型见 `web/lib/api.d.ts`。SessionView 含 platfor
 `cargo test --locked --offline` 的会话隔离、冷却、重启阻断、网络未知、凭据缺失、脱敏错误和同源检查均使用合成数据，不访问真实平台。
 
 Windows 后端独立检查：`cargo test --locked --offline native_vault_roundtrip -- --ignored`。该项仅创建/读取/删除一个随机命名的合成凭据，不读取用户已有条目。夹具与原生后端验证都不能证明真实 Steam/BUFF 响应已适配。
+
+## 2026-10-25真实登录反馈修正
+
+用户在独立浏览器复现/my/?xml=1与login/home往返循环，而/my/可正常进入本人主页。修正首个认证请求地址，不再向每个Steam跳转强制添加xml=1；数字身份仅接受认证/my/路由返回的严格profile路径，vanity的XML只用于后续身份核对。不是取消认证或把公开主页当成功。新增2项，完整184通过/0失败/2忽略，Clippy通过；修复后真实保存结果单独记录，不把失败复现当验收通过。
+
+参考现有 [steam-user 登录检测源码](https://docs.rs/crate/steam-user/0.2.9/source/src/client.rs) 的认证 `/my` 重定向思路；Parallax额外严格核对同源、端口、路径和SteamID，不引入该依赖，也不沿用“任意公开profile内容即可成功”的宽泛判断。
+
+真实复测结果：Steam浏览器登录完成、身份核验和正常凭据保存均成功；后续直接使用保存会话取得真实双区库存快照。仅验收一个账户样本，BUFF、续期和完整生命周期仍待验收。

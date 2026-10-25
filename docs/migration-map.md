@@ -39,7 +39,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
 | M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 已按原功能拆左侧分页导航与纸感视觉基线；现有扫描/预算/账号/研究/库存复用原模块，未迁移页明确标记；完整业务仍待迁移，见 frontend.md |
-| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前完整回归182项通过、0失败，2项默认忽略；策略研究/历史指标/定价/库存/BUFF使用合成夹具；公开FX/Steam及浏览器/凭据沿用独立证据；旧测试未逐项移植 |
+| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前完整回归184项通过、0失败，2项默认忽略；策略研究/历史指标/定价/库存/BUFF使用合成夹具；公开FX/Steam及浏览器/凭据沿用独立证据；旧测试未逐项移植 |
 
 ## 必须纠正的几处认知
 
@@ -99,3 +99,5 @@ UAH增量：原映射18已继承，可选请求币种、历史明确标记、原
 当前v2退出估值与UI复用切片：新增9项，完整135通过/2默认忽略；壁垒参考×P10跌幅/一次滑点→原币费用→CNY净额已接显式策略研究，见 [exit-valuation.md](exit-valuation.md)。[ui-reuse.md](ui-reuse.md) 登记真实共享组件与剩余重复，未建万能框架。旧v1/UAH记录不重算，真实快慢卖/订单/资产链路仍待迁移。
 
 2026-10-25 统一估算见 [进度对照](progress.md)：总范围约25%–30%，实际自动交易闭环0%；本地准备不能等同平台订单。
+
+Steam登录XML路由循环已由用户实机复现并修正探针，身份匹配/同源限制保持；后续成功保存证据与协议完整验收分开记录，见[登录合同](browser-login.md)。
