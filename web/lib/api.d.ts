@@ -93,6 +93,11 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  buffOrderObservations(account:string):Promise<{items:OrderHistorySnapshot[]}>;
+  observeBuffOrders(account:string,value:OrderHistoryRequest):Promise<OrderHistorySnapshot>;
+  buffOrderObservation(account:string,id:string):Promise<OrderHistorySnapshot>;
+  lookupBuffOrder(account:string,id:string,value:{order_id:string}):Promise<OrderLookup>;
+
   cashFunding(account:string):Promise<FundingView>;
   observeCashFunding(account:string,value:FundingRequest):Promise<CheckoutWrite<FundingSnapshot>>;
   purchaseIntents(account:string):Promise<{items:IntentSummary[]}>;
@@ -256,3 +261,9 @@ export interface PurchaseIntent {id:string;account_id:string;principal:string;re
 export interface IntentSummary {id:string;account_id:string;principal:string;revision:number;created_at:number;updated_at:number;state:PurchaseIntent['state'];reserved_cash_cents:number;preflight_id:string;}
 export interface IntentEvent {id:string;intent_id:string;account_id:string;recorded_at:number;request:CancelIntentRequest;result_revision:number;}
 export interface CheckoutWrite<T> {item:T;replayed:boolean;}
+
+export interface OrderHistoryRequest {max_pages:number;page_size:number;}
+export interface ObservedOrder {order_id:string;state_code:string|number|null;pay_expire_timeout_secs:number|null;}
+export interface OrderHistoryPage {page_num:number;page_size:number;reported_total:number|null;orders:ObservedOrder[];}
+export interface OrderHistorySnapshot {id:string;account_id:string;principal:string;credential_generation:string;started_at:number;observed_at:number;source:'buff_buy_history_readonly';protocol_live_verified:false;request:OrderHistoryRequest;pages:OrderHistoryPage[];stop_reason:'short_page'|'reported_end'|'page_budget';complete:false;execution_allowed:false;}
+export interface OrderLookup {snapshot_id:string;order_id:string;found:boolean;order:ObservedOrder|null;payment_evidence:'awaiting_payment_at_observation'|'unknown';reason:string;observation_age_secs:number|null;execution_allowed:false;}

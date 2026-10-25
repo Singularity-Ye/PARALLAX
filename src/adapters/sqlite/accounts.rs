@@ -18,6 +18,23 @@ impl Store {
     }
 }
 impl AccountRepository for Store {
+    async fn try_buff_read(
+        &self,
+        at: u64,
+    ) -> anyhow::Result<crate::application::ports::BuffReadPermit> {
+        use crate::application::ports::BuffReadPermit;
+        self.account_db(move |db| {
+            let tx=rusqlite::Transaction::new_unchecked(db,rusqlite::TransactionBehavior::Immediate)?;
+            let raw:Option<String>=tx.query_row("SELECT value FROM auth_policy WHERE key='buff'",[],|r|r.get(0)).optional()?;
+            let (retry,blocked): (u64,bool)=raw.map(|s|serde_json::from_str(&s)).transpose()?.unwrap_or((0,false));
+            if blocked { return Ok(BuffReadPermit::Blocked); }
+            if retry>at { return Ok(BuffReadPermit::CoolingUntil(retry)); }
+            let next=at.checked_add(2).ok_or_else(||anyhow::anyhow!("pacing time overflow"))?;
+            tx.execute("INSERT INTO auth_policy(key,value) VALUES('buff',?1) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[serde_json::to_string(&(next,false))?])?;
+            tx.commit()?;Ok(BuffReadPermit::Allowed)
+        }).await
+    }
+
     async fn add_account(&self, account: Account) -> anyhow::Result<()> {
         self.account_db(move |db| {
             db.execute(

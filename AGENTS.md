@@ -41,3 +41,8 @@
 - 与修改相称地执行 fmt、Clippy、单测与页面联调；验证真实来源时单独记录，不能用演示测试代替。
 - README 跟代码；架构、选型、接口交接、日期日志分别放 Obsidian Parallax 的 00、10、20、80 目录；90 是旧版参考。
 - 阶段收口保存明确文件的 Git checkpoint。用户已指定 GitHub 仓库 https://github.com/Singularity-Ye/PARALLAX；仅在当前任务获授权的范围内推送，不强推或改仓库可见性。说明已实现、已验证与待迁移能力。
+
+## 订单观察边界
+
+- BUFF卖单与历史共用buff_read/accounts_buff；读取节流通过try_buff_read事务领取，不能清除期间新增挑战。保存订单观察前同事务重查身份/代次。
+- buff_order_observations为不可覆盖、非原子全量的观察；分页/总数/重复冲突不得存部分成功。精确ID没找到保持未知，数字状态未实测前不能映射paid，不自动释放资金/改台账；见docs/buff-orders.md。

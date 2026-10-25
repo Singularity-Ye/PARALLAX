@@ -32,7 +32,9 @@ UI复用已进一步收拢：两个页面共用币种选项、定价/原币费�
 
 本轮连续补齐三块业务：**采购批次与状态事件、持仓/成本汇总、基于分摊成本的出售策略研究**。人工凭据支持幂等重试、版本冲突及跨批次资产/外部凭据防重；收货成本整数分摊并保留余分，UAH等实际净钱包按币种单列。立即/趋势等待/收益保护/暂停复用现有v2退出估值，历史不随台账更新而改写。当前仍为未核验台账与研究，不发平台交易请求。见 [台账](docs/ledger.md)、[持仓](docs/holdings.md)、[出售策略](docs/sell-policies.md)。本组新增18项，完整 **162通过、0失败、2默认忽略**，页面全流程使用隔离数据库通过。
 
-资金与本地采购准备已接：按 BUFF 主体共享人工 CNY 观察，原子重查证据/最新资金并预留，同一主体仅一份未结束意图；重启/失效后可恢复，版本化取消只释放本地额度，不重复消费预检。Steam 钱包（含 UAH）独立。**当前完整 169 通过、0 失败、2 默认忽略**；真实余额/锁单/付款和未知发送结果对账未接，`live_execution=false`。见 [准备合同](docs/checkout.md)。
+资金与本地采购准备已接：按 BUFF 主体共享人工 CNY 观察，原子重查证据/最新资金并预留，同一主体仅一份未结束意图；重启/失效后可恢复，版本化取消只释放本地额度，不重复消费预检。Steam 钱包（含 UAH）独立。上一阶段完整169通过、0失败、2默认忽略；真实余额/锁单/付款和未知发送结果对账未接，`live_execution=false`。见 [准备合同](docs/checkout.md)。
+
+BUFF 订单历史观察已接原协议只读分页、不可覆盖快照与精确订单号查询。复用共享认证/GET/节流；失败/缺失/未识别分开，数字3/4/5不冒充已付款。保存事务拒绝读取期间的凭据变化；没有自动记账、释放额度或付款。**当前完整182通过、0失败、2默认忽略**；真实账户协议未验收。见 [订单观察](docs/buff-orders.md)。
 
 按原项目范围粗估整体 **25%–30%**，真实自动交易闭环 **0%**；逐模块对比、估算口径与剩余项见 [当前进度表](docs/progress.md)。下文历次测试数保留各阶段证据，以上为当前总数。
 
@@ -71,6 +73,7 @@ src/
     orderbook.rs      原币盘口、深度摘要和 CNY 估值约束
     pricing.rs        可解释的 CNY 壁垒/断层挂牌参考规则
     buff_quotes.rs    账户绑定的首屏现金报价与可见数量
+    buff_orders.rs    有界订单观察、范围/未知状态与精确ID查找
     inventory.rs      CS2 资产身份、数量和分页范围快照
     history.rs        价格历史样本、范围、日线/P10 与独立研究快照
     selection.rs      选品请求、统一商品、候选理由、覆盖报告
@@ -97,6 +100,8 @@ src/
     scanner.rs        分页、去重、覆盖统计和停止原因
     ports.rs          行情、仓储、凭据、验证与浏览器端口
   adapters/           外部系统实现接口
+    buff_read.rs      卖单/订单共用GET、有限响应与认证错误分类
+    buff_orders.rs    订单历史只读协议与白名单字段投影
     browser_auth.rs   本机 Chrome/Edge 的独立临时登录窗口
     credentials.rs    Windows 原生凭据后端
     session.rs        Steam/BUFF 只读身份核验
@@ -129,6 +134,7 @@ web/
   app.js              页面交互和展示
   strategies.js       购入规则编辑、版本与证据研究；不在 JS 计算策略
   checkout.js         操作记录中的人工资金/本地意图，复用forms与API
+  buff-orders.js      操作记录中的只读订单观察与准确ID查询
   index.html          语义化布局
   style.css           引入主题与组件样式
   theme.css           纸底、字体、颜色和纹理 tokens
@@ -199,6 +205,9 @@ web/
 | GET | /api/accounts/{account}/purchase-intents/{id} | 恢复当前版本及保存证据 |
 | POST | /api/accounts/{account}/purchase-intents/{id}/cancel | 版本化取消本地未提交意图 |
 | GET | /api/accounts/{account}/purchase-intents/{id}/events | 取消事件 |
+| GET / POST | /api/accounts/{account}/buff-order-observations | 历史快照 / 有界只读观察 |
+| GET | /api/accounts/{account}/buff-order-observations/{id} | 当时分页范围与订单 |
+| POST | /api/accounts/{account}/buff-order-observations/{id}/lookup | 精确ID查保存页面，缺失仍未知 |
 | POST | /api/trades | 501，未创建订单 |
 
 创建计划的请求示例（scan_id 换成完成的扫描 ID）：

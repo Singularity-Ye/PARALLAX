@@ -34,6 +34,11 @@ async fn main() -> anyhow::Result<()> {
         auth.clone(),
         parallax::adapters::buff_quotes::BuffSellOrders::new()?,
     );
+    let buff_orders = parallax::application::buff_orders::BuffOrderResearch::new(
+        store.clone(),
+        auth.clone(),
+        parallax::adapters::buff_orders::BuffPurchaseHistory::new()?,
+    );
     let inventory = parallax::application::inventory::InventoryResearch::new(
         store.clone(),
         auth.clone(),
@@ -64,6 +69,7 @@ async fn main() -> anyhow::Result<()> {
         router(state)
             .merge(parallax::transport::accounts::router(auth))
             .merge(parallax::transport::buff_quotes::router(buff_quotes))
+            .merge(parallax::transport::buff_orders::router(buff_orders))
             .merge(parallax::transport::inventory::router(inventory))
             .merge(parallax::transport::history::router(histories))
             .merge(parallax::transport::strategy::router(strategies))

@@ -3,6 +3,7 @@
 mod account_tests;
 pub mod accounts;
 pub mod browser_login;
+pub mod buff_orders;
 pub mod buff_quotes;
 pub mod checkout;
 pub mod fx;

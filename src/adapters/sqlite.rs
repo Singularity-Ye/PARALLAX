@@ -7,6 +7,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 mod accounts;
+mod buff_orders;
 mod buff_quotes;
 mod checkout;
 mod fx;
@@ -35,6 +36,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS account_sessions (account_id TEXT NOT NULL, platform TEXT NOT NULL, metadata TEXT NOT NULL, credential_key TEXT NOT NULL, PRIMARY KEY(account_id,platform));
             CREATE TABLE IF NOT EXISTS auth_policy (key TEXT PRIMARY KEY, value TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS steam_order_books (id TEXT PRIMARY KEY, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS buff_order_observations (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,observed_at INTEGER NOT NULL,snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS buff_quote_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS inventory_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS price_history_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);

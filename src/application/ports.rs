@@ -133,13 +133,13 @@ pub enum BuffReadError {
 impl BuffReadError {
     pub fn message(self) -> &'static str {
         match self {
-            Self::Network => "BUFF 卖单读取失败或超时；未生成报价",
-            Self::InvalidPayload => "BUFF 卖单格式或金额无效；未生成报价",
-            Self::IdentityMismatch => "BUFF 商品身份与扫描候选不匹配",
+            Self::Network => "BUFF 只读请求失败或超时；未保存新观察",
+            Self::InvalidPayload => "BUFF 只读响应格式、范围或金额无效；未保存新观察",
+            Self::IdentityMismatch => "BUFF 响应身份与当前请求不匹配",
             Self::Expired => "BUFF 登录态已失效，请重新登录",
             Self::Challenge => "BUFF 要求浏览器验证，已阻断后续请求",
             Self::RateLimited(_) => "BUFF 请求处于冷却中，请等待后重试",
-            Self::Rejected => "BUFF 拒绝卖单请求；未将失败当作空卖盘",
+            Self::Rejected => "BUFF 拒绝只读请求；未将失败当作空结果",
             Self::CredentialsChanged => {
                 "BUFF 返回新的认证 Cookie；当前凭据需通过浏览器重新获取和核验"
             }
@@ -205,7 +205,16 @@ pub trait OrderBookRepository: Send + Sync {
     fn order_books(&self) -> impl Future<Output = anyhow::Result<Vec<OrderBookSnapshot>>> + Send;
 }
 
+pub enum BuffReadPermit {
+    Allowed,
+    Blocked,
+    CoolingUntil(u64),
+}
 pub trait AccountRepository: Send + Sync {
+    // Atomically reserve pacing; a read cannot clear a challenge set by another connection.
+    fn try_buff_read(&self, at: u64)
+    -> impl Future<Output = anyhow::Result<BuffReadPermit>> + Send;
+
     fn add_account(&self, account: Account) -> impl Future<Output = anyhow::Result<()>> + Send;
     fn accounts(&self) -> impl Future<Output = anyhow::Result<Vec<Account>>> + Send;
     fn account(&self, id: String) -> impl Future<Output = anyhow::Result<Option<Account>>> + Send;
@@ -439,4 +448,30 @@ pub trait CheckoutRepository: Send + Sync {
         account: String,
         id: String,
     ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::checkout::IntentEvent>>> + Send;
+}
+
+pub trait BuffOrderProvider: Send + Sync {
+    fn history_page(
+        &self,
+        page: u32,
+        size: u32,
+        principal: &str,
+        secret: &Credentials,
+    ) -> impl Future<Output = Result<crate::domain::buff_orders::OrderHistoryPage, BuffReadError>> + Send;
+}
+pub trait BuffOrderRepository: Send + Sync {
+    fn insert_buff_orders(
+        &self,
+        snapshot: crate::domain::buff_orders::OrderHistorySnapshot,
+    ) -> impl Future<Output = anyhow::Result<bool>> + Send;
+    fn buff_orders(
+        &self,
+        id: String,
+    ) -> impl Future<
+        Output = anyhow::Result<Option<crate::domain::buff_orders::OrderHistorySnapshot>>,
+    > + Send;
+    fn buff_order_observations(
+        &self,
+        account: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::buff_orders::OrderHistorySnapshot>>> + Send;
 }
