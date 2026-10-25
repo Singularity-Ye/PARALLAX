@@ -123,6 +123,7 @@ async fn fixture() -> (Store, Arc<Auth>, String, ScanReport) {
 fn request(scan: &ScanReport) -> HistoryRequest {
     HistoryRequest {
         scan_id: scan.id.clone(),
+        inventory_snapshot_id: None,
         item_key: "fixture".into(),
         window_days: 30,
         slippage_bps: 300,
@@ -372,4 +373,80 @@ async fn historical_results_and_policy_survive_restart_without_recomputing_quote
         assert!(file.insert_history(snapshot).await.is_err());
     }
     std::fs::remove_file(path).unwrap();
+}
+
+#[tokio::test]
+async fn inventory_history_binds_account_and_observed_market_item_before_platform_access() {
+    use crate::domain::inventory::{InventoryAsset, InventoryRequest, InventorySnapshot};
+    let (repo, auth, id, scan) = fixture().await;
+    let src = source(None);
+    let calls = src.calls.clone();
+    let app = HistoryResearch::new(repo.clone(), auth.clone(), src);
+    let snapshot = InventorySnapshot {
+        id: "observed-inventory".into(),
+        account_id: id.clone(),
+        steam_id: "76561198000000001".into(),
+        credential_generation: "historical-generation".into(),
+        request: InventoryRequest::default(),
+        started_at: now() - 100,
+        observed_at: now() - 90,
+        source: "steam_authenticated_inventory".into(),
+        platform_verified: false,
+        coverage: vec![],
+        warnings: vec![],
+        assets: vec![InventoryAsset {
+            app_id: 730,
+            context_id: "2".into(),
+            asset_id: "100".into(),
+            class_id: "10".into(),
+            instance_id: "0".into(),
+            amount: 1,
+            market_hash_name: Some("fixture".into()),
+            reported_marketable: true,
+            reported_tradable: false,
+            restriction_note_present: true,
+        }],
+    };
+    repo.insert_inventory(snapshot.clone()).await.unwrap();
+    let mut req = request(&scan);
+    req.scan_id.clear();
+    req.inventory_snapshot_id = Some(snapshot.id.clone());
+    let mut bad = req.clone();
+    bad.inventory_snapshot_id = Some("missing".into());
+    assert!(app.fetch(&id, bad).await.is_err());
+    let mut bad = req.clone();
+    bad.item_key = "not-observed".into();
+    assert!(app.fetch(&id, bad).await.is_err());
+    let other = auth
+        .create("other".into(), "76561198000000002".into())
+        .await
+        .unwrap();
+    assert!(matches!(
+        app.fetch(&other.id, req.clone()).await,
+        Err(AppError::Missing(_))
+    ));
+    let mut unmarketable = snapshot.clone();
+    unmarketable.id = "not-marketable".into();
+    unmarketable.assets[0].reported_marketable = false;
+    repo.insert_inventory(unmarketable.clone()).await.unwrap();
+    let mut bad = req.clone();
+    bad.inventory_snapshot_id = Some(unmarketable.id);
+    assert!(app.fetch(&id, bad).await.is_err());
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+    let saved = app.fetch(&id, req).await.unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        saved.identity_binding,
+        "inventory_snapshot_and_request_parameters"
+    );
+    assert!(saved.request.scan_id.is_empty());
+    assert_eq!(
+        saved.request.inventory_snapshot_id.as_deref(),
+        Some(snapshot.id.as_str())
+    );
+    assert_eq!(app.get(&id, saved.id).await.unwrap().series.points.len(), 8);
+    assert_eq!(
+        repo.inventory(snapshot.id).await.unwrap().unwrap().assets[0].asset_id,
+        "100"
+    );
 }

@@ -14,7 +14,13 @@ function render(snapshot) {
   const list=node('ul');
   for(const a of snapshot.assets.slice(0,100)) {
     const transferable=a.context_id==='2'&&a.reported_tradable&&!a.restriction_note_present;
-    list.append(node('li',`${a.market_hash_name??'无市场名称，保留原始资产身份'} · ${a.amount} 件 · ${a.context_id}/${a.asset_id} · ${transferable?'报告可交易':'受保护、受限或状态未知'} · 市场标志 ${a.reported_marketable?'是':'否'} · 解锁时间未知`));
+    const row=node('li',`${a.market_hash_name??'无市场名称，保留原始资产身份'} · ${a.amount} 件 · ${a.context_id}/${a.asset_id} · ${transferable?'报告可交易':'受保护、受限或状态未知'} · 市场标志 ${a.reported_marketable?'是':'否'} · 解锁时间未知`);
+    if(a.market_hash_name&&a.reported_marketable){
+      const research=node('button','研究价格历史');research.type='button';research.className='secondary';
+      research.onclick=()=>window.dispatchEvent(new CustomEvent('parallax:inventory-history',{detail:{account_id:snapshot.account_id,inventory_snapshot_id:snapshot.id,item_key:a.market_hash_name}}));
+      row.append(research);
+    }
+    list.append(row);
   }
   box.append(list);
   if(snapshot.assets.length>100)box.append(node('p','页面仅展示前 100 个资产，完整内容保留在快照 API。'));

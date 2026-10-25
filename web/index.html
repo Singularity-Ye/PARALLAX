@@ -63,7 +63,7 @@
 </section>
 <section class="page" data-page="inventory" id="page-inventory" hidden>
 <section class="card" id="inventory"><div class="section-title"><h2>Steam 库存观察</h2><span>READ ONLY / CS2</span></div>
-<p class="hint">读取所选账户的 CS2 库存区 2 与 16。先完成最近五分钟内的 Steam 在线身份核验并等待冷却。每页 75 个资产；分页读完也不代表完整交易敞口，不含已挂牌和未决采购。线上协议尚未实测。</p>
+<p class="hint">读取所选账户的 CS2 库存区 2 与 16。先完成最近五分钟内的 Steam 在线身份核验并等待冷却。每页 75 个资产；分页读完也不代表完整交易敞口，不含已挂牌和未决采购。读取范围与限制以快照说明为准。</p>
 <form id="inventory-form"><label>库存账户<select id="inventory-account" required></select></label><label>每区最多页数<input id="inventory-pages" type="number" min="1" max="10" value="4" required></label><button id="inventory-fetch" disabled>读取并保存库存快照</button></form>
 <p id="inventory-feedback" role="status" aria-live="polite"></p><div id="inventory-result"></div><details><summary>该账户最近十份库存快照</summary><div id="inventory-history"></div></details></section>
 </section>
@@ -102,8 +102,8 @@
 </section>
 <section class="page" data-page="price-history" id="page-price-history" hidden>
 <section class="card" id="price-history"><div class="section-title"><h2>Steam 价格历史研究</h2><span>HISTORY / UTC CALENDAR</span></div>
-<p class="hint">从已完成的真实 SteamDT 扫描选择商品，使用最近五分钟内核验的 Steam 会话。仅研究结束的 UTC 日期；不猜人民币、不填补缺日、不刷新预算报价。线上历史协议尚未实测。</p>
-<form id="price-history-form"><label>历史账户<select id="price-history-account" required></select></label><label>扫描 ID<input id="price-history-scan" readonly required></label><label>研究商品<select id="price-history-item" required></select></label><div class="pair"><label>自然日窗口<input id="price-history-days" type="number" min="8" max="365" value="90" required></label><label>压力滑点 / bps<input id="price-history-slippage" type="number" min="0" max="10000" value="300" required></label></div><button id="price-history-fetch" disabled>读取并保存历史研究</button></form>
+<p class="hint">从已完成的真实 SteamDT 扫描或账户库存快照选择商品，使用最近五分钟内核验的 Steam 会话。仅研究结束的 UTC 日期；不猜人民币、不填补缺日、不刷新预算报价。历史研究不代表当前成交价或交易授权。</p>
+<form id="price-history-form"><label>历史账户<select id="price-history-account" required></select></label><label>来源 ID（扫描或库存快照）<input id="price-history-scan" readonly required></label><label>研究商品<select id="price-history-item" required></select></label><div class="pair"><label>自然日窗口<input id="price-history-days" type="number" min="8" max="365" value="90" required></label><label>压力滑点 / bps<input id="price-history-slippage" type="number" min="0" max="10000" value="300" required></label></div><button id="price-history-fetch" disabled>读取并保存历史研究</button></form>
 <p id="price-history-feedback" role="status" aria-live="polite"></p><div id="price-history-result"></div><details><summary>该账户最近十份历史研究</summary><div id="price-history-saved"></div></details></section>
 </section>
 <section class="page" data-page="purchase-history" id="page-purchase-history" hidden>

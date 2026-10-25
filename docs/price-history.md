@@ -1,6 +1,6 @@
 # Parallax 价格历史与自然日研究
 
-状态：已接 Steam 只读 pricehistory 适配、账户/扫描候选绑定、UTC 日聚合/P10及不可覆盖快照；新增IQR/CV/EMA/自然日趋势/R²基础描述，见 [stability.md](stability.md)。**当前102项常规本地测试通过、2默认忽略；Steam单账户登录与一个真实候选的UAH历史读取已通过；其余协议分支仍待验收。** 研究未自动改变扫描、预算或交易策略。
+状态：已接 Steam 只读 pricehistory 适配、账户/扫描候选或库存快照绑定、UTC 日聚合/P10及不可覆盖快照；新增IQR/CV/EMA/自然日趋势/R²基础描述，见 [stability.md](stability.md)。**当前102项常规本地测试通过、2默认忽略；Steam单账户登录与一个真实候选的UAH历史读取已通过；其余协议分支仍待验收。** 研究未自动改变扫描、预算或交易策略。
 
 ## 原项目思路与复用
 
@@ -76,3 +76,19 @@ PlanRequest/PlanPreview 不变，不自动刷新 Steam/BUFF 报价、延长时�
 复用现有API完成SteamDT单页真实扫描：10条候选，5条通过、5条拒绝。随后对首个真实候选读取90天Steam价格历史，保存成功；响应明确识别为UAH，响应1351条，窗口内693条样本。此为单个真实商品样本，未证明所有日期格式/币种/商品分支均通过，也不证明钱包费率或结算。
 
 匿名盘口请求UAH时，平台实际返回eCurrency=8，现有适配器拒绝未支持币种，未保存误标UAH的报价。账户历史UAH与匿名盘口返回币种分别记录，未改变账户地区、未猜汇率、未下单。
+
+## 库存商品历史入口（2026-10-25）
+
+库存页打开保存的快照，对有市场名且reported_marketable=true的饰品点击“研究价格历史”，跳转历史页并带入账户、库存快照与商品。仅准备表单，点击读取才请求Steam；不会自动遍历库存、刷新库存或访问BUFF。旧库存仅证明当时观察到此名称，不证明当前持有、可交易或出售授权。
+
+同一POST /api/accounts/{account}/price-histories增加互斥来源：原scan_id保持兼容，或只传inventory_snapshot_id。示例：
+
+```json
+{"inventory_snapshot_id":"saved-inventory-id","item_key":"exact-market-name","window_days":90,"slippage_bps":300}
+```
+
+来源必须且只能有一种；库存快照必须属于请求账户、商品精确匹配且可上市场。部分库存也可研究其中明确观察到的商品，不将局部范围变为完整仓位。无效来源在取凭据/访问平台前拒绝。沿用认证代次、五分钟在线身份、冷却、历史适配、分析和不可覆盖存储，无新依赖或表。
+
+结果identity_binding为inventory_snapshot_and_request_parameters，保存inventory_snapshot_id；旧扫描结果仍为scan_candidate_and_request_parameters，旧JSON可读取。此为商品级市场历史，不包含该资产成本或个人成交记录。采购策略仍要求原扫描绑定，库存来源历史不混入已有采购计划；持仓出售研究可按原商品/账户规则显式引用。
+
+验证：新增来源互斥/旧JSON兼容、库存账户与精确市场商品绑定两项测试；跨账户、缺失、不匹配和不可上市均在平台调用前拒绝。采购策略原绑定测试扩展为拒绝库存来源。完整186通过/2忽略；真实页面单个库存商品UAH历史保存成功（窗口内763条、90个有效日），未访问BUFF或创建订单。

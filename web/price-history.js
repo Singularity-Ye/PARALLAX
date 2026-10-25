@@ -3,9 +3,12 @@ const el=id=>document.getElementById(id);
 const account=el('price-history-account');
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 let fetching=false;
+let inventoryOrigin=null;
 const day=d=>new Date(d*86400000).toISOString().slice(0,10);
 const money=m=>m?`${m.currency} ${(m.minor/100).toFixed(2)}`:'未知';
 export function renderHistoryCandidates(report) {
+  if(fetching)return;
+  inventoryOrigin=null;
   const previous=el('price-history-item').value;el('price-history-scan').value=report.id;
   el('price-history-item').replaceChildren();
   if(report.status==='completed'&&report.request.source==='steamdt') {
@@ -19,6 +22,7 @@ function render(snapshot) {
   const a=snapshot.analysis,s=snapshot.series,r=a.risk;
   const status={unknown_currency:'币种含糊或单位未适配',no_usable_daily_prices:'没有可用日价格',insufficient_pairs:'缺少七自然日配对',historical_pairs_available:'已计算历史配对'};
   const box=el('price-history-result');box.replaceChildren(node('h3',snapshot.request.item_key),
+    node('p',snapshot.request.inventory_snapshot_id?`来源：库存快照 ${snapshot.request.inventory_snapshot_id} · 商品级市场历史，不是该资产成交或成本记录`:`来源：SteamDT 扫描 ${snapshot.request.scan_id}`),
     node('p',`账户 ${snapshot.account_id} · 快照 ${snapshot.id} · 读取于 ${new Date(snapshot.observed_at*1000).toLocaleString()}`),
     node('p',`${status[a.status]??a.status} · 币种 ${s.currency??'未知'} · UTC 窗口 ${day(s.from_utc_day)} 至 ${day(s.until_utc_day_exclusive)}（不含结束日）`),
     node('p',`响应 ${s.response_rows} 条 · 窗口内 ${s.points.length} 条 · 排除窗口前 ${s.excluded_before_window} 条、当天 ${s.excluded_open_day} 条 · 缺少 ${a.missing_calendar_days} 个日期`),
@@ -56,13 +60,30 @@ async function loadAccounts() {
   if(items.some(a=>a.id===previous))account.value=previous;
   el('price-history-fetch').disabled=fetching||!account.value||!el('price-history-item').value;await history();
 }
-account.onchange=()=>{el('price-history-result').replaceChildren();history().catch(e=>el('price-history-feedback').textContent=e.message);};
+account.onchange=()=>{
+  if(inventoryOrigin&&inventoryOrigin.account_id!==account.value){inventoryOrigin=null;el('price-history-scan').value='';el('price-history-item').replaceChildren();el('price-history-fetch').disabled=true;}
+  el('price-history-result').replaceChildren();history().catch(e=>el('price-history-feedback').textContent=e.message);
+};
+window.addEventListener('parallax:inventory-history',async({detail})=>{
+  if(fetching){el('inventory-feedback').textContent='价格历史正在读取，请完成后再选择库存商品。';return;}
+  try{
+    await loadAccounts();
+    if(![...account.options].some(o=>o.value===detail.account_id))throw new Error('库存所属账户已不存在');
+    account.value=detail.account_id;inventoryOrigin=detail;
+    el('price-history-scan').value=detail.inventory_snapshot_id;
+    const option=node('option',detail.item_key);option.value=detail.item_key;el('price-history-item').replaceChildren(option);
+    el('price-history-result').replaceChildren();el('price-history-fetch').disabled=false;
+    el('price-history-feedback').textContent='已选择库存快照中的商品；点击读取才请求 Steam，不证明当前仍持有，也不加入采购策略。';
+    location.hash='price-history';await history();
+  }catch(e){el('inventory-feedback').textContent=`选择历史研究失败：${e.message}`;}
+});
 el('price-history-form').onsubmit=async event=>{
   event.preventDefault();if(!account.value)return;fetching=true;account.disabled=true;el('price-history-fetch').disabled=true;
   el('price-history-feedback').textContent='正在读取价格历史，按 UTC 自然日研究；不会创建交易或刷新预算报价。';
   const id=account.value;
   try {
-    const snapshot=await parallax.fetchPriceHistory(id,{scan_id:el('price-history-scan').value,item_key:el('price-history-item').value,window_days:Number(el('price-history-days').value),slippage_bps:Number(el('price-history-slippage').value)});
+    const origin=inventoryOrigin?{inventory_snapshot_id:inventoryOrigin.inventory_snapshot_id}:{scan_id:el('price-history-scan').value};
+    const snapshot=await parallax.fetchPriceHistory(id,{...origin,item_key:el('price-history-item').value,window_days:Number(el('price-history-days').value),slippage_bps:Number(el('price-history-slippage').value)});
     if(account.value===id)render(snapshot);el('price-history-feedback').textContent='研究快照已保存，未加入预算或交易策略。';
     try{await history();}catch(e){el('price-history-feedback').textContent=`快照已保存，历史列表刷新失败：${e.message}`;}
   }catch(e){el('price-history-feedback').textContent=`本次未保存新快照：${e.message}；输入及原结果保留。`;}

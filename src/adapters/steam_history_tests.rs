@@ -3,6 +3,7 @@ use serde_json::json;
 fn request() -> HistoryRequest {
     HistoryRequest {
         scan_id: "fixture".into(),
+        inventory_snapshot_id: None,
         item_key: "fixture".into(),
         window_days: 8,
         slippage_bps: 300,

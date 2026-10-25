@@ -47,6 +47,7 @@ pub(crate) fn fixture(
     assert_eq!(plan.lines.len(), 1);
     let today = at / 86400;
     let hrequest = HistoryRequest {
+        inventory_snapshot_id: None,
         scan_id: plan.request.scan_id.clone(),
         item_key: "fixture-item".into(),
         window_days: 30,
@@ -204,11 +205,16 @@ fn insufficient_coverage_blocks_metrics_and_future_or_previous_day_is_unknown() 
 fn history_binding_rejects_other_account_scan_item_and_multiple_snapshots() {
     let at = 10000 * 86400 + 120;
     let (s, p, h, r) = fixture(at);
-    for field in ["account", "scan", "item", "id"] {
+    for field in ["account", "scan", "inventory", "item", "id"] {
         let mut bad = h.clone();
         match field {
             "account" => bad.account_id = "other".into(),
             "scan" => bad.request.scan_id = "other".into(),
+            "inventory" => {
+                bad.request.scan_id.clear();
+                bad.request.inventory_snapshot_id = Some("inventory".into());
+                bad.identity_binding = "inventory_snapshot_and_request_parameters".into();
+            }
             "item" => bad.request.item_key = "other".into(),
             _ => bad.id = "other".into(),
         }

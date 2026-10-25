@@ -158,7 +158,7 @@ export const parallax: {
   plan(id:string):Promise<PlanPreview>;
   createPlan(request:PlanRequest):Promise<PlanPreview>;
 };
-export interface HistoryRequest {scan_id:string;item_key:string;window_days:number;slippage_bps:number;}
+export type HistoryRequest = ({scan_id:string;inventory_snapshot_id?:never}|{scan_id?:never;inventory_snapshot_id:string}) & {item_key:string;window_days:number;slippage_bps:number;};
 export interface WallGapPolicy {currency:'CNY';wall_volume_threshold:number;max_ignore_volume:number;min_lowest_tier_volume:number;min_step_minor:number;min_floor_minor:number;offset_minor:number;}
 export interface FxSnapshot {id:string;source:'frankfurter_v2_blended';fetched_at:number;rates:Record<string,{date:string;units_per_cny_1e8:number}>;}
 export interface BookValuation {snapshot_id:string;observed_at:number;native_currency:string;display_currency:string;best_ask:NativeMoney|null;best_bid:NativeMoney|null;fx:FxSnapshot|null;}
@@ -175,7 +175,7 @@ export interface ListingPricePreview {
 }
 export interface HistorySnapshot {
   id:string;account_id:string;credential_generation:string;request:HistoryRequest;started_at:number;observed_at:number;
-  source:'steam_authenticated_pricehistory';identity_binding:'scan_candidate_and_request_parameters';platform_verified:false;
+  source:'steam_authenticated_pricehistory';identity_binding:'scan_candidate_and_request_parameters'|'inventory_snapshot_and_request_parameters';platform_verified:false;
   series:{currency:string|null;currency_basis:'explicit_code_or_unique_marker'|'ambiguous_or_unsupported';
     points:{at:number;price_major_1e4:number;volume:number|null}[];response_rows:number;excluded_before_window:number;excluded_open_day:number;from_utc_day:number;until_utc_day_exclusive:number};
   analysis:{status:'unknown_currency'|'no_usable_daily_prices'|'insufficient_pairs'|'historical_pairs_available';

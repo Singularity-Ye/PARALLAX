@@ -39,7 +39,7 @@ impl<R: AccountRepository + InventoryRepository, C: CredentialStore, V: SessionV
             coverage,
             assets,
             warnings: vec![
-                "线上库存协议尚未实测；资产属于请求账户的路径绑定，非响应签名证明".into(),
+                "资产属于请求账户的路径绑定，非响应签名证明".into(),
                 "双区分页为分时观察，不是原子库存；预算截断时不能作为完整持仓".into(),
                 "不含市场挂牌、未决收货与未决采购；不替换手工仓位，不证明零风险敞口".into(),
                 "交易/市场标志仅为平台报告；解锁时间未知，不靠本地倒计时放行".into(),

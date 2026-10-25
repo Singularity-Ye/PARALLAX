@@ -3,6 +3,7 @@ use crate::domain::money::Currency;
 fn req() -> HistoryRequest {
     HistoryRequest {
         scan_id: "fixture".into(),
+        inventory_snapshot_id: None,
         item_key: "fixture".into(),
         window_days: 8,
         slippage_bps: 300,
@@ -106,4 +107,35 @@ fn stability_is_optional_in_old_json_and_never_changes_raw_daily_prices_or_p10()
     assert!(old.stability.is_none());
     assert_eq!(old.daily_bars[1].vwap.as_ref().unwrap().minor, 200);
     assert_eq!(old.risk.unwrap().return_p10_bps, Some(10000));
+}
+
+#[test]
+fn history_origin_is_exclusive_and_legacy_scan_json_remains_compatible() {
+    let legacy = serde_json::to_value(req()).unwrap();
+    assert!(legacy.get("inventory_snapshot_id").is_none());
+    assert!(
+        serde_json::from_value::<HistoryRequest>(legacy)
+            .unwrap()
+            .validate()
+            .is_ok()
+    );
+    let mut r = req();
+    r.inventory_snapshot_id = Some("inventory".into());
+    assert!(r.validate().is_err());
+    r.scan_id.clear();
+    assert!(r.validate().is_ok());
+    let json = serde_json::to_value(&r).unwrap();
+    assert!(json.get("scan_id").is_none());
+    assert!(
+        serde_json::from_value::<HistoryRequest>(json)
+            .unwrap()
+            .validate()
+            .is_ok()
+    );
+    for id in ["", "bad\n", &"x".repeat(65)] {
+        r.inventory_snapshot_id = Some(id.into());
+        assert!(r.validate().is_err());
+    }
+    r.inventory_snapshot_id = None;
+    assert!(r.validate().is_err());
 }

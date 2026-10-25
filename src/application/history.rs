@@ -10,7 +10,7 @@ pub struct HistoryResearch<R, C, V, P> {
     provider: P,
 }
 impl<
-    R: AccountRepository + Repository + HistoryRepository,
+    R: AccountRepository + Repository + HistoryRepository + InventoryRepository,
     C: CredentialStore,
     V: SessionVerifier,
     P: HistoryProvider,
@@ -30,23 +30,39 @@ impl<
     ) -> Result<HistorySnapshot, AppError> {
         request.validate().map_err(AppError::Invalid)?;
         self.accounts.account(account).await?;
-        let scan = self
-            .repo
-            .get(request.scan_id.clone())
-            .await?
-            .ok_or(AppError::Missing("扫描不存在"))?;
-        if scan.status != "completed" || scan.request.source != SourceKind::Steamdt {
-            return Err(AppError::Conflict(
-                "历史读取只接受已完成的真实 SteamDT 候选；演示数据禁止请求平台",
-            ));
-        }
-        if !scan
-            .candidates
-            .iter()
-            .any(|c| c.item.key == request.item_key)
-        {
-            return Err(AppError::Missing("扫描候选不存在"));
-        }
+        let identity_binding = if let Some(id) = &request.inventory_snapshot_id {
+            let inventory = self
+                .repo
+                .inventory(id.clone())
+                .await?
+                .filter(|s| s.account_id == account)
+                .ok_or(AppError::Missing("账户库存快照不存在"))?;
+            if !inventory.assets.iter().any(|a| {
+                a.reported_marketable && a.market_hash_name.as_deref() == Some(&request.item_key)
+            }) {
+                return Err(AppError::Missing("库存快照中没有此可研究的市场商品"));
+            }
+            "inventory_snapshot_and_request_parameters"
+        } else {
+            let scan = self
+                .repo
+                .get(request.scan_id.clone())
+                .await?
+                .ok_or(AppError::Missing("扫描不存在"))?;
+            if scan.status != "completed" || scan.request.source != SourceKind::Steamdt {
+                return Err(AppError::Conflict(
+                    "历史读取只接受已完成的真实 SteamDT 候选；演示数据禁止请求平台",
+                ));
+            }
+            if !scan
+                .candidates
+                .iter()
+                .any(|c| c.item.key == request.item_key)
+            {
+                return Err(AppError::Missing("扫描候选不存在"));
+            }
+            "scan_candidate_and_request_parameters"
+        };
         let mut access = self
             .accounts
             .steam_access(account, SteamReadScope::PriceHistory)
@@ -70,7 +86,7 @@ impl<
             started_at: at,
             observed_at: now(),
             source: "steam_authenticated_pricehistory".into(),
-            identity_binding: "scan_candidate_and_request_parameters".into(),
+            identity_binding: identity_binding.into(),
             platform_verified: false,
             series,
             analysis,

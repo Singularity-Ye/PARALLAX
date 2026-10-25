@@ -8,15 +8,22 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct HistoryRequest {
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub scan_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inventory_snapshot_id: Option<String>,
     pub item_key: String,
     pub window_days: u32,
     pub slippage_bps: u32,
 }
 impl HistoryRequest {
     pub fn validate(&self) -> Result<(), String> {
-        if self.scan_id.is_empty()
-            || self.scan_id.len() > 64
+        let valid_id = |s: &str| !s.is_empty() && s.len() <= 64 && !s.chars().any(char::is_control);
+        let valid_origin = match &self.inventory_snapshot_id {
+            Some(id) => self.scan_id.is_empty() && valid_id(id),
+            None => valid_id(&self.scan_id),
+        };
+        if !valid_origin
             || self.item_key.is_empty()
             || self.item_key.len() > 500
             || self
@@ -27,7 +34,7 @@ impl HistoryRequest {
             || !(8..=365).contains(&self.window_days)
             || self.slippage_bps > 10000
         {
-            return Err("历史研究需扫描/商品标识、8–365 个自然日窗口与 0–10000 bps 滑点".into());
+            return Err("历史研究需且仅需扫描或库存快照来源、商品标识、8–365 个自然日窗口与 0–10000 bps 滑点".into());
         }
         Ok(())
     }
@@ -124,7 +131,7 @@ pub fn analyze(
         reference_utc_day: None,
         risk: None,
         warnings: vec![
-            "价格历史沿用社区接口协议，真实平台样本尚未验收".into(),
+            "价格历史来自社区接口；商品身份按已验证来源与请求参数绑定，非响应签名证明".into(),
             "自然日聚合的是平台历史价格样本，不保证为逐笔成交的真实 VWAP".into(),
             "P10 为过去七自然日收益分位，不是未来损失上限或盈利保证".into(),
         ],

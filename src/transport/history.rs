@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 pub fn router<R, C, V, P>(state: Arc<HistoryResearch<R, C, V, P>>) -> Router
 where
-    R: AccountRepository + Repository + HistoryRepository + 'static,
+    R: AccountRepository + Repository + HistoryRepository + InventoryRepository + 'static,
     C: CredentialStore + 'static,
     V: SessionVerifier + 'static,
     P: HistoryProvider + 'static,
@@ -42,7 +42,7 @@ where
         .with_state(state)
 }
 async fn list<
-    R: AccountRepository + Repository + HistoryRepository,
+    R: AccountRepository + Repository + HistoryRepository + InventoryRepository,
     C: CredentialStore,
     V: SessionVerifier,
     P: HistoryProvider,
@@ -55,7 +55,7 @@ async fn list<
     ))
 }
 async fn fetch<
-    R: AccountRepository + Repository + HistoryRepository,
+    R: AccountRepository + Repository + HistoryRepository + InventoryRepository,
     C: CredentialStore,
     V: SessionVerifier,
     P: HistoryProvider,
@@ -70,7 +70,7 @@ async fn fetch<
     ))
 }
 async fn detail<
-    R: AccountRepository + Repository + HistoryRepository,
+    R: AccountRepository + Repository + HistoryRepository + InventoryRepository,
     C: CredentialStore,
     V: SessionVerifier,
     P: HistoryProvider,
