@@ -54,6 +54,8 @@ Steam真实登录反馈已修正：不再用会循环的 `/my/?xml=1` 作为首�
 
 原项目M09策略复用细则继续迁移：可导出准确保存版本的JSON规则包、下载或重新导入为新策略v1，沿用现有规则/依赖校验，不覆盖旧策略、不激活。当前仅支持Parallax包；原Python格式、自定义模块与激活仍待。见[策略导入导出](docs/strategy-transfer.md)。
 
+策略中心新增“已实现规则与依赖”目录，展示当前七条规则的作用、顺序、前置关系、适用目标和最低版本；数据来自Rust，未来前端可直接复用。目录不等于完整原策略注册器，保存仍执行原有类型校验。见[策略合同](docs/strategies.md)。
+
 ## 快速运行
 
 主机使用 Rust 1.99.1（`rust-toolchain.toml` 锁定）、MSVC C++ Build Tools 与 Windows SDK。依赖版本记录在 `Cargo.lock`。SQLite 编译进程序。

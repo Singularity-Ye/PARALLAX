@@ -92,6 +92,13 @@ function lock(value){
   if(!value){fields();el('version').disabled=!loaded;ready();}
 }
 strategyTransfer(el('transfer'),()=>loaded,()=>busy||refreshing,()=>heads());
+async function renderCatalog(){
+ const box=el('catalog');
+ try{const {items}=await parallax.strategyModules();box.replaceChildren(node('p','按执行检查顺序列出当前研究规则。持有观察需schema3与历史覆盖；钱包研究以折算率开始。未知不等于通过；这不是原项目全部模块，也不允许激活交易。'));
+ for(const rule of items){const section=node('details');section.append(node('summary',`${rule.order+1}. ${rule.name} · ${rule.module}`),node('p',rule.purpose),node('p',`前置：${rule.requires.map(k=>modules[k]??k).join('、')||'无'}；目标：${rule.objectives.map(k=>k==='holding'?'持有观察':'换Steam余额').join('、')}；规则最低schema${rule.minimum_schema}（持有目标仍需3）。`));box.append(section);}
+ }catch(e){box.replaceChildren(node('p',`规则目录暂未读取：${e.message}；编辑与保存仍可继续。`));const retry=node('button','重新读取规则目录');retry.type='button';retry.onclick=renderCatalog;box.append(retry);}
+}
+renderCatalog();
 el('form').onsubmit=async event=>{
   event.preventDefault();if(busy)return;
   const value=draft(),previous=loaded;lock(true);el('save-feedback').textContent='正在保存不可覆盖的新版本…';

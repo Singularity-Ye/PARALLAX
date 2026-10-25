@@ -173,7 +173,7 @@
 <div class="pair"><label>压力净折算率严格上限 / bps<input id="strategy-exit-ratio" type="number" min="1" max="20000" value="9000" required></label><label>出售盘口有效期 / 秒<input id="strategy-exit-age" type="number" min="1" max="3600" value="300" required></label></div>
 <div class="pair"><label>最少七日配对<input id="strategy-exit-pairs" type="number" min="1" max="358" value="10" required></label><label>匹配历史压力滑点 / bps<input id="strategy-exit-slippage" type="number" min="0" max="10000" value="300" required></label></div>
 <div id="strategy-exit-pricing"></div><fieldset><legend>原币费用假设（未核验平台结算）</legend><div id="strategy-exit-fees"></div></fieldset></fieldset>
-<button id="strategy-save">保存新版本</button></form><p id="strategy-save-feedback" role="status" aria-live="polite"></p><details><summary>策略备份与导入</summary><div id="strategy-transfer"></div></details></section>
+<button id="strategy-save">保存新版本</button></form><p id="strategy-save-feedback" role="status" aria-live="polite"></p><details><summary>已实现规则与依赖</summary><div id="strategy-catalog"></div></details><details><summary>策略备份与导入</summary><div id="strategy-transfer"></div></details></section>
 <section class="card"><div class="section-title"><h2>用保存的证据复核</h2><span>02 / EXPLAINABLE PREVIEW</span></div>
 <p class="hint">研究使用上方已保存版本，未保存的参数不会参与。引用的历史必须与计划的扫描、商品和账户一致；每件可选一份。历史日价不替代实时购入报价。</p>
 <form id="strategy-evaluation-form"><label>预算计划<select id="strategy-plan" required></select></label><label>研究账户<select id="strategy-account"><option value="">未指定</option></select></label><div id="strategy-history-choices"></div><div id="strategy-book-choices"></div><button id="strategy-evaluate" disabled>保存研究预览</button></form>

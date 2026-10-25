@@ -30,6 +30,7 @@ pub fn router<
 ) -> Router {
     Router::new()
         .route("/api/strategies", get(heads::<R>).post(create::<R>))
+        .route("/api/strategy-modules", get(|| async { Json(json!({"items":crate::domain::strategy_catalog::catalog(),"scope":"implemented_research_rules","holding_minimum_schema":3,"execution_allowed":false})) }))
         .route("/api/strategies/import", axum::routing::post(import::<R>))
         .route(
             "/api/strategies/{id}/versions/{revision}/export",

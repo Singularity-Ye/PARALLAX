@@ -22,6 +22,7 @@ pub mod sale_research;
 pub mod selection;
 pub mod stability;
 pub mod strategy;
+pub mod strategy_catalog;
 pub mod strategy_review;
 pub mod strategy_transfer;
 

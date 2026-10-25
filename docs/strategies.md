@@ -6,6 +6,10 @@ v3增加钱包/持有观察目标与逐商品价格证据、未启用项、未�
 
 ## 继承什么，在哪里复用
 
+2026-10-25新增已实现规则目录：GET `/api/strategy-modules`返回items（module/name/order/requires/objectives/minimum_schema/purpose）、scope=implemented_research_rules、holding_minimum_schema=3、execution_allowed=false，同源/no-store。策略中心“已实现规则与依赖”按顺序展示七条已支持规则，失败只影响目录、可重试。目录是当前规则说明，最终保存校验仍由StrategyDraft负责，不宣称迁移原项目全部模块或支持任意编排。domain/strategy_catalog的定向测试核对支持项、顺序与依赖；没有修改计算或快照格式。
+
+目录切片验证：定向测试、fmt、Clippy、JS语法和debug构建通过；真实页面七项显示及CV历史覆盖依赖展开通过，无脚本错误。本切片未重跑全量测试。
+
 原版 `app/strategy_engine.py`、`app/routes/strategies.py` 和 `tests/test_strategies.py` 提供了模块、参数 schema、顺序/依赖、保存与模拟的思路。本版先迁移购入研究子集，不运行 Python/自定义代码，也不复制原模拟接口的预置结果。
 
 - `domain/strategy.rs`：固定模块枚举、参数/依赖校验与纯规则解释。复用 `positions::remaining_units`、计划的费用估值、历史已保存的稳定性/P10和共享 FX 校验。
