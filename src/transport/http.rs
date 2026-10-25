@@ -100,6 +100,7 @@ pub fn router(state: AppState) -> Router {
         .route("/lib/watch-comparison.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/watch-comparison.js")) }))
         .route("/lib/candidate-comparison.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/candidate-comparison.js")) }))
         .route("/lib/strategy-transfer.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/strategy-transfer.js")) }))
+        .route("/lib/replanning.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/replanning.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/lib/currencies.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/currencies.js")) }))
         .route("/lib/pricing-fields.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pricing-fields.js")) }))
@@ -114,6 +115,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/scans/{id}/cancel", post(cancel))
         .route("/api/plans", get(plans).post(create_plan).layer(DefaultBodyLimit::max(2 * 1024 * 1024)))
         .route("/api/plans/{id}", get(plan))
+        .route("/api/plans/replan", post(replan).layer(DefaultBodyLimit::max(2 * 1024 * 1024)))
         .route("/api/trades", post(|| async { error(StatusCode::NOT_IMPLEMENTED, "真实交易执行尚未迁移；未创建订单") }))
         .fallback(|| async { error(StatusCode::NOT_FOUND, "接口或资源不存在") })
         .layer(DefaultBodyLimit::max(32 * 1024))
@@ -176,6 +178,15 @@ async fn cancel(
 }
 async fn plans(State(app): State<AppState>) -> Result<Json<serde_json::Value>, ApiError> {
     Ok(Json(json!({"items":app.plans().await.map_err(app_error)?})))
+}
+async fn replan(
+    State(app): State<AppState>,
+    body: Result<Json<crate::domain::replanning::ReplanRequest>, JsonRejection>,
+) -> Result<(StatusCode, Json<PlanPreview>), ApiError> {
+    Ok((
+        StatusCode::CREATED,
+        Json(app.replan(input(body)?).await.map_err(app_error)?),
+    ))
 }
 async fn plan(
     State(app): State<AppState>,

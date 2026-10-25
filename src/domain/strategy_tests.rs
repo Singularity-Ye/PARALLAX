@@ -30,6 +30,7 @@ pub(crate) fn fixture(
         &scan_request,
     ));
     let request = PlanRequest {
+        selected_item_keys: None,
         scan_id: scan.id.clone(),
         budget_cents: 10000,
         target_wallet_cents: None,

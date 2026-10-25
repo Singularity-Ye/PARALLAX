@@ -14,6 +14,8 @@ fn default_position_age() -> u64 {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct PlanRequest {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selected_item_keys: Option<Vec<String>>,
     pub scan_id: String,
     pub budget_cents: u64,
     pub target_wallet_cents: Option<u64>,
@@ -35,6 +37,20 @@ pub struct PlanRequest {
 }
 impl PlanRequest {
     pub fn validate(&self) -> Result<(), String> {
+        if let Some(keys) = &self.selected_item_keys {
+            let mut unique = std::collections::HashSet::new();
+            if keys.is_empty()
+                || keys.len() > 100
+                || keys.iter().any(|k| {
+                    k.is_empty()
+                        || k.len() > 500
+                        || !unique.insert(k)
+                        || k.chars().any(char::is_control)
+                })
+            {
+                return Err("选品范围需1–100个唯一商品标识".into());
+            }
+        }
         let mut buff_ids = std::collections::HashSet::new();
         if self.buff_snapshot_ids.len() > 20
             || self
@@ -107,6 +123,8 @@ pub struct SkippedItem {
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanPreview {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub research_origin: Option<super::replanning::ResearchOrigin>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fx: Option<super::fx::FxSnapshot>,
     pub id: String,
@@ -193,6 +211,12 @@ pub fn preview_with_fx_quotes(
     }
     if report.id != request.scan_id || report.status != "completed" {
         return Err("只能从已完成的扫描创建计划，请先完成或重新扫描".into());
+    }
+    if request.selected_item_keys.as_ref().is_some_and(|keys| {
+        keys.iter()
+            .any(|k| !report.candidates.iter().any(|c| &c.item.key == k))
+    }) {
+        return Err("所选商品不在当前扫描范围内".into());
     }
     let reserved = request
         .position_snapshot
@@ -345,6 +369,7 @@ pub fn preview_with_fx_quotes(
             .then(a.item.key.cmp(&b.item.key))
     });
     let mut plan = PlanPreview {
+        research_origin: None,
         fx: fx.cloned(),
         id: uuid::Uuid::new_v4().to_string(),
         created_at: at,
@@ -392,7 +417,14 @@ pub fn preview_with_fx_quotes(
         plan.execution_blockers.push("使用固定演示数据".into());
     }
     for candidate in candidates {
-        let reason = if cash_overrides
+        let reason = if plan
+            .request
+            .selected_item_keys
+            .as_ref()
+            .is_some_and(|keys| !keys.contains(&candidate.item.key))
+        {
+            Some("未被本次明确选择，保留原扫描范围")
+        } else if cash_overrides
             .get(candidate.item.key.as_str())
             .is_some_and(|(_, units, _)| *units == 0)
         {
@@ -652,6 +684,7 @@ mod tests {
             })
             .collect();
         let request = PlanRequest {
+            selected_item_keys: None,
             scan_id: report.id.clone(),
             budget_cents: 1800,
             target_wallet_cents: None,

@@ -2,6 +2,7 @@ import {parallax} from './lib/api.js';
 import {comparisonPanel} from './lib/watch-comparison.js';
 import {candidateComparison} from './lib/candidate-comparison.js';
 import {strategyTransfer} from './lib/strategy-transfer.js';
+import {researchReplanning} from './lib/replanning.js';
 import {pricingEditor,feeEditor} from './lib/pricing-fields.js';
 import {exitValuationView} from './lib/pricing-view.js';
 const el=id=>document.getElementById(`strategy-${id}`);
@@ -160,6 +161,7 @@ function render(e,persisted=true){
     box.append(section);
   }
   for(const text of e.execution_blockers)box.append(node('p',text));
+  if(persisted)box.append(researchReplanning(e));
 }
 async function records(){
   const {items}=await parallax.strategyEvaluations();const fragment=document.createDocumentFragment();

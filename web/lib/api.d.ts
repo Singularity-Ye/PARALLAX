@@ -32,6 +32,7 @@ export interface ScanReport {
   finished_at:number|null; coverage:Coverage; candidates:Candidate[]; error:string|null;
 }
 export interface PlanRequest {
+  selected_item_keys?:string[]|null;
   scan_id:string; budget_cents:number; target_wallet_cents:number|null;
   max_units_per_item:number; max_positions:number; max_quote_age_secs:number;
   position_snapshot?:PositionSnapshot|null; liquidity_policy?:LiquidityPolicy|null;max_position_age_secs?:number;
@@ -41,6 +42,7 @@ export interface PlanRequest {
 export interface PositionSnapshot {account_id:string;observed_at:number;reserved_cash_cents:number;entries:{key:string;held_units:number;pending_buy_units:number;available_units:number|null;daily_volume:number|null}[];}
 export interface LiquidityPolicy {volume_limit_enabled?:boolean;low_price_guard_enabled?:boolean;participation_bps:number;low_price_threshold_cents:number;low_price_penalty_bps:number;low_price_cap:number;}
 export interface PlanPreview {
+  research_origin?:{evaluation_id:string;parent_plan_id:string;account_id:string|null;research_at:number;strategy:StrategyVersion;selected_decisions:StrategyEvaluation['items'];new_plan_research_required:true};
   fx?:FxSnapshot;
   id:string; created_at:number; status:'preview_only'; algorithm:'ratio_greedy_v1'|'ratio_greedy_v2';
   source:SourceKind; source_coverage:Coverage; source_stop_reason:string; request:PlanRequest;
@@ -138,6 +140,7 @@ export const parallax: {
   importStrategy(packageData:StrategyPackage):Promise<StrategyVersion>;
   strategyModules():Promise<{items:RuleDescriptor[];scope:'implemented_research_rules';holding_minimum_schema:3;execution_allowed:false}>;
   previewStrategy(value:StrategyEvaluationRequest):Promise<{persisted:false;scope:'saved_evidence_rule_preview';evaluation:StrategyEvaluation}>;
+  replan(value:{evaluation_id:string;request:PlanRequest}):Promise<PlanPreview>;
   exportStrategy(id:string,revision:number):Promise<StrategyPackage>;
   createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;

@@ -85,6 +85,7 @@ function renderPlan(plan) {
     node('p', `计划现金 ${money(plan.cash_total_cents)} · 已填报预留 ${money(plan.reserved_cash_cents || 0)} · 剩余预算 ${money(plan.remaining_budget_cents)} · 估算钱包 ${money(plan.estimated_wallet_total_cents)}`),
     node('p', `${plan.wallet_policy?.kind==='parameterized_fees'?'自填费用模型估算':'1.15 比例估算'} · ${plan.position_source==='manual_unverified'?'仓位来源：用户手动填报，未平台核验':'未使用账户仓位快照'}`,'hint'));
   const policyLimits=plan.request.liquidity_policy;
+  if(plan.research_origin)box.append(node('p',`重新规划来源：研究 ${plan.research_origin.evaluation_id} · 原预算 ${plan.research_origin.parent_plan_id} · 策略v${plan.research_origin.strategy.revision}。旧结论仅作选品依据，需对新计划重新研究。`,'hint'));
   if(policyLimits)box.append(node('p',`本计划限购：日量约束${policyLimits.volume_limit_enabled!==false?'启用':'未启用'}；低价保护${policyLimits.low_price_guard_enabled!==false?'启用':'未启用'}。硬上限及所引用持有/未决扣减仍保留。`,'hint'));
   if (plan.target_met !== null) box.append(node('p', plan.target_met ? '已达到估算钱包目标（整件分配可能略超目标）。' : '未达到估算钱包目标，请查看预算与跳过原因。'));
   for(const evidence of plan.steam_valuations || [])box.append(node('p',`Steam 估值引用 ${evidence.snapshot_id} · ${evidence.market_hash_name} · 最低卖价 ${money(evidence.gross_listing_estimate_cents)}；为慢卖估算，不保证成交。`,'hint'));
@@ -135,3 +136,4 @@ el('plan-form').addEventListener('submit', async event => {
   finally {el('plan-create').disabled=current?.status !== 'completed';}
 });
 planHistory().catch(e=>el('plan-history').textContent=`计划记录读取失败：${e.message}；请检查本地服务后重试。`);
+window.addEventListener('parallax:plan-replanned',({detail})=>{renderPlan(detail);location.hash='planning';planFeedback('已打开按研究选择的新预算；请对新数量重新保存研究。');planHistory().catch(e=>planFeedback(`预算已保存，列表刷新失败：${e.message}`,true));});

@@ -17,6 +17,7 @@ pub mod planning;
 pub mod positions;
 pub mod preflight;
 pub mod pricing;
+pub mod replanning;
 pub mod risk;
 pub mod sale_research;
 pub mod selection;
