@@ -1,6 +1,7 @@
 import {parallax} from './lib/api.js';
 import {comparisonPanel} from './lib/watch-comparison.js';
 import {candidateComparison} from './lib/candidate-comparison.js';
+import {strategyTransfer} from './lib/strategy-transfer.js';
 import {pricingEditor,feeEditor} from './lib/pricing-fields.js';
 import {exitValuationView} from './lib/pricing-view.js';
 const el=id=>document.getElementById(`strategy-${id}`);
@@ -90,6 +91,7 @@ function lock(value){
   for(const id of ['new','select','version','refresh'])el(id).disabled=value;
   if(!value){fields();el('version').disabled=!loaded;ready();}
 }
+strategyTransfer(el('transfer'),()=>loaded,()=>busy||refreshing,()=>heads());
 el('form').onsubmit=async event=>{
   event.preventDefault();if(busy)return;
   const value=draft(),previous=loaded;lock(true);el('save-feedback').textContent='正在保存不可覆盖的新版本…';

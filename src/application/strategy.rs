@@ -16,6 +16,23 @@ impl<
     pub async fn create(&self, draft: StrategyDraft) -> Result<StrategyVersion, AppError> {
         self.save(uuid::Uuid::new_v4().to_string(), 0, draft).await
     }
+    pub async fn import(
+        &self,
+        package: crate::domain::strategy_transfer::StrategyPackage,
+    ) -> Result<StrategyVersion, AppError> {
+        package.validate().map_err(AppError::Invalid)?;
+        self.create(package.draft).await
+    }
+    pub async fn export(
+        &self,
+        id: String,
+        revision: u32,
+    ) -> Result<crate::domain::strategy_transfer::StrategyPackage, AppError> {
+        let version = self.version(id, revision).await?;
+        Ok(crate::domain::strategy_transfer::StrategyPackage::new(
+            version.draft,
+        ))
+    }
     pub async fn revise(
         &self,
         id: String,

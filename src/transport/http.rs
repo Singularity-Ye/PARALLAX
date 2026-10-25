@@ -99,6 +99,7 @@ pub fn router(state: AppState) -> Router {
         .route("/plan-inputs.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/plan-inputs.js")) }))
         .route("/lib/watch-comparison.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/watch-comparison.js")) }))
         .route("/lib/candidate-comparison.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/candidate-comparison.js")) }))
+        .route("/lib/strategy-transfer.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/strategy-transfer.js")) }))
         .route("/lib/api.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/api.js")) }))
         .route("/lib/currencies.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/currencies.js")) }))
         .route("/lib/pricing-fields.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pricing-fields.js")) }))

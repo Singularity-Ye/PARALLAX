@@ -23,6 +23,8 @@ export const parallax = {
   holdingResearches: account => request(`/api/accounts/${encodeURIComponent(account)}/holding-research`),
   holdingResearch: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/holding-research/${encodeURIComponent(id)}`),
   holdingComparison: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/holding-research/${encodeURIComponent(id)}/comparison`),
+  importStrategy: packageData => request('/api/strategies/import',{method:'POST',body:JSON.stringify(packageData)}),
+  exportStrategy: (id,revision) => request(`/api/strategies/${encodeURIComponent(id)}/versions/${revision}/export`),
   createHoldingResearch: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/holding-research`,value),
 
   buffOrderObservations: account => request(`/api/accounts/${encodeURIComponent(account)}/buff-order-observations`),

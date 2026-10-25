@@ -23,6 +23,7 @@ pub mod selection;
 pub mod stability;
 pub mod strategy;
 pub mod strategy_review;
+pub mod strategy_transfer;
 
 pub mod holding_research;
 mod strategy_history;

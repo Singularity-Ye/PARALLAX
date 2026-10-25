@@ -27,6 +27,101 @@ async fn call(app: Router, method: &str, path: &str, body: Value) -> (StatusCode
     (status, serde_json::from_slice(&bytes).unwrap())
 }
 #[tokio::test]
+async fn strategy_transfer_roundtrip_creates_new_identity_and_rejects_unsupported_packages() {
+    let db = Store::open(Path::new(":memory:")).unwrap();
+    let service = StrategyResearch::new(db.clone());
+    let (s, _, _, _) = fixture(now());
+    let first = service.create(s.draft.clone()).await.unwrap();
+    let mut changed = s.draft.clone();
+    changed.name = "revised name".into();
+    service
+        .revise(first.strategy_id.clone(), 1, changed)
+        .await
+        .unwrap();
+    let app = router(service.clone());
+    let export_url = format!("/api/strategies/{}/versions/1/export", first.strategy_id);
+    let (status, package) = call(app.clone(), "GET", &export_url, Value::Null).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(package["draft"], serde_json::to_value(&s.draft).unwrap());
+    assert_eq!(package.as_object().unwrap().len(), 3);
+    let (status, imported) = call(
+        app.clone(),
+        "POST",
+        "/api/strategies/import",
+        package.clone(),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CREATED);
+    assert_ne!(imported["strategy_id"], first.strategy_id);
+    assert_eq!(imported["revision"], 1);
+    assert_eq!(imported["draft"], package["draft"]);
+    assert_eq!(
+        service
+            .versions(first.strategy_id.clone())
+            .await
+            .unwrap()
+            .len(),
+        2
+    );
+    for (key, value, expected) in [
+        ("format_version", json!(2), StatusCode::BAD_REQUEST),
+        ("format", json!("python_strategy"), StatusCode::BAD_REQUEST),
+        (
+            "credentials",
+            json!("synthetic"),
+            StatusCode::UNPROCESSABLE_ENTITY,
+        ),
+    ] {
+        let mut invalid = package.clone();
+        invalid[key] = value;
+        assert_eq!(
+            call(app.clone(), "POST", "/api/strategies/import", invalid)
+                .await
+                .0,
+            expected
+        );
+    }
+    let mut invalid = package.clone();
+    invalid["draft"]["rules"] = json!([]);
+    assert_eq!(
+        call(app.clone(), "POST", "/api/strategies/import", invalid)
+            .await
+            .0,
+        StatusCode::BAD_REQUEST
+    );
+    let mut invalid = package.clone();
+    invalid["draft"]["rules"][0]["module"] = json!("execute_python");
+    assert_eq!(
+        call(app.clone(), "POST", "/api/strategies/import", invalid)
+            .await
+            .0,
+        StatusCode::UNPROCESSABLE_ENTITY
+    );
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post("/api/strategies/import")
+                .header("origin", "https://elsewhere.invalid")
+                .header("content-type", "application/json")
+                .body(Body::from(package.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    let response = app
+        .oneshot(
+            Request::post("/api/strategies/import")
+                .header("content-type", "application/json")
+                .body(Body::from(" ".repeat(16385)))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    assert_eq!(service.heads().await.unwrap().len(), 2);
+}
+#[tokio::test]
 async fn http_version_conflict_and_immutable_research_roundtrip_after_reopen() {
     let path = std::env::temp_dir().join(format!("parallax-strategy-{}.db", uuid::Uuid::new_v4()));
     let store = Store::open(&path).unwrap();

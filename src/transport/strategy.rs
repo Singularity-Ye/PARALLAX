@@ -30,6 +30,11 @@ pub fn router<
 ) -> Router {
     Router::new()
         .route("/api/strategies", get(heads::<R>).post(create::<R>))
+        .route("/api/strategies/import", axum::routing::post(import::<R>))
+        .route(
+            "/api/strategies/{id}/versions/{revision}/export",
+            get(export::<R>),
+        )
         .route(
             "/api/strategies/{id}/versions",
             get(versions::<R>).post(revise::<R>),
@@ -62,6 +67,25 @@ async fn heads<
     State(app): State<Arc<StrategyResearch<R>>>,
 ) -> Result<Json<Value>, ApiError> {
     Ok(Json(json!({"items":app.heads().await.map_err(app_error)?})))
+}
+async fn import<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
+    State(app): State<Arc<StrategyResearch<R>>>,
+    body: Result<Json<crate::domain::strategy_transfer::StrategyPackage>, JsonRejection>,
+) -> Result<(StatusCode, Json<StrategyVersion>), ApiError> {
+    Ok((
+        StatusCode::CREATED,
+        Json(app.import(input(body)?).await.map_err(app_error)?),
+    ))
+}
+async fn export<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
+    State(app): State<Arc<StrategyResearch<R>>>,
+    Path((id, revision)): Path<(String, u32)>,
+) -> Result<Json<crate::domain::strategy_transfer::StrategyPackage>, ApiError> {
+    Ok(Json(app.export(id, revision).await.map_err(app_error)?))
 }
 async fn versions<
     R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,

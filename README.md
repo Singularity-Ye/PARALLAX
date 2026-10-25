@@ -52,6 +52,8 @@ Steam真实登录反馈已修正：不再用会循环的 `/my/?xml=1` 作为首�
 
 独立研究新增**所选商品横向比较**：并列原币日价/覆盖/CV/趋势/P10及未满足/未知规则，按来源、币种、日期范围和算法分组，不另建评分或隐藏淘汰项。只读取保存证据，不请求平台。历史行情可用于后续回放，本地记录保留当时决策过程，两者分工及SteamDT官方接口核查见[横向比较](docs/candidate-comparison.md)。
 
+原项目M09策略复用细则继续迁移：可导出准确保存版本的JSON规则包、下载或重新导入为新策略v1，沿用现有规则/依赖校验，不覆盖旧策略、不激活。当前仅支持Parallax包；原Python格式、自定义模块与激活仍待。见[策略导入导出](docs/strategy-transfer.md)。
+
 ## 快速运行
 
 主机使用 Rust 1.99.1（`rust-toolchain.toml` 锁定）、MSVC C++ Build Tools 与 Windows SDK。依赖版本记录在 `Cargo.lock`。SQLite 编译进程序。

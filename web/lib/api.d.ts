@@ -135,6 +135,8 @@ export const parallax: {
   holdingResearches(account:string):Promise<{items:HoldingResearchSummary[]}>;
   holdingResearch(account:string,id:string):Promise<HoldingResearchReport>;
   holdingComparison(account:string,id:string):Promise<CandidateComparison>;
+  importStrategy(packageData:StrategyPackage):Promise<StrategyVersion>;
+  exportStrategy(id:string,revision:number):Promise<StrategyPackage>;
   createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;
   priceHistory(account:string,id:string):Promise<HistorySnapshot>;
@@ -305,6 +307,7 @@ export interface CandidateRow {
  usable_days:number|null;missing_days:number|null;comparison_group:number|null;failed_rules:string[];unknown_rules:string[];
 }
 export interface CandidateComparison {report_id:string;strategy_id:string;revision:number;research_at:number;rows:CandidateRow[];limitations:string[];execution_allowed:false;}
+export interface StrategyPackage {format:'parallax_strategy';format_version:1;draft:StrategyDraft;}
 export interface WatchComparison {
  item_key:string;baseline_observation_id:string;later_observation_id:string;baseline_fixed_at:number;
  baseline_collected_at:number;later_collected_at:number;baseline_research_at:number;later_research_at:number;
