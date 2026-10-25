@@ -22,6 +22,7 @@ export const parallax = {
   observeWatch: (a,id,v) => post(`/api/accounts/${encodeURIComponent(a)}/watchlist/${encodeURIComponent(id)}/observations`,v),
   holdingResearches: account => request(`/api/accounts/${encodeURIComponent(account)}/holding-research`),
   holdingResearch: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/holding-research/${encodeURIComponent(id)}`),
+  holdingComparison: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/holding-research/${encodeURIComponent(id)}/comparison`),
   createHoldingResearch: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/holding-research`,value),
 
   buffOrderObservations: account => request(`/api/accounts/${encodeURIComponent(account)}/buff-order-observations`),

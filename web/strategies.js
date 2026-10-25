@@ -1,5 +1,6 @@
 import {parallax} from './lib/api.js';
 import {comparisonPanel} from './lib/watch-comparison.js';
+import {candidateComparison} from './lib/candidate-comparison.js';
 import {pricingEditor,feeEditor} from './lib/pricing-fields.js';
 import {exitValuationView} from './lib/pricing-view.js';
 const el=id=>document.getElementById(`strategy-${id}`);
@@ -206,6 +207,7 @@ function renderHolding(report){
   currentHolding=report;
   const box=el('holding-result');box.replaceChildren(node('h3',`${report.strategy.draft.name} · ${labels[report.status]} · 仅历史观察`),node('p',`${date(report.created_at)} · ${report.items.length} 个显式选择商品 · 不依赖榜单或预算`));
   if(report.unchecked_rules.length)box.append(node('p',`未启用规则：${report.unchecked_rules.map(k=>modules[k]??k).join('、')}`));
+  box.append(candidateComparison(report,()=>currentHolding===report&&el('account').value===report.account_id,modules));
   for(const item of report.items){const section=node('details');section.open=true;section.append(node('summary',`${item.item_key} · ${labels[item.status]}`));renderRuleDecisions(section,item);
     const add=node('button','关注此商品');add.type='button';add.onclick=()=>{el('watch-name').value=item.item_key;el('watch-reason').focus();};section.append(add);box.append(section);}
   for(const text of report.limitations)box.append(node('p',text,'hint'));

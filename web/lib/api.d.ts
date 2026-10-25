@@ -134,6 +134,7 @@ export const parallax: {
   observeWatch:(account:string,id:string,value:{research_id:string})=>Promise<WatchObservation>;
   holdingResearches(account:string):Promise<{items:HoldingResearchSummary[]}>;
   holdingResearch(account:string,id:string):Promise<HoldingResearchReport>;
+  holdingComparison(account:string,id:string):Promise<CandidateComparison>;
   createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;
   priceHistory(account:string,id:string):Promise<HistorySnapshot>;
@@ -297,6 +298,13 @@ export interface WatchItem {id:string;account_id:string;app_id:730;item_key:stri
 export interface WatchObservation {id:string;watch_id:string;account_id:string;recorded_at:number;research:HoldingResearchReport;}
 
 export interface WatchBaseline {account_id:string;watch_id:string;fixed_at:number;observation:WatchObservation;}
+export interface CandidateRow {
+ item_key:string;status:ResearchStatus;history_id:string|null;observed_at:number|null;
+ from_utc_day:number|null;until_utc_day_exclusive:number|null;reference_price:Money|null;reference_utc_day:number|null;
+ raw_cv_bps:number|null;clean_cv_bps:number|null;trend_bps_per_day:number|null;calendar_p10_bps:number|null;
+ usable_days:number|null;missing_days:number|null;comparison_group:number|null;failed_rules:string[];unknown_rules:string[];
+}
+export interface CandidateComparison {report_id:string;strategy_id:string;revision:number;research_at:number;rows:CandidateRow[];limitations:string[];execution_allowed:false;}
 export interface WatchComparison {
  item_key:string;baseline_observation_id:string;later_observation_id:string;baseline_fixed_at:number;
  baseline_collected_at:number;later_collected_at:number;baseline_research_at:number;later_research_at:number;

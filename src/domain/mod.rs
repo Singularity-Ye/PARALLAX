@@ -29,4 +29,5 @@ mod strategy_history;
 
 pub mod watchlist;
 
+pub mod candidate_comparison;
 pub mod watch_comparison;

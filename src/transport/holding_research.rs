@@ -29,6 +29,10 @@ pub fn router<
             "/api/accounts/{account}/holding-research/{id}",
             get(detail::<R>),
         )
+        .route(
+            "/api/accounts/{account}/holding-research/{id}/comparison",
+            get(comparison::<R>),
+        )
         .layer(DefaultBodyLimit::max(4096))
         .layer(axum::middleware::from_fn(same_origin))
         .layer(axum::middleware::from_fn(
@@ -70,6 +74,18 @@ async fn detail<
     Path((account, id)): Path<(String, String)>,
 ) -> Result<Json<HoldingResearchReport>, ApiError> {
     Ok(Json(s.get(&account, id).await.map_err(app_error)?))
+}
+
+async fn comparison<
+    R: AccountRepository + StrategyRepository + HistoryRepository + HoldingResearchRepository,
+>(
+    State(s): State<Arc<HoldingResearchService<R>>>,
+    Path((account, id)): Path<(String, String)>,
+) -> Result<Json<crate::domain::candidate_comparison::CandidateComparison>, ApiError> {
+    let report = s.get(&account, id).await.map_err(app_error)?;
+    Ok(Json(crate::domain::candidate_comparison::summarize(
+        &report,
+    )))
 }
 
 #[cfg(test)]
@@ -147,6 +163,33 @@ mod tests {
             serde_json::from_slice(&to_bytes(response.into_body(), 2_000_000).await.unwrap())
                 .unwrap();
         assert_eq!(report.status, crate::domain::strategy::ResearchStatus::Pass);
+        let comparison_url = format!("{url}/{}/comparison", report.id);
+        let response = app
+            .clone()
+            .oneshot(Request::get(&comparison_url).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        let comparison: Value =
+            serde_json::from_slice(&to_bytes(response.into_body(), 2_000_000).await.unwrap())
+                .unwrap();
+        assert_eq!(comparison["report_id"], report.id);
+        assert_eq!(comparison["rows"][0]["status"], "pass");
+        assert_eq!(comparison["execution_allowed"], false);
+        let response = app
+            .clone()
+            .oneshot(
+                Request::get(format!(
+                    "/api/accounts/other/holding-research/{}/comparison",
+                    report.id
+                ))
+                .body(Body::empty())
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
         assert!(store.insert_holding_research(report.clone()).await.is_err());
         let other = Account {
             id: "other".into(),
