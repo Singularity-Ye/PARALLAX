@@ -142,9 +142,34 @@ async fn http_version_conflict_and_immutable_research_roundtrip_after_reopen() {
     assert_eq!(status, StatusCode::CREATED);
     let saved: StrategyVersion = serde_json::from_value(v).unwrap();
     req.strategy_id = saved.strategy_id.clone();
+    let (status, preview) = call(
+        app.clone(),
+        "POST",
+        "/api/strategy-evaluations/preview",
+        json!(req),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(preview["persisted"], false);
+    assert_eq!(preview["evaluation"]["status"], "pass");
+    assert_eq!(preview["evaluation"]["execution_allowed"], false);
+    assert!(store.evaluations().await.unwrap().is_empty());
+    let transient_id = preview["evaluation"]["id"].as_str().unwrap();
+    assert_eq!(
+        call(
+            app.clone(),
+            "GET",
+            &format!("/api/strategy-evaluations/{transient_id}"),
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
     let (status, e) = call(app.clone(), "POST", "/api/strategy-evaluations", json!(req)).await;
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(e["status"], "pass");
+    assert_eq!(e["items"], preview["evaluation"]["items"]);
     assert_eq!(e["execution_allowed"], false);
     let id = e["id"].as_str().unwrap().to_owned();
     let url = format!("/api/strategies/{}/versions", saved.strategy_id);

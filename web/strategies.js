@@ -26,7 +26,7 @@ function fields(){
   for(const name of ['cv','trend','p10'])el(`${name}-fields`).disabled=!el(`${name}-enabled`).checked;
 }
 for(const id of ['objective','history','cv-enabled','trend-enabled','p10-enabled','exit-enabled'])el(id).onchange=fields;
-function ready(){el('holding-evaluate').disabled=busy||refreshing||!loaded||loaded.draft.objective!=='holding'||!el('account').value||!el('holding-choices').querySelector('input:checked');el('evaluate').disabled=busy||refreshing||!loaded||!el('plan').value;el('save').disabled=busy||refreshing||(!loaded&&!!el('select').value);}
+function ready(){el('holding-evaluate').disabled=busy||refreshing||!loaded||loaded.draft.objective!=='holding'||!el('account').value||!el('holding-choices').querySelector('input:checked');el('evaluate').disabled=busy||refreshing||!loaded||!el('plan').value;el('preview').disabled=el('evaluate').disabled;el('save').disabled=busy||refreshing||(!loaded&&!!el('select').value);}
 function showVersion(v){
   loaded=v;const d=v.draft;
   el('objective').value=d.objective??'wallet_conversion';
@@ -138,10 +138,11 @@ for(const id of ['account','plan'])el(id).onchange=()=>{
   choicesRequest++;el('history-choices').replaceChildren(node('p','正在读取可引用的历史…'));el('book-choices').replaceChildren();
   choices().catch(e=>{el('evaluation-feedback').textContent=`历史选择读取失败：${e.message}`;});ready();
 };
-function render(e){
+function render(e,persisted=true){
   const holding=e.strategy.draft.objective==='holding';
   const outcome=e.status==='pass'&&holding?'满足持有观察规则（非买入建议）':labels[e.status];
   const box=el('result');box.replaceChildren(node('h3',`${e.strategy.draft.name} · v${e.strategy.revision} · ${outcome}`),node('p',`${date(e.created_at)} · ${holding?'持有观察':'换Steam余额'} · ${e.plan.source==='demo'?'演示数据':'SteamDT 候选'} · ${e.items.length} 件计划商品 · 仅研究，未下单`));
+  if(!persisted)box.prepend(node('p','本次仅试算，未保存。刷新后不保留，也不能用于采购预检；保存研究会按当时有效性重新检查。'));
   if(!e.items.length)box.append(node('p','计划中没有可研究的商品，不能作为通过。'));
   for(const item of e.items){
     const section=node('details');section.open=true;section.append(node('summary',`${item.item_key} · ${labels[item.status]}`));
@@ -171,12 +172,14 @@ async function records(){
 }
 el('evaluation-form').onsubmit=async event=>{
   event.preventDefault();if(busy||!loaded)return;
+  const previewOnly=event.submitter?.id==='strategy-preview';
   const request={strategy_id:loaded.strategy_id,revision:loaded.revision,plan_id:el('plan').value,account_id:el('account').value||null,history_snapshot_ids:[...el('history-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean),order_book_snapshot_ids:loaded.draft.rules.some(r=>r.module==='stress_exit_ratio')?[...el('book-choices').querySelectorAll('select')].map(s=>s.value).filter(Boolean):[]};
   lock(true);el('evaluation-feedback').textContent='正在按已保存版本研究证据…';
   try{
+    if(previewOnly){const result=await parallax.previewStrategy(request);render(result.evaluation,false);el('evaluation-feedback').textContent='试算完成，未保存记录、未请求平台；不是历史回测或试买。';return;}
     const e=await parallax.evaluateStrategy(request);render(e);window.dispatchEvent(new Event('parallax:research-saved'));el('evaluation-feedback').textContent='研究预览已保存，未发起平台请求或创建订单。';
     try{await records();}catch(err){el('evaluation-feedback').textContent=`研究已保存，记录刷新失败：${err.message}`;}
-  }catch(e){el('evaluation-feedback').textContent=`本次未保存新研究：${e.message}；输入与原结果保留。`;}
+  }catch(e){el('evaluation-feedback').textContent=`${previewOnly?'试算未完成':'本次未保存新研究'}：${e.message}；输入与原结果保留。`;}
   finally{lock(false);}
 };
 async function refresh(){

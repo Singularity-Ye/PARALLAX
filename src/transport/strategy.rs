@@ -49,6 +49,7 @@ pub fn router<
             get(list::<R>).post(evaluate::<R>),
         )
         .route("/api/strategy-evaluations/{id}", get(detail::<R>))
+        .route("/api/strategy-evaluations/preview", axum::routing::post(preview::<R>))
         .layer(DefaultBodyLimit::max(16 * 1024))
         .layer(axum::middleware::from_fn(same_origin))
         .layer(axum::middleware::from_fn(
@@ -151,6 +152,17 @@ async fn list<
     State(app): State<Arc<StrategyResearch<R>>>,
 ) -> Result<Json<Value>, ApiError> {
     Ok(Json(json!({"items":app.list().await.map_err(app_error)?})))
+}
+async fn preview<
+    R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,
+>(
+    State(app): State<Arc<StrategyResearch<R>>>,
+    body: Result<Json<StrategyEvaluationRequest>, JsonRejection>,
+) -> Result<Json<Value>, ApiError> {
+    let evaluation = app.preview(input(body)?).await.map_err(app_error)?;
+    Ok(Json(
+        json!({"persisted":false,"scope":"saved_evidence_rule_preview","evaluation":evaluation}),
+    ))
 }
 async fn detail<
     R: StrategyRepository + Repository + HistoryRepository + AccountRepository + OrderBookRepository,

@@ -84,6 +84,15 @@ impl<
         &self,
         request: StrategyEvaluationRequest,
     ) -> Result<StrategyEvaluation, AppError> {
+        let evaluation = self.preview(request).await?;
+        self.repo.insert_evaluation(evaluation.clone()).await?;
+        Ok(evaluation)
+    }
+    /// The same evidence checks and calculations, without persisting a research record.
+    pub async fn preview(
+        &self,
+        request: StrategyEvaluationRequest,
+    ) -> Result<StrategyEvaluation, AppError> {
         request.validate().map_err(AppError::Invalid)?;
         let strategy = self
             .version(request.strategy_id.clone(), request.revision)
@@ -121,7 +130,6 @@ impl<
         let evaluation =
             evaluate_with_order_books(strategy, plan, histories, books, request, now())
                 .map_err(AppError::Invalid)?;
-        self.repo.insert_evaluation(evaluation.clone()).await?;
         Ok(evaluation)
     }
     pub async fn get(&self, id: String) -> Result<StrategyEvaluation, AppError> {

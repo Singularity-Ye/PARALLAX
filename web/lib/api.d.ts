@@ -137,6 +137,7 @@ export const parallax: {
   holdingComparison(account:string,id:string):Promise<CandidateComparison>;
   importStrategy(packageData:StrategyPackage):Promise<StrategyVersion>;
   strategyModules():Promise<{items:RuleDescriptor[];scope:'implemented_research_rules';holding_minimum_schema:3;execution_allowed:false}>;
+  previewStrategy(value:StrategyEvaluationRequest):Promise<{persisted:false;scope:'saved_evidence_rule_preview';evaluation:StrategyEvaluation}>;
   exportStrategy(id:string,revision:number):Promise<StrategyPackage>;
   createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;
