@@ -383,3 +383,60 @@ pub trait SaleResearchRepository: Send + Sync {
     ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::sale_research::SaleResearchSummary>>>
     + Send;
 }
+
+pub trait CheckoutRepository: Send + Sync {
+    fn observe_funding(
+        &self,
+        account: String,
+        request: crate::domain::funding::FundingRequest,
+        at: u64,
+    ) -> impl Future<
+        Output = anyhow::Result<
+            crate::domain::checkout::CheckoutOutcome<crate::domain::funding::FundingSnapshot>,
+        >,
+    > + Send;
+    fn funding_view(
+        &self,
+        account: String,
+        at: u64,
+    ) -> impl Future<
+        Output = anyhow::Result<
+            crate::domain::checkout::CheckoutOutcome<crate::domain::funding::FundingView>,
+        >,
+    > + Send;
+    fn prepare_intent(
+        &self,
+        account: String,
+        request: crate::domain::checkout::PrepareRequest,
+        at: u64,
+    ) -> impl Future<
+        Output = anyhow::Result<
+            crate::domain::checkout::CheckoutOutcome<crate::domain::checkout::PurchaseIntent>,
+        >,
+    > + Send;
+    fn cancel_intent(
+        &self,
+        account: String,
+        id: String,
+        request: crate::domain::checkout::CancelRequest,
+        at: u64,
+    ) -> impl Future<
+        Output = anyhow::Result<
+            crate::domain::checkout::CheckoutOutcome<crate::domain::checkout::PurchaseIntent>,
+        >,
+    > + Send;
+    fn purchase_intent(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::checkout::PurchaseIntent>>> + Send;
+    fn purchase_intents(
+        &self,
+        account: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::checkout::IntentSummary>>> + Send;
+    fn intent_events(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::checkout::IntentEvent>>> + Send;
+}

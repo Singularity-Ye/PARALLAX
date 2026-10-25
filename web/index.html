@@ -110,6 +110,12 @@
 <p id="records-feedback" role="status" aria-live="polite"></p>
 <section class="card" id="history"><div class="section-title"><h2>最近扫描</h2><span>02 / JOURNAL</span></div><div id="history-list">正在读取记录…</div></section>
 <section class="card"><div class="section-title"><h2>预算记录</h2><span>PLAN / JOURNAL</span></div><p class="hint">保存时的预览，未创建订单或预留资金。</p><div id="plan-history"></div></section>
+<section class="card"><div class="section-title"><h2>资金与采购准备</h2><span>CASH / LOCAL INTENT</span></div><p class="hint">资金观察由人工登记，按已核验的BUFF主体共享。这里只准备本地意图及预留额度，不锁单、不付款；Steam钱包（包括UAH）不当作BUFF现金。</p>
+<label>准备账户<select id="checkout-account"></select></label><button id="checkout-refresh" type="button" class="secondary">刷新资金与意图</button><p id="checkout-feedback" role="status" aria-live="polite"></p><div id="checkout-funds"></div>
+<details><summary>登记新的资金观察</summary><form id="checkout-funding-form"><label>可用现金 / CNY 分（尚未扣本地预留）<input id="checkout-cash" type="number" min="0" max="1000000000000" required></label><label>观察时间<input id="checkout-observed" type="datetime-local" step="1" required></label><label>观察凭据编号<input id="checkout-proof" maxlength="128" required></label><button id="checkout-observe">保存人工资金观察</button></form></details>
+<form id="checkout-prepare-form"><label>已保存的账户预检<select id="checkout-preflight" required></select></label><label>资金观察有效期 / 秒<input id="checkout-age" type="number" min="1" max="300" value="90" required></label><p class="hint">必须引用当前最新资金观察；所选证据与会话会在同一事务中重新检查。同一BUFF主体同时只保留一份未结束意图，过期/重启不自动释放。</p><button id="checkout-prepare" disabled>准备本地意图并预留额度</button></form>
+<h3>恢复已保存意图</h3><div id="checkout-records"></div><div id="checkout-result"></div>
+<form id="checkout-cancel-form"><label>取消本地准备的原因<input id="checkout-reason" maxlength="500" required></label><button id="checkout-cancel" disabled>取消尚未提交的本地意图</button></form><button id="checkout-events" type="button" class="secondary" disabled>查看意图事件</button><div id="checkout-event-list"></div></section>
 </section>
 <section class="page" data-page="analytics" id="page-analytics" hidden>
 <div class="notice">每份研究都保留来源与观察时间。不同币种、历史价格和实时盘口各有自己的含义。</div><div class="launch-grid"><a class="launch-card" href="#steam-research"><span class="launch-index">STEAM / ORDER BOOK</span><h2>公开盘口 ↗</h2><p>原币买卖档位、深度与价差。</p></a><a class="launch-card" href="#buff-research"><span class="launch-index">BUFF / CASH QUOTES</span><h2>现金报价 ↗</h2><p>真实候选首屏卖单与可见数量。</p></a><a class="launch-card" href="#price-history"><span class="launch-index">STEAM / PRICE HISTORY</span><h2>价格历史 ↗</h2><p>UTC 日线、七日收益与未知缺口。</p></a></div><section class="card"><h2>把研究与决策分开</h2><p>历史 P10 是过去样本，不是未来损失上限。预算只采用明确引用且通过校验的报价，不会因浏览研究而自动下单。</p><a class="text-link" href="#planning">查看预算计划 →</a></section>
@@ -179,5 +185,5 @@
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/shell.js" type="module"></script><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script><script src="/strategies.js" type="module"></script><script src="/preflight.js" type="module"></script><script src="/ledger.js" type="module"></script><script src="/sale-research.js" type="module"></script>
+<script src="/shell.js" type="module"></script><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script><script src="/strategies.js" type="module"></script><script src="/preflight.js" type="module"></script><script src="/ledger.js" type="module"></script><script src="/checkout.js" type="module"></script><script src="/sale-research.js" type="module"></script>
 </body></html>

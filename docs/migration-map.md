@@ -1,6 +1,6 @@
 # Parallax 原项目能力与迁移地图
 
-更新日期：2026-10-24。目标是覆盖原有能力，再逐模块迁移。本文描述设计与差距，不代表真实交易已接通。
+更新日期：2026-10-25。目标是覆盖原有能力，再逐模块迁移。本文描述设计与差距，不代表真实交易已接通。
 
 ## 证据范围
 
@@ -24,11 +24,11 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M06 | 手续费、币种、金额单位、展示价与到账价；R `utils/money.py`、`services/workers.py` 汇率任务 | domain/money；后续 adapters/exchange_rates | 整数费用已接扫描/计划；共享日参考汇率、缓存/持久化、七币种显示/定价/预算（含UAH）已接；保留默认1.15估算，实际账户费用和平台换汇结算仍待验证 |
 | M07 | 壁垒/断层定价、少量低档忽略、偏移；R `steam/market_orders.py:compute_smart_list_price` | domain/pricing；复用统一订单簿 | 人民币策略基准和原币精确定价规则/解释已迁移，接共享汇率、盘口研究与原币费用模型；空盘/单档/墙量/阈值边界等已测，平台定价效果及策略/预算引用待验收，见 pricing.md |
 | M08 | IQR/VWAP、CV、回归趋势/R²、EMA、历史分位/数据窗口；R `analysis/stability.py`、`services/analysis_client.py`、`utils/trend.py` | domain/risk、history、stability；application/history；HistoryProvider | UTC 日聚合/P10、IQR证据、原始/清洗CV、自然日EMA7/30、趋势/R²与历史区间位置已接不可覆盖研究；布林带/动态阈值/完整策略和真实历史待验收，见stability.md |
-| M09 | 买卖策略注册、步骤顺序、依赖、参数、导入导出、声明式自定义条件、模拟；R `app/strategy_engine.py`、`routes/strategies.py` | domain/strategy；application/strategy；版本化策略仓储 | 部分实现：购入研究v1六规则、v2可选压力净卖出规则，版本追加/并发冲突、显式计划/历史和三态解释；出售/激活/导入导出/自定义条件待迁移，不代表完整策略引擎或实盘效果 |
+| M09 | 买卖策略注册、步骤顺序、依赖、参数、导入导出、声明式自定义条件、模拟；R `app/strategy_engine.py`、`routes/strategies.py` | domain/strategy；application/strategy；版本化策略仓储 | 部分实现：购入研究v1六规则、v2可选压力净卖出规则，版本追加/并发冲突、显式计划/历史和三态解释；四模式成本出售研究已接；完整出售执行/激活/导入导出/自定义条件待迁移，不代表完整策略引擎或实盘效果 |
 | M10 | 采购硬上限、日量比例、低价惩罚、已有同名持仓扣减；R `purchase_limit.py`、`pipeline_steps.py` | domain/positions；复用订单/持仓快照 | 已接手动账户仓位、未决量、预留、可买量和日量约束；真实账户同步与执行风控待迁移 |
 | M11 | 候选研究、慢卖/快卖/风险估值、七日 P10、压力场景、报价过期、目标游戏价格与余额组合；A `candidate_report.py`、`routes/candidates.py` | domain/valuation、portfolio；application/research；复用 scanner、报价/历史端口 | 预算显式引用 Steam/BUFF 快照，分别校验时间；BUFF 账户/代次绑定且只按最低档可见数限量。平台效果、风险组合与完整快/慢卖待验收/迁移 |
-| M12 | 下单前复核、绑定具体选择的单次短时 token；A `routes/candidates.py`；R 购买前二次复核 | domain/application/preflight；不可覆盖选择/研究/上下文检查 | 部分实现：保存证据检查、原策略重算、账户/代次/时效/可见量与缺项记录已接；[合同](preflight.md)。实时刷新/价差容差、余额/完整库存/实际费用、短时单次授权与原子消费仍未迁移，不能执行历史预览 |
-| M13 | 单笔/批量锁单、付款提示、核销、写入未知阻断（R）；单笔确认后的平台付款/取消核验（A）；两版 `pipeline_steps.py`、`buff/buyer.py`、R `services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 未迁移，`POST /api/trades` 仍 501；R 单笔不能视为已完整核验付款；组合 A 核验与 R 防重，未知结果先对账 |
+| M12 | 下单前复核、绑定具体选择的单次短时 token；A `routes/candidates.py`；R 购买前二次复核 | domain/application/preflight；不可覆盖选择/研究/上下文检查 | 部分实现：保存证据检查、原策略重算、账户/代次/时效/可见量与缺项记录已接；[合同](preflight.md)。本地准备已原子重查证据/会话并绑定一次预检；实时刷新/价差容差、真实余额/完整库存/实际费用、短时单次执行授权与消费仍未迁移，不能执行历史预览 |
+| M13 | 单笔/批量锁单、付款提示、核销、写入未知阻断（R）；单笔确认后的平台付款/取消核验（A）；两版 `pipeline_steps.py`、`buff/buyer.py`、R `services/buff_checkout_guard.py` | domain/orders；application/checkout；adapters/buff_trade、order_journal | 部分本地底座：按BUFF主体共享人工CNY观察、原子预留、持久化意图/幂等/取消/重启恢复；[准备合同](checkout.md)。真实锁单/付款/核销/未知发送结果恢复未迁移，`POST /api/trades` 仍501；R单笔不等于完整付款核验 |
 | M14 | 工作时间窗、目标余额、停止、互斥、维护锁、失败商品 TTL；R `pipeline.py`、`pipeline_context.py`、`state.py` | application/orchestrator、scheduler；复用纯规则与持久化订单 | 未迁移；区分停止新动作、等待已发请求和补偿/对账 |
 | M15 | BUFF 发货贸易单、接受 Steam offer、购买记录到 asset 的唯一匹配；R `receive_flow.py` | application/receipt；adapters/steam_trade、buff_trade | 部分底座：人工采购批次、显式库存资产绑定及部分收货已接，跨批次占用唯一；[台账](ledger.md)。BUFF发货/Steam offer自动接收与线上匹配未迁移，不按同名猜绑定 |
 | M16 | 库存分页、可交易时间、冷却、解锁元数据；R `steam/inventory.py`、`inventory_cs2.py`；A `trade_ledger.py` | domain/application/inventory；adapters/steam_inventory | 部分实现：认证双区分页、范围/冲突拒绝、不可覆盖账户快照；真实协议未验收，解锁时间未知，不覆盖手工仓位；挂牌/未决/实际解锁待迁移 |
@@ -39,7 +39,7 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 | M21 | 好友、游戏版本、钱包、购物车 protobuf/gRPC、礼物结账；R `gift_engine.py`、`routes/gift.py`、`web/js/gift.js` | 独立 application/gifting；adapters/steam_cart | 未迁移；保留原能力作为后续边界，不纳入饰品订单状态机 |
 | M22 | 配置校验/导入导出、SQLite/旧 JSON 迁移、通知/邮件、日志导出、代理/节流/重试、网络检查、任务队列、后台工作者、运行模式/桌面壳/容器 | application/jobs、notifications；adapters/config、network、runtime；transport | 仅本地 SQLite 扫描与计划/HTTP/嵌入页面已实现；旧桌面壳与 Docker 需单独迁移决策 |
 | M23 | 账户/Guard/策略/交易/代理/配置/礼物/折扣/控制台 UI、主题、audit 候选与账本页；两版 `web/*` | 前端调用统一 HTTP API，业务计算留 Rust | 已按原功能拆左侧分页导航与纸感视觉基线；现有扫描/预算/账号/研究/库存复用原模块，未迁移页明确标记；完整业务仍待迁移，见 frontend.md |
-| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前完整回归135项通过，2项默认忽略；策略研究/历史指标/定价/库存/BUFF使用合成夹具；公开FX/Steam及浏览器/凭据沿用独立证据；旧测试未逐项移植 |
+| M24 | 单元/集成测试、启动脚本、依赖、GPL/NOTICE、示例素材 | tests + 工程配置；素材不作业务代码迁移 | 当前完整回归169项通过、0失败，2项默认忽略；策略研究/历史指标/定价/库存/BUFF使用合成夹具；公开FX/Steam及浏览器/凭据沿用独立证据；旧测试未逐项移植 |
 
 ## 必须纠正的几处认知
 
@@ -97,3 +97,5 @@ R 表示 reference；A 表示 audit。下表 Rust 路径为**目标设计**，�
 UAH增量：原映射18已继承，可选请求币种、历史明确标记、原币费用/预算/策略与七币种汇率兼容接入；新增9项、完整126通过/2默认忽略，见 [uah.md](uah.md)。117为购入策略阶段历史数字。出售估值联动仍待继续，没有把此次货币适配算作出售策略完成。
 
 当前v2退出估值与UI复用切片：新增9项，完整135通过/2默认忽略；壁垒参考×P10跌幅/一次滑点→原币费用→CNY净额已接显式策略研究，见 [exit-valuation.md](exit-valuation.md)。[ui-reuse.md](ui-reuse.md) 登记真实共享组件与剩余重复，未建万能框架。旧v1/UAH记录不重算，真实快慢卖/订单/资产链路仍待迁移。
+
+2026-10-25 统一估算见 [进度对照](progress.md)：总范围约25%–30%，实际自动交易闭环0%；本地准备不能等同平台订单。

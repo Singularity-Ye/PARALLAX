@@ -93,6 +93,13 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  cashFunding(account:string):Promise<FundingView>;
+  observeCashFunding(account:string,value:FundingRequest):Promise<CheckoutWrite<FundingSnapshot>>;
+  purchaseIntents(account:string):Promise<{items:IntentSummary[]}>;
+  preparePurchaseIntent(account:string,value:PrepareRequest):Promise<CheckoutWrite<PurchaseIntent>>;
+  purchaseIntent(account:string,id:string):Promise<PurchaseIntent>;
+  cancelPurchaseIntent(account:string,id:string,value:CancelIntentRequest):Promise<CheckoutWrite<PurchaseIntent>>;
+  purchaseIntentEvents(account:string,id:string):Promise<{items:IntentEvent[]}>;
   purchaseLots(account:string):Promise<{items:PurchaseLot[]}>;
   createPurchaseLot(account:string,value:LotRequest):Promise<LedgerWrite>;
   purchaseLot(account:string,id:string):Promise<PurchaseLot>;
@@ -239,3 +246,13 @@ export interface SaleResearchRequest {lot_id:string;asset_id:string;evaluation_i
 export type SaleAction='hold'|'review_listing'|'unknown'|'blocked';
 export interface SaleResearchSummary {id:string;account_id:string;created_at:number;lot_id:string;asset_id:string;action:SaleAction;}
 export interface SaleResearch {id:string;account_id:string;created_at:number;algorithm:'reported_cost_sell_policy_v1';action:SaleAction;execution_allowed:false;request:SaleResearchRequest;lot:PurchaseLot;inventory:InventorySnapshot;context:NonNullable<Preflight['context']>;rechecked_evaluation:StrategyEvaluation;unit_cost_cents:number;estimated_wallet_surplus_cny_cents:number|null;estimated_wallet_return_bps:number|null;valuation:ExitValuation|null;checks:Preflight['checks'];execution_blockers:string[];}
+
+export interface FundingRequest {client_key:string;available_cash_cents:number;observed_at:number;evidence_ref:string;}
+export interface FundingSnapshot {id:string;principal:string;observed_by_account_id:string;created_at:number;provenance:'manual_unverified';currency:'CNY';platform_verified:false;request:FundingRequest;}
+export interface FundingView {principal:string;snapshot:FundingSnapshot|null;reserved_cash_cents:number;available_after_reservations_cents:number|null;deficit_cents:number|null;fresh:boolean;execution_allowed:false;}
+export interface PrepareRequest {client_key:string;preflight_id:string;funding_snapshot_id:string;max_funding_age_secs:number;}
+export interface CancelIntentRequest {client_key:string;expected_revision:number;reason:string;}
+export interface PurchaseIntent {id:string;account_id:string;principal:string;revision:number;created_at:number;updated_at:number;state:'reserved'|'cancelled';mode:'local_preparation_only';execution_allowed:false;request:PrepareRequest;funding_snapshot:FundingSnapshot;rechecked_preflight:Preflight;reserved_cash_cents:number;}
+export interface IntentSummary {id:string;account_id:string;principal:string;revision:number;created_at:number;updated_at:number;state:PurchaseIntent['state'];reserved_cash_cents:number;preflight_id:string;}
+export interface IntentEvent {id:string;intent_id:string;account_id:string;recorded_at:number;request:CancelIntentRequest;result_revision:number;}
+export interface CheckoutWrite<T> {item:T;replayed:boolean;}

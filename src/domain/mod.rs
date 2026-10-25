@@ -2,7 +2,9 @@
 pub mod accounts;
 pub mod analysis;
 pub mod buff_quotes;
+pub mod checkout;
 pub mod exit_valuation;
+pub mod funding;
 pub mod fx;
 pub mod history;
 pub mod holdings;

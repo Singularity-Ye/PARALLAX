@@ -90,6 +90,7 @@ pub fn router(state: AppState) -> Router {
         .route("/price-history.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/price-history.js")) }))
         .route("/strategies.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/strategies.js")) }))
         .route("/preflight.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/preflight.js")) }))
+        .route("/checkout.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/checkout.js")) }))
         .route("/ledger.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/ledger.js")) }))
         .route("/sale-research.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/sale-research.js")) }))
         .route("/lib/forms.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/forms.js")) }))
@@ -103,7 +104,7 @@ pub fn router(state: AppState) -> Router {
         .route("/theme.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/theme.css")) }))
         .route("/components.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/components.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
-            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":true,"strategy_research":true,"preflight_inspection":true,"reported_purchase_ledger":true,"holdings_research":true,"sell_policy_research":true,"steam_order_books":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
+            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":true,"strategy_research":true,"preflight_inspection":true,"reported_purchase_ledger":true,"holdings_research":true,"sell_policy_research":true,"local_checkout_preparation":true,"steam_order_books":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))

@@ -34,6 +34,7 @@
 - 采购台账入口目前为manual_unverified，不把状态登记当平台操作成功。复用ledger的按件整数分摊与原子事件追加，禁止整表替换；expected_revision、请求键和账户内资产/采购/挂牌/成交引用唯一性必须保留。
 - holdings按资产身份合并观察与台账，不把同名数量相加或将库存缺失改写为成交；完整平台/未决/挂牌未接齐前complete=false。CNY成本与各币种净钱包分列，不拿钱包估值差冒充可提现现金利润。
 - 出售研究复用v2退出估值/历史覆盖与自然日趋势，购入折算率不是出售门槛；页面共用lib/forms及lib/evidence-view。真实挂牌/确认/撤单仍待接，所有研究execution_allowed=false。
+- 资金观察/预留按当前BUFF subject归属，跨Steam账户共享；人工CNY观察不当作已验证余额或UAH钱包。准备需同一事务重查证据、最新资金、主体互斥和幂等；重启/过期/缺口不自动释放，取消只限本地未提交。未来平台发送前必须先建立持久化尝试、未知结果与对账规则，不能把local_preparation_only改标记直接执行；见docs/checkout.md。
 
 ## 收口
 

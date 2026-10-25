@@ -8,6 +8,7 @@ use std::{
 };
 mod accounts;
 mod buff_quotes;
+mod checkout;
 mod fx;
 mod history;
 mod inventory;
@@ -45,7 +46,11 @@ impl Store {
             CREATE TABLE IF NOT EXISTS purchase_lot_events (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, lot_id TEXT NOT NULL, client_key TEXT NOT NULL, revision INTEGER NOT NULL, snapshot TEXT NOT NULL, UNIQUE(account_id,client_key), UNIQUE(lot_id,revision));
             CREATE TABLE IF NOT EXISTS purchase_asset_claims (account_id TEXT NOT NULL, asset_id TEXT NOT NULL, lot_id TEXT NOT NULL, PRIMARY KEY(account_id,asset_id));
             CREATE TABLE IF NOT EXISTS purchase_external_claims (account_id TEXT NOT NULL, kind TEXT NOT NULL, reference TEXT NOT NULL, lot_id TEXT NOT NULL, PRIMARY KEY(account_id,kind,reference));
-            CREATE TABLE IF NOT EXISTS sale_research (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);")?;
+            CREATE TABLE IF NOT EXISTS sale_research (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS cash_observations (id TEXT PRIMARY KEY,principal TEXT NOT NULL,account_id TEXT NOT NULL,client_key TEXT NOT NULL,evidence_ref TEXT NOT NULL,observed_at INTEGER NOT NULL,snapshot TEXT NOT NULL,UNIQUE(account_id,client_key),UNIQUE(principal,evidence_ref));
+            CREATE TABLE IF NOT EXISTS checkout_intents (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,principal TEXT NOT NULL,client_key TEXT NOT NULL,preflight_id TEXT NOT NULL,state TEXT NOT NULL,reserved_cents INTEGER NOT NULL,snapshot TEXT NOT NULL,UNIQUE(account_id,client_key),UNIQUE(account_id,preflight_id));
+            CREATE UNIQUE INDEX IF NOT EXISTS one_active_checkout_per_principal ON checkout_intents(principal) WHERE state='reserved';
+            CREATE TABLE IF NOT EXISTS checkout_intent_events (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,intent_id TEXT NOT NULL,client_key TEXT NOT NULL,snapshot TEXT NOT NULL,UNIQUE(account_id,client_key));")?;
         // A restarted process cannot continue an old in-memory scan. Preserve evidence honestly.
         let reports = {
             let mut stmt = db.prepare("SELECT report FROM scans")?;

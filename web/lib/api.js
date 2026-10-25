@@ -13,6 +13,13 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  cashFunding: account => request(`/api/accounts/${encodeURIComponent(account)}/cash-funding`),
+  observeCashFunding: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/cash-funding`,value),
+  purchaseIntents: account => request(`/api/accounts/${encodeURIComponent(account)}/purchase-intents`),
+  preparePurchaseIntent: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/purchase-intents`,value),
+  purchaseIntent: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/purchase-intents/${encodeURIComponent(id)}`),
+  cancelPurchaseIntent: (account,id,value) => post(`/api/accounts/${encodeURIComponent(account)}/purchase-intents/${encodeURIComponent(id)}/cancel`,value),
+  purchaseIntentEvents: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/purchase-intents/${encodeURIComponent(id)}/events`),
   purchaseLots: account => request(`/api/accounts/${encodeURIComponent(account)}/purchase-lots`),
   createPurchaseLot: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/purchase-lots`,value),
   purchaseLot: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/purchase-lots/${encodeURIComponent(id)}`),
