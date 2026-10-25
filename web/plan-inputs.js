@@ -29,13 +29,14 @@ export function readWalletPolicy(form) {
 }
 export function readPositionInputs() {
   if (!el('use-positions').checked) return {};
+  if(el('use-liquidity').checked&&!el('volume-limit-enabled').checked&&!el('low-price-guard-enabled').checked)throw new Error('限购策略至少勾选日成交量约束或低价保护；都不使用时取消限购策略');
   const optional=field=>field.value.trim()===''?null:Number(field.value);
   const time=new Date(el('position-time').value).getTime();
   if (!el('position-account').value || !Number.isFinite(time)) throw new Error('请选择账户并填写仓位观察时间');
   return {position_snapshot:{account_id:el('position-account').value,observed_at:Math.floor(time/1000),reserved_cash_cents:cents(el('position-reserved').value),
     entries:entries.map(e=>({key:e.key,held_units:Number(e.held.value),pending_buy_units:Number(e.pending.value),available_units:optional(e.available),daily_volume:optional(e.daily)}))},
     max_position_age_secs:Number(el('position-age').value),
-    liquidity_policy:el('use-liquidity').checked?{participation_bps:cents(el('daily-participation').value),low_price_threshold_cents:cents(el('low-threshold').value),low_price_penalty_bps:cents(el('low-penalty').value),low_price_cap:Number(el('low-cap').value)}:null};
+    liquidity_policy:el('use-liquidity').checked?{volume_limit_enabled:el('volume-limit-enabled').checked,low_price_guard_enabled:el('low-price-guard-enabled').checked,participation_bps:cents(el('daily-participation').value),low_price_threshold_cents:cents(el('low-threshold').value),low_price_penalty_bps:cents(el('low-penalty').value),low_price_cap:Number(el('low-cap').value)}:null};
 }
 async function refreshAccounts() {
   const selected=el('position-account').value;

@@ -39,7 +39,7 @@ export interface PlanRequest {
   buff_snapshot_ids?:string[];buff_account_id?:string|null;
 }
 export interface PositionSnapshot {account_id:string;observed_at:number;reserved_cash_cents:number;entries:{key:string;held_units:number;pending_buy_units:number;available_units:number|null;daily_volume:number|null}[];}
-export interface LiquidityPolicy {participation_bps:number;low_price_threshold_cents:number;low_price_penalty_bps:number;low_price_cap:number;}
+export interface LiquidityPolicy {volume_limit_enabled?:boolean;low_price_guard_enabled?:boolean;participation_bps:number;low_price_threshold_cents:number;low_price_penalty_bps:number;low_price_cap:number;}
 export interface PlanPreview {
   fx?:FxSnapshot;
   id:string; created_at:number; status:'preview_only'; algorithm:'ratio_greedy_v1'|'ratio_greedy_v2';

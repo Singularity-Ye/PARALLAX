@@ -739,6 +739,8 @@ mod tests {
         );
         request.position_snapshot.as_mut().unwrap().entries[0].available_units = None;
         request.liquidity_policy = Some(LiquidityPolicy {
+            volume_limit_enabled: true,
+            low_price_guard_enabled: true,
             participation_bps: 500,
             low_price_threshold_cents: 500,
             low_price_penalty_bps: 5000,
@@ -747,6 +749,21 @@ mod tests {
         let plan = preview(&report, request.clone(), 101).unwrap();
         assert!(plan.lines.is_empty());
         assert!(plan.skipped.iter().any(|s| s.reason.contains("日成交量")));
+        let mut low_only = request.clone();
+        low_only
+            .liquidity_policy
+            .as_mut()
+            .unwrap()
+            .volume_limit_enabled = false;
+        let low_plan = preview(&report, low_only, 101).unwrap();
+        assert_eq!(low_plan.lines.len(), 1);
+        assert_eq!(low_plan.lines[0].quantity, 1);
+        assert!(
+            !low_plan
+                .skipped
+                .iter()
+                .any(|s| s.reason.contains("日成交量"))
+        );
         assert!(preview(&report, request.clone(), 99).is_err());
         assert!(preview(&report, request, 401).is_err());
     }
