@@ -496,6 +496,17 @@ pub trait HoldingResearchRepository: Send + Sync {
 }
 
 pub trait WatchRepository: Send + Sync {
+    fn fix_watch_baseline(
+        &self,
+        baseline: crate::domain::watch_comparison::WatchBaseline,
+    ) -> impl Future<Output = anyhow::Result<crate::domain::watch_comparison::WatchBaseline>> + Send;
+    fn watch_baseline(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::watch_comparison::WatchBaseline>>>
+    + Send;
+
     fn save_watch(
         &self,
         item: crate::domain::watchlist::WatchItem,

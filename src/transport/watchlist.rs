@@ -1,12 +1,12 @@
 use super::http::{ApiError, app_error, input, same_origin};
 use crate::{
     application::{ports::*, watchlist::WatchService},
-    domain::watchlist::*,
+    domain::{watch_comparison::*, watchlist::*},
 };
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Path, State, rejection::JsonRejection},
-    routing::get,
+    routing::{get, post},
 };
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -21,6 +21,14 @@ pub fn router<R: AccountRepository + HoldingResearchRepository + WatchRepository
         .route(
             "/api/accounts/{account}/watchlist/{id}/observations",
             get(observations::<R>).post(observe::<R>),
+        )
+        .route(
+            "/api/accounts/{account}/watchlist/{id}/baseline",
+            get(baseline::<R>).post(fix_baseline::<R>),
+        )
+        .route(
+            "/api/accounts/{account}/watchlist/{id}/comparison",
+            post(comparison::<R>),
         )
         .layer(DefaultBodyLimit::max(4096))
         .layer(axum::middleware::from_fn(same_origin))
@@ -65,6 +73,35 @@ async fn observe<R: AccountRepository + HoldingResearchRepository + WatchReposit
     ))
 }
 
+async fn baseline<R: AccountRepository + HoldingResearchRepository + WatchRepository>(
+    State(s): State<Arc<WatchService<R>>>,
+    Path((a, id)): Path<(String, String)>,
+) -> Result<Json<Value>, ApiError> {
+    Ok(Json(
+        json!({"item":s.baseline(&a,&id).await.map_err(app_error)?}),
+    ))
+}
+async fn fix_baseline<R: AccountRepository + HoldingResearchRepository + WatchRepository>(
+    State(s): State<Arc<WatchService<R>>>,
+    Path((a, id)): Path<(String, String)>,
+    b: Result<Json<BaselineRequest>, JsonRejection>,
+) -> Result<Json<WatchBaseline>, ApiError> {
+    Ok(Json(
+        s.fix_baseline(&a, &id, input(b)?)
+            .await
+            .map_err(app_error)?,
+    ))
+}
+async fn comparison<R: AccountRepository + HoldingResearchRepository + WatchRepository>(
+    State(s): State<Arc<WatchService<R>>>,
+    Path((a, id)): Path<(String, String)>,
+    b: Result<Json<CompareRequest>, JsonRejection>,
+) -> Result<Json<WatchComparison>, ApiError> {
+    Ok(Json(
+        s.compare(&a, &id, input(b)?).await.map_err(app_error)?,
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,6 +139,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
         assert_eq!(response.headers()["cache-control"], "no-store");
         let response = app
+            .clone()
             .oneshot(
                 Request::post("/api/accounts/missing/watchlist")
                     .header("content-type", "application/json")
@@ -113,5 +151,37 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        for suffix in ["baseline", "comparison"] {
+            let url = format!("/api/accounts/missing/watchlist/missing/{suffix}");
+            for (body, origin, expected) in [
+                (
+                    r#"{"observation_id":"missing"}"#,
+                    Some("https://other.invalid"),
+                    StatusCode::FORBIDDEN,
+                ),
+                (
+                    r#"{"observation_id":"missing","extra":true}"#,
+                    None,
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                ),
+                (
+                    r#"{"observation_id":"missing"}"#,
+                    None,
+                    StatusCode::NOT_FOUND,
+                ),
+            ] {
+                let mut request = Request::post(&url).header("content-type", "application/json");
+                if let Some(origin) = origin {
+                    request = request.header("origin", origin);
+                }
+                let response = app
+                    .clone()
+                    .oneshot(request.body(Body::from(body)).unwrap())
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), expected);
+                assert_eq!(response.headers()["cache-control"], "no-store");
+            }
+        }
     }
 }

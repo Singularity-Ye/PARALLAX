@@ -28,3 +28,5 @@ pub mod holding_research;
 mod strategy_history;
 
 pub mod watchlist;
+
+pub mod watch_comparison;

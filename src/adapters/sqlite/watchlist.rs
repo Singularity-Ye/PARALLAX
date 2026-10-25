@@ -2,6 +2,32 @@ use super::Store;
 use crate::{application::ports::WatchRepository, domain::watchlist::*};
 use rusqlite::{OptionalExtension, params};
 impl WatchRepository for Store {
+    async fn fix_watch_baseline(
+        &self,
+        b: crate::domain::watch_comparison::WatchBaseline,
+    ) -> anyhow::Result<crate::domain::watch_comparison::WatchBaseline> {
+        self.account_db(move|db|{
+ db.execute("INSERT INTO watch_baselines(watch_id,account_id,snapshot) VALUES(?1,?2,?3) ON CONFLICT(watch_id) DO NOTHING",params![b.watch_id,b.account_id,serde_json::to_string(&b)?])?;
+ let raw:String=db.query_row("SELECT snapshot FROM watch_baselines WHERE watch_id=?1 AND account_id=?2",params![b.watch_id,b.account_id],|r|r.get(0))?;Ok(serde_json::from_str(&raw)?) }).await
+    }
+    async fn watch_baseline(
+        &self,
+        a: String,
+        id: String,
+    ) -> anyhow::Result<Option<crate::domain::watch_comparison::WatchBaseline>> {
+        self.account_db(move |db| {
+            let raw: Option<String> = db
+                .query_row(
+                    "SELECT snapshot FROM watch_baselines WHERE account_id=?1 AND watch_id=?2",
+                    params![a, id],
+                    |r| r.get(0),
+                )
+                .optional()?;
+            raw.map(|r| Ok(serde_json::from_str(&r)?)).transpose()
+        })
+        .await
+    }
+
     async fn save_watch(&self, w: WatchItem) -> anyhow::Result<WatchItem> {
         self.account_db(move|db|{
  db.execute("INSERT INTO watch_items(id,account_id,item_key,snapshot) VALUES(?1,?2,?3,?4) ON CONFLICT(account_id,item_key) DO NOTHING",params![w.id,w.account_id,w.item_key,serde_json::to_string(&w)?])?;

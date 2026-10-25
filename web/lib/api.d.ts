@@ -125,6 +125,9 @@ export const parallax: {
   evaluateStrategy(value:StrategyEvaluationRequest):Promise<StrategyEvaluation>;
   strategyEvaluations():Promise<{items:StrategyEvaluationSummary[]}>;
   strategyEvaluation(id:string):Promise<StrategyEvaluation>;
+  watchBaseline:(account:string,id:string)=>Promise<{item:WatchBaseline|null}>;
+  fixWatchBaseline:(account:string,id:string,value:{observation_id:string})=>Promise<WatchBaseline>;
+  compareWatch:(account:string,id:string,value:{observation_id:string})=>Promise<WatchComparison>;
   watchlist:(account:string)=>Promise<{items:WatchItem[]}>;
   addWatch:(account:string,value:{item_key:string;reason:string})=>Promise<WatchItem>;
   watchObservations:(account:string,id:string)=>Promise<{items:WatchObservation[]}>;
@@ -292,3 +295,15 @@ export interface HoldingResearchSummary {id:string;created_at:number;strategy_na
 
 export interface WatchItem {id:string;account_id:string;app_id:730;item_key:string;reason:string;created_at:number;}
 export interface WatchObservation {id:string;watch_id:string;account_id:string;recorded_at:number;research:HoldingResearchReport;}
+
+export interface WatchBaseline {account_id:string;watch_id:string;fixed_at:number;observation:WatchObservation;}
+export interface WatchComparison {
+ item_key:string;baseline_observation_id:string;later_observation_id:string;baseline_fixed_at:number;
+ baseline_collected_at:number;later_collected_at:number;baseline_research_at:number;later_research_at:number;
+ collection_after_baseline:boolean;new_completed_day:boolean;same_measurement_basis:boolean;
+ fixed_strategy:StrategyVersion;later_original_strategy:StrategyVersion;
+ before:StrategyEvaluation['items'][number];after_fixed_rules:StrategyEvaluation['items'][number];
+ before_price:{reference_utc_day:number|null;price:Money|null};after_price:{reference_utc_day:number|null;price:Money|null};
+ historical_price_change_bps:number|null;metrics:{key:string;before:number|null;after:number|null;delta:number|null}[];
+ limitations:string[];execution_allowed:false;returns_validated:false;
+}

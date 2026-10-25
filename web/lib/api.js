@@ -13,6 +13,9 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  watchBaseline: (a,id) => request(`/api/accounts/${encodeURIComponent(a)}/watchlist/${encodeURIComponent(id)}/baseline`),
+  fixWatchBaseline: (a,id,v) => post(`/api/accounts/${encodeURIComponent(a)}/watchlist/${encodeURIComponent(id)}/baseline`,v),
+  compareWatch: (a,id,v) => post(`/api/accounts/${encodeURIComponent(a)}/watchlist/${encodeURIComponent(id)}/comparison`,v),
   watchlist: a => request(`/api/accounts/${encodeURIComponent(a)}/watchlist`),
   addWatch: (a,v) => post(`/api/accounts/${encodeURIComponent(a)}/watchlist`,v),
   watchObservations: (a,id) => request(`/api/accounts/${encodeURIComponent(a)}/watchlist/${encodeURIComponent(id)}/observations`),

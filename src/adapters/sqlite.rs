@@ -44,6 +44,7 @@ impl Store {
             CREATE TABLE IF NOT EXISTS price_history_snapshots (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, observed_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS exchange_rate_snapshots (id TEXT PRIMARY KEY, fetched_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS strategy_versions (strategy_id TEXT NOT NULL, revision INTEGER NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL, PRIMARY KEY(strategy_id, revision));
+            CREATE TABLE IF NOT EXISTS watch_baselines (watch_id TEXT PRIMARY KEY, account_id TEXT NOT NULL, snapshot TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS watch_items (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, item_key TEXT NOT NULL, snapshot TEXT NOT NULL, UNIQUE(account_id,item_key));
             CREATE TABLE IF NOT EXISTS watch_observations (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, watch_id TEXT NOT NULL, research_id TEXT NOT NULL, snapshot TEXT NOT NULL, UNIQUE(watch_id,research_id));
             CREATE TABLE IF NOT EXISTS holding_research (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);

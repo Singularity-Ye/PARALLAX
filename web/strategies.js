@@ -1,4 +1,5 @@
 import {parallax} from './lib/api.js';
+import {comparisonPanel} from './lib/watch-comparison.js';
 import {pricingEditor,feeEditor} from './lib/pricing-fields.js';
 import {exitValuationView} from './lib/pricing-view.js';
 const el=id=>document.getElementById(`strategy-${id}`);
@@ -230,12 +231,13 @@ function renderRuleDecisions(section,item){
   }
 }
 
-let watchingBusy=false;
+let watchingBusy=false,observationRequest=0;
 const watchAccount=()=>el('account').value;
 async function showObservations(account,item){
- const {items}=await parallax.watchObservations(account,item.id);if(watchAccount()!==account)return;
+ const request=++observationRequest;const {items}=await parallax.watchObservations(account,item.id);if(watchAccount()!==account||request!==observationRequest)return;
  const box=el('watch-observations');box.replaceChildren(node('h3',`${item.item_key} · 按登记顺序的观察记录`));
  if(!items.length)box.append(node('p','尚无观察；打开包含此商品的独立研究后追加。'));
+ const panel=await comparisonPanel(account,item,items,()=>watchAccount()===account&&request===observationRequest,renderRuleDecisions);if(watchAccount()!==account||request!==observationRequest)return;box.append(panel);
  for(const o of items){const r=o.research,i=r.items.find(i=>i.item_key===item.item_key),h=r.histories.find(h=>h.request.item_key===item.item_key);
  const section=node('details');section.append(node('summary',`${date(o.recorded_at)} · ${labels[i.status]}`),node('p',`策略 ${r.strategy.draft.name} v${r.strategy.revision} · 研究 ${date(r.created_at)} · 历史采集 ${date(h.observed_at)} · ${h.series.currency??'币种未知'}`));
  renderRuleDecisions(section,i);section.append(node('p',`未启用：${r.unchecked_rules.map(k=>modules[k]??k).join('、')||'无'}；历史观察不代表收益或现金价值。`));box.append(section);
@@ -258,7 +260,7 @@ async function refreshWatches(){
  if(!items.length)box.append(node('p','当前账户暂无关注商品。'));
 }
 el('watch-refresh').onclick=()=>refreshWatches().catch(e=>el('watch-feedback').textContent=e.message);
-el('account').addEventListener('change',()=>{currentHolding=null;el('watch-list').replaceChildren();el('watch-observations').replaceChildren();el('watch-feedback').textContent='';refreshWatches().catch(e=>el('watch-feedback').textContent=e.message);});
+el('account').addEventListener('change',()=>{currentHolding=null;observationRequest++;el('watch-list').replaceChildren();el('watch-observations').replaceChildren();el('watch-feedback').textContent='';refreshWatches().catch(e=>el('watch-feedback').textContent=e.message);});
 el('watch-form').onsubmit=async event=>{event.preventDefault();if(watchingBusy)return;const account=watchAccount();if(!account){el('watch-feedback').textContent='请先选择研究账户。';return;}watchingBusy=true;
  try{await parallax.addWatch(account,{item_key:el('watch-name').value,reason:el('watch-reason').value});el('watch-feedback').textContent='关注已保存；已有同名关注会保留首次原因。';await refreshWatches();}
  catch(e){el('watch-feedback').textContent=`关注未保存：${e.message}；输入保留。`;}
