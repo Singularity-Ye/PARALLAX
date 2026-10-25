@@ -30,6 +30,7 @@ export function renderHistoryCandidates(report) {
 function render(snapshot) {
   const a=snapshot.analysis,s=snapshot.series,r=a.risk;
   const status={unknown_currency:'币种含糊或单位未适配',no_usable_daily_prices:'没有可用日价格',insufficient_pairs:'缺少七自然日配对',historical_pairs_available:'已计算历史配对'};
+  const watchButton=node('button','加入关注列表');watchButton.type='button';watchButton.onclick=()=>window.dispatchEvent(new CustomEvent('parallax:watch-item',{detail:{account_id:snapshot.account_id,item_key:snapshot.request.item_key}}));
   const box=el('price-history-result');box.replaceChildren(node('h3',snapshot.request.item_key),
     node('p',snapshot.request.manual_item?'来源：指定市场名称 · 按请求参数绑定，不是库存或资产证明':snapshot.request.inventory_snapshot_id?`来源：库存快照 ${snapshot.request.inventory_snapshot_id} · 商品级市场历史，不是该资产成交或成本记录`:`来源：SteamDT 扫描 ${snapshot.request.scan_id}`),
     node('p',`账户 ${snapshot.account_id} · 快照 ${snapshot.id} · 读取于 ${new Date(snapshot.observed_at*1000).toLocaleString()}`),
@@ -52,6 +53,7 @@ function render(snapshot) {
   }else box.append(node('p','此快照未包含稳定性指标（旧版本或币种未知）；不会在回看时静默重算。'));
   const list=node('ul');for(const b of a.daily_bars.slice(-14))list.append(node('li',`${day(b.utc_day)} · 日量加权样本价 ${money(b.vwap)} · 已知量 ${b.volume} · 零量样本 ${b.zero_volume_samples} · 缺量样本 ${b.missing_volume_samples}`));box.append(list);
   if(a.daily_bars.length>14)box.append(node('p','页面只展示最近 14 个有记录日期，完整数据保存在快照 API。'));
+  box.append(watchButton);
 }
 async function history() {
   const id=account.value;el('price-history-saved').replaceChildren();if(!id)return;
@@ -101,3 +103,10 @@ el('price-history-form').onsubmit=async event=>{
 originFields();
 window.addEventListener('parallax:account-created',()=>loadAccounts().catch(e=>el('price-history-feedback').textContent=e.message));
 loadAccounts().catch(e=>el('price-history-feedback').textContent=e.message);
+
+window.addEventListener('parallax:watch-history',async({detail})=>{
+ if(fetching){el('strategy-watch-feedback').textContent='历史正在读取，请稍后重试。';return;}
+ try{await loadAccounts();if(![...account.options].some(o=>o.value===detail.account_id))throw new Error('账户不存在');
+ account.value=detail.account_id;inventoryOrigin=null;el('price-history-origin').value='manual';el('price-history-manual').value=detail.item_key;originFields();readyHistory();el('price-history-result').replaceChildren();el('price-history-feedback').textContent='已选择关注商品，点击读取才请求Steam。';location.hash='price-history';await history();}
+ catch(e){el('strategy-watch-feedback').textContent=e.message;}
+});

@@ -18,7 +18,8 @@ function render(snapshot) {
     if(a.market_hash_name&&a.reported_marketable){
       const research=node('button','研究价格历史');research.type='button';research.className='secondary';
       research.onclick=()=>window.dispatchEvent(new CustomEvent('parallax:inventory-history',{detail:{account_id:snapshot.account_id,inventory_snapshot_id:snapshot.id,item_key:a.market_hash_name}}));
-      row.append(research);
+      const watch=node('button','加入关注列表');watch.type='button';watch.onclick=()=>window.dispatchEvent(new CustomEvent('parallax:watch-item',{detail:{account_id:snapshot.account_id,item_key:a.market_hash_name}}));
+      row.append(research,watch);
     }
     list.append(row);
   }

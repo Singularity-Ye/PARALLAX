@@ -223,3 +223,5 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
             .ok_or(AppError::Missing("计划记录不存在"))
     }
 }
+
+pub mod watchlist;

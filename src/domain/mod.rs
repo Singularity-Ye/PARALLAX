@@ -26,3 +26,5 @@ pub mod strategy_review;
 
 pub mod holding_research;
 mod strategy_history;
+
+pub mod watchlist;

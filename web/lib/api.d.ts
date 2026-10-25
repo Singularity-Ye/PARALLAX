@@ -125,6 +125,10 @@ export const parallax: {
   evaluateStrategy(value:StrategyEvaluationRequest):Promise<StrategyEvaluation>;
   strategyEvaluations():Promise<{items:StrategyEvaluationSummary[]}>;
   strategyEvaluation(id:string):Promise<StrategyEvaluation>;
+  watchlist:(account:string)=>Promise<{items:WatchItem[]}>;
+  addWatch:(account:string,value:{item_key:string;reason:string})=>Promise<WatchItem>;
+  watchObservations:(account:string,id:string)=>Promise<{items:WatchObservation[]}>;
+  observeWatch:(account:string,id:string,value:{research_id:string})=>Promise<WatchObservation>;
   holdingResearches(account:string):Promise<{items:HoldingResearchSummary[]}>;
   holdingResearch(account:string,id:string):Promise<HoldingResearchReport>;
   createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
@@ -285,3 +289,6 @@ export interface HoldingResearchReport {
  request:HoldingResearchRequest;strategy:StrategyVersion;histories:HistorySnapshot[];items:StrategyEvaluation['items'];unchecked_rules:string[];limitations:string[];
 }
 export interface HoldingResearchSummary {id:string;created_at:number;strategy_name:string;status:ResearchStatus;item_count:number;}
+
+export interface WatchItem {id:string;account_id:string;app_id:730;item_key:string;reason:string;created_at:number;}
+export interface WatchObservation {id:string;watch_id:string;account_id:string;recorded_at:number;research:HoldingResearchReport;}

@@ -494,3 +494,28 @@ pub trait HoldingResearchRepository: Send + Sync {
         Output = anyhow::Result<Vec<crate::domain::holding_research::HoldingResearchSummary>>,
     > + Send;
 }
+
+pub trait WatchRepository: Send + Sync {
+    fn save_watch(
+        &self,
+        item: crate::domain::watchlist::WatchItem,
+    ) -> impl Future<Output = anyhow::Result<crate::domain::watchlist::WatchItem>> + Send;
+    fn watches(
+        &self,
+        account: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::watchlist::WatchItem>>> + Send;
+    fn watch(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::watchlist::WatchItem>>> + Send;
+    fn save_observation(
+        &self,
+        item: crate::domain::watchlist::WatchObservation,
+    ) -> impl Future<Output = anyhow::Result<crate::domain::watchlist::WatchObservation>> + Send;
+    fn observations(
+        &self,
+        account: String,
+        id: String,
+    ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::watchlist::WatchObservation>>> + Send;
+}

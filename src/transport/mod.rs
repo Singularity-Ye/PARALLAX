@@ -12,3 +12,5 @@ pub mod orderbook;
 pub mod preflight;
 pub mod sale_research;
 pub mod strategy;
+
+pub mod watchlist;

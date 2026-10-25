@@ -182,6 +182,10 @@
 <p class="hint">使用上方已保存的持有观察策略与研究账户。明确选择历史商品即可，无需预算计划；可在价格历史页指定准确市场名称或从库存进入。不会自动采集。启用仓位规则时，因没有完整持仓/买入数量，结果保持未知。</p>
 <form id="strategy-holding-form"><div id="strategy-holding-choices"></div><button id="strategy-holding-evaluate" disabled>保存独立持有研究</button></form>
 <p id="strategy-holding-feedback" role="status"></p><div id="strategy-holding-result"></div>
+<div class="section-title"><h3>关注列表与观察记录</h3><span>MANUAL OBSERVATION</span></div>
+<p class="hint">沿用上方研究账户；仅限 CS2 准确市场名称。保存关注原因后，可将当前打开的独立研究追加为观察，保留所有判断。不会抓取行情或自动下单；重复添加保留首次原因，观察时间与历史采集时间分列。</p>
+<form id="strategy-watch-form"><label>准确市场名称<input id="strategy-watch-name" maxlength="500" required></label><label>关注原因<input id="strategy-watch-reason" maxlength="1000" required></label><button>添加关注</button><button type="button" id="strategy-watch-refresh">刷新关注列表</button></form>
+<p id="strategy-watch-feedback" role="status"></p><div id="strategy-watch-list"></div><div id="strategy-watch-observations"></div>
 <details><summary>该账户最近十份独立研究</summary><div id="strategy-holding-records"></div></details></section>
 <section class="card"><div class="section-title"><h2>研究记录</h2><span>03 / IMMUTABLE EVIDENCE</span></div><p class="hint">回看当时的参数和证据，不刷新行情；最多展示最近 20 份。</p><div id="strategy-records"></div></section>
 <section class="card"><div class="section-title"><h2>交易前证据检查</h2><span>04 / PREFLIGHT</span></div>
