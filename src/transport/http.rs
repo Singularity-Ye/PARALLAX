@@ -113,6 +113,7 @@ pub fn router(state: AppState) -> Router {
         .route("/lib/magnet.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/magnet.js")) }))
         .route("/lib/click-spark.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/click-spark.js")) }))
         .route("/lib/hold-button.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/hold-button.js")) }))
+        .route("/lib/page-curl.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/page-curl.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/theme.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/theme.css")) }))
         .route("/components.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/components.css")) }))
