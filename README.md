@@ -1,6 +1,6 @@
 # Parallax
 
-2026-10-26阶段收尾：新增Steam Guard本机令牌密钥/显式登录码与平台固定代理路由，代码和离线测试已推进，**尚未重新构建部署到当前服务、尚未页面/真实密钥/真实代理验收**。令牌生成不等于密码自动登录或续期，代理配置不覆盖独立浏览器。继续任务先看[令牌边界](docs/steam-guard.md)、[代理配置](docs/network.md)、[UI交互缺漏](docs/ui-interaction-audit.md)。
+2026-10-26集成更新：Steam Guard手动登录码、平台固定代理路由和第一轮复用动效已构建并启动本地服务；首页/健康/静态资源核对以及仪表盘、令牌页浏览器查看通过。真实令牌密钥、真实代理与完整窄屏/减少动态效果交互仍待验收。验证码不等于密码自动登录或续期，代理配置不覆盖独立浏览器。边界见[令牌](docs/steam-guard.md)、[代理](docs/network.md)、[UI审查](docs/ui-interaction-audit.md)。
 
 GitHub：<https://github.com/Singularity-Ye/PARALLAX>。项目采用 GPL-3.0-only，保留原项目来源说明；见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
 

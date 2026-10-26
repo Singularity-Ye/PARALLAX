@@ -67,3 +67,9 @@ const request = {pricing:pricing.read(), fees:fees.read()};
 ## BUFF订单观察入口
 
 操作记录新增buff-orders.js，复用现有主题/卡片/forms/统一API，不在JS计算付款状态。精确ID查保存页；找到但未知、范围未找到、读取失败分别解释。数字3保持付款未知，PAYING标明仅保存时；会话门失败保留原输入/结果，切页保留。19入口/14含部分能力/5待接不变。182通过/2默认忽略，协议实测仍待做；见 [buff-orders.md](buff-orders.md)。
+
+## 2026-10-26 统一动效入口
+
+时长、缓动、硬阴影与keyframes集中在theme.css；按钮、导航、交互卡片、验证码和进度条在components.css复用。页面业务脚本不复制动画库或自行定义一套时长，不引入全站will-change。健康检查成功只触发一次短反馈，不能解释为持续健康监测。
+
+集成审查修正：reduced-motion关闭动画和过渡，并仅对装饰交互取消transform，保留窄屏侧栏的定位transform；导航遮罩不继承普通按钮的位移、背景和阴影反馈。验证码仅展示与倒计时美化，没有新增复制、登录或认证能力。

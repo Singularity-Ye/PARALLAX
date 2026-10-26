@@ -17,3 +17,11 @@
 装饰动效避开持续闪动、每次刷新数字重跳、大面积纸纹运动和layout抖动；优先transform/opacity。prefers-reduced-motion需同时关闭animation和transition（当前主题只写transition与scroll行为），隐藏页面停止不必要动画。键盘焦点、对比度、aria-live与长表格可读性优先于观感。
 
 先统一theme的motion时长/缓动与components状态类，再挑导航、保存反馈、证据展开三个实际场景验收；不要每页复制一套动画库或引入重型框架。确认桌面与窄屏、慢请求/失败/空列表/reduced-motion后再铺开。
+
+## 2026-10-26 第一轮集成审查
+
+收到反重力三文件交付：theme.css、components.css、shell.js。已核对未增加依赖或复制脚本；CSS统一tokens覆盖按钮/导航/入口卡片/令牌展示，切页沿用hidden不重建DOM。历史行当前只有背景/缩进反馈，并非实体下压；details只有摘要颜色反馈，尚无展开动画；验证码最后5秒警告色尚未实现，不视为本轮已交付。
+
+修正reduced-motion全局transform:none导致关闭侧栏失去定位的问题，改为只取消装饰交互transform；导航遮罩禁止继承按钮位移/背景；健康反馈改为一次900ms，不以一次成功冒充持续在线监控。JS语法及diff检查通过。Rust全量回执为协作方报告，最终集成未再次全量运行；上一轮新增代理定向测试与Clippy已通过。
+
+Release构建通过，独立运行副本.run/parallax-ui-20261026.exe（PID34860）使用原data/parallax.db启动38480，health的live_execution=false；theme/components实际响应与审查文件逐字一致。浏览器已查看新版仪表盘、切换令牌页并核对未配置/禁用状态，无密钥输入或业务写入。完整窄屏、减少动态效果、键盘及失败状态矩阵仍待；不以Rust测试替代视觉验收。

@@ -98,4 +98,5 @@ parallax.health().then(health=>{
   el('dashboard-service').textContent='已连接';el('dashboard-service-note').textContent=health.capabilities.live_execution?'请核对执行状态':'自动交易未接入 · 仅研究与预览';
   el('sidebar-status').textContent=health.capabilities.live_execution?'请核对执行状态':'研究与预算预览';
   el('mode-badge').textContent=health.capabilities.live_execution?'执行状态需核对':'研究模式 · 自动交易未接入';
-}).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';});
+  document.querySelector('.status-dot')?.classList.add('online');
+}).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';document.querySelector('.status-dot')?.classList.remove('online');});
