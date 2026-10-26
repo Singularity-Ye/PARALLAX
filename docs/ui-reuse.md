@@ -73,3 +73,7 @@ const request = {pricing:pricing.read(), fees:fees.read()};
 时长、缓动、硬阴影与keyframes集中在theme.css；按钮、导航、交互卡片、验证码和进度条在components.css复用。页面业务脚本不复制动画库或自行定义一套时长，不引入全站will-change。健康检查成功只触发一次短反馈，不能解释为持续健康监测。
 
 集成审查修正：reduced-motion关闭动画和过渡，并仅对装饰交互取消transform，保留窄屏侧栏的定位transform；导航遮罩不继承普通按钮的位移、背景和阴影反馈。验证码仅展示与倒计时美化，没有新增复制、登录或认证能力。
+
+## 2026-10-26 第二轮视觉集成
+
+反重力增强共享card、candidate、导航、输入框及令牌样式，只修改theme/components。集成保留局部reduced-motion取消装饰transform，禁止恢复全局transform:none（会破坏关闭侧栏定位）。候选入场动画只使用backwards填充，结束后不持续占用transform，允许hover正常反馈；令牌字符使用系统等宽字体。卡片为统一入场，斜纹为静态纹理，未实现交错延迟或持续流动；不因回执名称扩大完成范围。

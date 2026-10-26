@@ -9,19 +9,24 @@
   --accent:#b5ff38;
   --soft:#eef1e4;
   --warn:#8c4b20;
-  --radius:5px;
-  --sidebar:248px;
+  --radius:8px;
+  --radius-pill:999px;
+  --sidebar:252px;
   --font:"Segoe UI","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif;
   --font-heading:"Arial","Microsoft YaHei UI","Microsoft YaHei","PingFang SC",sans-serif;
 
-  /* Reusable tactile motion tokens (zero framework overhead) */
+  /* Reusable tactile motion tokens with Spring Physics */
   --ease-tactile:cubic-bezier(0.2, 0, 0, 1);
   --ease-paper:cubic-bezier(0.16, 1, 0.3, 1);
-  --dur-fast:120ms;
-  --dur-base:180ms;
-  --hard-shadow-sm:1.5px 1.5px 0 var(--ink);
-  --hard-shadow:2.5px 2.5px 0 var(--ink);
-  --hard-shadow-lg:4px 4px 0 var(--ink);
+  --ease-spring:cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-spring-soft:cubic-bezier(0.25, 1.15, 0.5, 1);
+  --dur-fast:140ms;
+  --dur-base:220ms;
+  --dur-recover:360ms;
+  --hard-shadow-sm:2px 2px 0 var(--ink);
+  --hard-shadow:4px 4px 0 var(--ink);
+  --hard-shadow-lg:6px 6px 0 var(--ink);
+  --hard-shadow-accent:4px 4px 0 var(--accent);
 }
 *{box-sizing:border-box}
 html{scrollbar-gutter:stable}
@@ -34,7 +39,7 @@ button,a,input,select,summary{-webkit-tap-highlight-color:transparent}
 :focus-visible{outline:3px solid var(--ink);outline-offset:4px}
 [hidden]{display:none!important}
 h1,h2,h3{font-family:var(--font-heading);line-height:1.35;letter-spacing:-.025em}
-h2{font-size:21px}h3{font-size:16px}
+h2{font-size:22px}h3{font-size:16px}
 button{cursor:pointer}
 button:disabled{cursor:not-allowed}
 input,select{min-width:0}
@@ -42,7 +47,7 @@ svg{flex-shrink:0}
 
 /* Universal Page Entry Animation */
 @keyframes paperSlipIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -51,6 +56,12 @@ svg{flex-shrink:0}
   0% { transform: scale(1); opacity: 0.9; }
   50% { transform: scale(1.6); opacity: 0.25; }
   100% { transform: scale(2); opacity: 0; }
+}
+
+/* Staggered Candidate Reveal */
+@keyframes cardCascade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Strict Reduced Motion Guarantee */
@@ -66,5 +77,5 @@ svg{flex-shrink:0}
 }
 
 @media(prefers-reduced-motion:reduce){
-  .brand:hover .brand-mark,nav a:hover,.label-stamp:hover,.hero-note:hover,.paper-stat:hover,.metric:hover,.chip:hover,.button-link:hover,.button-link:active,button:not(:disabled):hover,button:not(:disabled):active,.launch-card:hover,.launch-card:active,.button-link:hover>span,.launch-card:hover h3>span{transform:none!important}
+  .brand:hover .brand-mark,nav a:hover,.label-stamp:hover,.hero-note:hover,.paper-stat:hover,.metric:hover,.chip:hover,.candidate:hover,.button-link:hover,.button-link:active,button:not(:disabled):hover,button:not(:disabled):active,.launch-card:hover,.launch-card:active,.button-link:hover>span,.launch-card:hover h3>span{transform:none!important}
 }
