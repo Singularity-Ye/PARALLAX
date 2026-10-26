@@ -110,3 +110,9 @@ window.addEventListener('parallax:watch-history',async({detail})=>{
  account.value=detail.account_id;inventoryOrigin=null;el('price-history-origin').value='manual';el('price-history-manual').value=detail.item_key;originFields();readyHistory();el('price-history-result').replaceChildren();el('price-history-feedback').textContent='已选择关注商品，点击读取才请求Steam。';location.hash='price-history';await history();}
  catch(e){el('strategy-watch-feedback').textContent=e.message;}
 });
+
+window.addEventListener('parallax:catalog-history',({detail})=>{
+ if(fetching){document.getElementById('catalog-feedback').textContent='历史正在读取，请稍后再选择商品。';return;}
+ inventoryOrigin=null;el('price-history-origin').value='manual';el('price-history-manual').value=detail.item_key;originFields();readyHistory();
+ el('price-history-result').replaceChildren();el('price-history-feedback').textContent='已带入Steam检索的准确市场名，请选择账户并点击读取。尚未请求历史，不会加入预算。';location.hash='price-history';
+});

@@ -79,6 +79,7 @@ pub(super) fn input<T>(body: Result<Json<T>, JsonRejection>) -> Result<T, ApiErr
 
 pub fn router(state: AppState) -> Router {
     Router::new()
+        .route("/catalog.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/catalog.js")) }))
         .route("/", get(|| async { Html(include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
         .route("/shell.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/shell.js")) }))
@@ -107,6 +108,7 @@ pub fn router(state: AppState) -> Router {
         .route("/lib/currencies.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/currencies.js")) }))
         .route("/lib/pricing-fields.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pricing-fields.js")) }))
         .route("/lib/pricing-view.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pricing-view.js")) }))
+        .route("/lib/ticker.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/ticker.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/theme.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/theme.css")) }))
         .route("/components.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/components.css")) }))

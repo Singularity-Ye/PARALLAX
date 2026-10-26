@@ -35,3 +35,5 @@ pub mod watchlist;
 
 pub mod candidate_comparison;
 pub mod watch_comparison;
+
+pub mod catalog;

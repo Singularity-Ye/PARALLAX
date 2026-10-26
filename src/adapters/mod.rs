@@ -15,3 +15,5 @@ pub mod steam_orderbook;
 mod steam_read;
 
 mod buff_read;
+
+pub mod steam_catalog;

@@ -95,6 +95,7 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  searchCatalog(value:CatalogRequest):Promise<CatalogPage>;
   buffOrderObservations(account:string):Promise<{items:OrderHistorySnapshot[]}>;
   observeBuffOrders(account:string,value:OrderHistoryRequest):Promise<OrderHistorySnapshot>;
   buffOrderObservation(account:string,id:string):Promise<OrderHistorySnapshot>;
@@ -330,3 +331,7 @@ export interface WatchComparison {
  historical_price_change_bps:number|null;metrics:{key:string;before:number|null;after:number|null;delta:number|null}[];
  limitations:string[];execution_allowed:false;returns_validated:false;
 }
+
+/** Single-page discovery, not cash quotes or a persisted scan. */
+export interface CatalogRequest {query:string; start:number}
+export interface CatalogPage {query:string;start:number;received:number;upstream_total:number;next_start:number|null;items:{market_hash_name:string;name:string;sell_listings:number|null}[];observed_at:number;source:string;scope:string}

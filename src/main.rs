@@ -63,6 +63,9 @@ async fn main() -> anyhow::Result<()> {
         store.clone(),
         parallax::adapters::credentials::NativeVault,
     );
+    let catalog = parallax::application::catalog::Catalog::new(
+        parallax::adapters::steam_catalog::SteamCatalog::new()?,
+    );
     let state = Application::with_fx(Provider::new()?, store, fx);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -75,6 +78,7 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(
         listener,
         router(state)
+            .merge(parallax::transport::catalog::router(catalog))
             .merge(parallax::transport::accounts::router(auth))
             .merge(parallax::transport::steam_guard::router(guard))
             .merge(parallax::transport::network::router())

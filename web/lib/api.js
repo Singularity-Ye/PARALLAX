@@ -13,6 +13,7 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  searchCatalog: value => post('/api/catalog/search',value),
   guardStatus: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard`),
   saveGuard: (a,shared_secret) => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard`,{shared_secret}),
   guardCode: a => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard/code`,{}),

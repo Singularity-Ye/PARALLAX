@@ -144,3 +144,5 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
 }
 
 pub mod watchlist;
+
+pub mod catalog;

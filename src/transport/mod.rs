@@ -16,3 +16,5 @@ pub mod steam_guard;
 pub mod strategy;
 
 pub mod watchlist;
+
+pub mod catalog;

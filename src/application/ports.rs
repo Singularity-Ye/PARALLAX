@@ -542,3 +542,17 @@ pub trait WatchRepository: Send + Sync {
         id: String,
     ) -> impl Future<Output = anyhow::Result<Vec<crate::domain::watchlist::WatchObservation>>> + Send;
 }
+
+#[derive(Debug)]
+pub enum CatalogError {
+    Invalid(String),
+    Busy,
+    RateLimited(u64),
+    Upstream(String),
+}
+pub trait CatalogProvider: Send + Sync {
+    fn search(
+        &self,
+        request: &crate::domain::catalog::CatalogRequest,
+    ) -> impl Future<Output = Result<crate::domain::catalog::CatalogPage, CatalogError>> + Send;
+}

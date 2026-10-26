@@ -21,6 +21,8 @@
     <div class="notice">自动买卖仍在迁移。当前可进行扫描、只读研究与预算预览；真实登录和部分平台协议尚待验收。</div>
   </section>
 <section class="page" data-page="workspace" id="workspace" hidden>
+<section class="card"><div class="section-title"><h2>Steam 市场商品检索</h2><span>CS2 / DISCOVERY</span></div><p class="hint">不依赖SteamDT榜单。每次匿名读取一页市场商品身份；无现金采购价，不自动加入预算，不代表全市场遍历。每次请求至少间隔15秒。</p><form id="catalog-form"><label>关键词<input id="catalog-query" required maxlength="100" placeholder="例如 Prisma 或 AK-47"></label><div class="actions"><button id="catalog-search" type="submit">检索第一页</button><button id="catalog-next" type="button" class="secondary" disabled>读取下一页</button></div></form><p id="catalog-feedback" role="status"></p><div id="catalog-results"></div></section>
+
 <section class="notice">当前支持演示扫描与 SteamDT 榜单读取。榜单通过仅代表预筛通过，尚未进行实时深度、历史风险和交易前复核；真实买卖正在迁移。</section>
 <div class="workspace"><section class="card controls"><div class="section-title"><h2>本轮选品范围</h2><span>01 / SCOPE</span></div>
 <form id="scan-form"><label>数据来源<select name="source"><option value="demo">演示数据 · 本地固定样例</option><option value="steamdt">SteamDT · BUFF → Steam 榜单</option></select></label>
@@ -203,5 +205,5 @@
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/steam-guard.js" type="module"></script><script src="/proxy.js" type="module"></script><script src="/shell.js" type="module"></script><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script><script src="/strategies.js" type="module"></script><script src="/preflight.js" type="module"></script><script src="/ledger.js" type="module"></script><script src="/checkout.js" type="module"></script><script src="/buff-orders.js" type="module"></script><script src="/sale-research.js" type="module"></script>
+<script src="/catalog.js" type="module"></script><script src="/steam-guard.js" type="module"></script><script src="/proxy.js" type="module"></script><script src="/shell.js" type="module"></script><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script><script src="/strategies.js" type="module"></script><script src="/preflight.js" type="module"></script><script src="/ledger.js" type="module"></script><script src="/checkout.js" type="module"></script><script src="/buff-orders.js" type="module"></script><script src="/sale-research.js" type="module"></script>
 </body></html>
