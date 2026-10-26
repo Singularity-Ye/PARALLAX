@@ -41,3 +41,54 @@ async fn probe(Path(id): Path<String>) -> Result<Json<serde_json::Value>, ApiErr
             )
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use axum::{
+        body::{Body, to_bytes},
+        http::Request,
+    };
+    use tower::ServiceExt;
+
+    #[tokio::test]
+    async fn proxy_api_reports_limits_and_rejects_cross_site_or_unknown_nodes() {
+        let app = router();
+        let response = app
+            .clone()
+            .oneshot(
+                Request::get("/api/network/proxies")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(response.headers()["cache-control"], "no-store");
+        let value: serde_json::Value =
+            serde_json::from_slice(&to_bytes(response.into_body(), 8192).await.unwrap()).unwrap();
+        assert_eq!(value["browser_routed"], false);
+        assert_eq!(value["automatic_rotation"], false);
+        assert_eq!(value["requires_restart"], true);
+        assert!(value.get("url").is_none());
+        for (header, value, expected) in [
+            ("origin", "https://example.invalid", StatusCode::FORBIDDEN),
+            ("sec-fetch-site", "cross-site", StatusCode::FORBIDDEN),
+            ("origin", "http://127.0.0.1:38480", StatusCode::BAD_REQUEST),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::post("/api/network/proxies/nonexistent-fixture/probe")
+                        .header("host", "127.0.0.1:38480")
+                        .header(header, value)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), expected);
+            assert_eq!(response.headers()["cache-control"], "no-store");
+        }
+    }
+}

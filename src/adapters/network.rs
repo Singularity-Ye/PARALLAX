@@ -161,6 +161,61 @@ pub async fn probe(id: &str) -> Result<serde_json::Value, String> {
 mod tests {
     use super::*;
     #[tokio::test]
+    async fn https_proxy_requests_connect_and_rejection_stays_an_error() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = std::thread::spawn(move || {
+            let (mut socket, _) = listener.accept().unwrap();
+            socket
+                .set_read_timeout(Some(std::time::Duration::from_secs(3)))
+                .unwrap();
+            let mut request = Vec::new();
+            let mut byte = [0; 1];
+            while request.len() < 8192 && !request.ends_with(b"\r\n\r\n") {
+                if socket.read(&mut byte).unwrap() == 0 {
+                    break;
+                }
+                request.push(byte[0]);
+            }
+            socket
+                .write_all(
+                    b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                )
+                .unwrap();
+            String::from_utf8(request).unwrap()
+        });
+        let config = ProxyConfig {
+            enabled: true,
+            nodes: vec![ProxyNode {
+                id: "fixture".into(),
+                url: format!("http://{address}"),
+            }],
+            routes: BTreeMap::from([("steam".into(), "fixture".into())]),
+        };
+        let client = builder_for(&config)
+            .timeout(std::time::Duration::from_secs(3))
+            .resolve(
+                "steamcommunity.com",
+                std::net::SocketAddr::from(([127, 0, 0, 1], 1)),
+            )
+            .build()
+            .unwrap();
+        assert!(
+            client
+                .get("https://steamcommunity.com:1/my/")
+                .header("cookie", "synthetic-session=not-a-real-secret")
+                .send()
+                .await
+                .is_err()
+        );
+        let request = server.join().unwrap();
+        assert!(request.starts_with("CONNECT steamcommunity.com:1 HTTP/1.1\r\n"));
+        assert!(!request.to_ascii_lowercase().contains("cookie:"));
+        assert!(!request.contains("synthetic-session"));
+        assert!(!request.contains("/my/"));
+    }
+    #[tokio::test]
     async fn proxy_transport_uses_selected_node_and_never_falls_back_direct() {
         use std::io::{Read, Write};
         use std::net::{SocketAddr, TcpListener};
