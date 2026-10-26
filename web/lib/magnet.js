@@ -3,7 +3,7 @@
  * Physics-based magnetic attraction that gently pulls buttons/badges toward the pointer.
  * Zero external dependencies. Self-sleeping RAF loop (0% idle CPU).
  */
-export function initMagnet(selector = '[data-magnet], .brand-mark, .button-link, #start, .label-stamp, #guard-copy') {
+export function initMagnet(selector = '[data-magnet], .brand-mark, .button-link, #start, #guard-copy') {
   if (typeof window === 'undefined') return;
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if (reduced) return;
