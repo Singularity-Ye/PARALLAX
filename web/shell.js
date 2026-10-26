@@ -5,7 +5,6 @@ import {initCardFx} from './lib/card-fx.js';
 import {initMagnet} from './lib/magnet.js';
 import {initClickSpark} from './lib/click-spark.js';
 import {initHoldButton} from './lib/hold-button.js';
-import {initTearTicket} from './lib/tear-ticket.js';
 const el=id=>document.getElementById(id);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 const iconPaths={
@@ -111,4 +110,3 @@ initCardFx();
 initMagnet();
 initClickSpark();
 initHoldButton();
-initTearTicket();
