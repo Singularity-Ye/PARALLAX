@@ -77,5 +77,5 @@ svg{flex-shrink:0}
 }
 
 @media(prefers-reduced-motion:reduce){
-  .brand:hover .brand-mark,nav a:hover,.label-stamp:hover,.hero-note:hover,.paper-stat:hover,.metric:hover,.chip:hover,.candidate:hover,.button-link:hover,.button-link:active,button:not(:disabled):hover,button:not(:disabled):active,.launch-card:hover,.launch-card:active,.button-link:hover>span,.launch-card:hover h3>span{transform:none!important}
+  .brand:hover .brand-mark,nav a:hover,.label-stamp:hover,.hero-note:hover,.paper-stat:hover,.metric:hover,.chip:hover,.badge:hover,.proxy-card:hover,.candidate:hover,.button-link:hover,.button-link:active,button:not(:disabled):hover,button:not(:disabled):active,.launch-card:hover,.launch-card:active,.button-link:hover>span,.launch-card:hover h3>span{transform:none!important}
 }
