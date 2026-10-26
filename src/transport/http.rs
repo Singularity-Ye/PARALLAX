@@ -109,6 +109,7 @@ pub fn router(state: AppState) -> Router {
         .route("/lib/pricing-fields.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pricing-fields.js")) }))
         .route("/lib/pricing-view.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pricing-view.js")) }))
         .route("/lib/ticker.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/ticker.js")) }))
+        .route("/lib/card-fx.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/card-fx.js")) }))
         .route("/style.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/style.css")) }))
         .route("/theme.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/theme.css")) }))
         .route("/components.css", get(|| async { ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../web/components.css")) }))

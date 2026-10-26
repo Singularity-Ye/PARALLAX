@@ -1,6 +1,7 @@
 import {groups,pages,resolvePage} from './lib/pages.js';
 import {parallax} from './lib/api.js';
 import {renderTicker} from './lib/ticker.js';
+import {initCardFx} from './lib/card-fx.js';
 const el=id=>document.getElementById(id);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 const iconPaths={
@@ -101,3 +102,5 @@ parallax.health().then(health=>{
   el('mode-badge').textContent=health.capabilities.live_execution?'执行状态需核对':'研究模式 · 自动交易未接入';
   document.querySelector('.status-dot')?.classList.add('online');
 }).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';document.querySelector('.status-dot')?.classList.remove('online');});
+
+initCardFx();

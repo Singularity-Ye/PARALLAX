@@ -59,7 +59,7 @@ button:disabled{background:#dadfd0;color:#727969;border-color:#bfc5b4;opacity:.7
 .hero-note li span{color:var(--muted);font-size:11px}
 .dashboard-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-bottom:34px}
 .paper-stat{border:2px solid var(--ink);border-top:5px solid var(--ink);background:var(--paper);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--hard-shadow);transition:transform var(--dur-recover) var(--ease-spring-soft),box-shadow var(--dur-recover) var(--ease-spring-soft)}
-.paper-stat:hover{transform:translate(-2.5px,-3.5px);box-shadow:5.5px 5.5px 0 var(--accent),7.5px 7.5px 0 var(--ink);transition:transform var(--dur-base) var(--ease-spring),box-shadow var(--dur-base) var(--ease-spring)}
+.paper-stat:hover{transform:translateY(-3px);box-shadow:4px 5px 0 var(--ink);background:#ffffff;transition:transform var(--dur-base) var(--ease-spring),box-shadow var(--dur-base) var(--ease-spring)}
 .paper-stat>span{font-size:11px;font-weight:750;letter-spacing:1px;color:var(--muted)}
 .paper-stat strong{display:block;font:850 clamp(24px,2.6vw,34px)/1.4 var(--font-heading);margin:8px 0 6px;overflow-wrap:anywhere}
 .paper-stat small{font-size:10.5px;color:var(--muted);display:block}
@@ -108,10 +108,13 @@ details ul{padding-left:18px;margin-bottom:0}
 .result-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:11px;font-weight:700;padding-bottom:15px;border-bottom:2px solid var(--ink)}
 .result-toolbar label{display:flex;align-items:center;font-size:11px;cursor:pointer}
 .candidate-list{max-height:720px;overflow:auto;scrollbar-width:thin;padding:4px 0}
-.candidate{padding:16px 20px;margin-bottom:12px;background:#ffffff;border:1.5px solid var(--ink);border-left:4px solid #d4dbca;border-radius:6px;box-shadow:2px 2px 0 var(--ink);animation:cardCascade var(--dur-base) var(--ease-spring) both;transition:border-color var(--dur-fast) ease,background-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
+.candidate, .launch-card, .paper-stat{perspective:900px;transform-style:preserve-3d;will-change:transform;transition:transform var(--dur-recover) var(--ease-spring-soft),box-shadow var(--dur-recover) var(--ease-spring-soft),background-image var(--dur-recover) ease,border-color var(--dur-fast) ease}
+.candidate{padding:16px 20px;margin-bottom:12px;background:#ffffff;border:1.5px solid var(--ink);border-left:4px solid var(--ink);border-radius:6px;box-shadow:2px 2px 0 var(--ink);animation:cardCascade var(--dur-base) var(--ease-spring) both}
 .candidate:nth-child(1){animation-delay:25ms}.candidate:nth-child(2){animation-delay:50ms}.candidate:nth-child(3){animation-delay:75ms}.candidate:nth-child(4){animation-delay:100ms}.candidate:nth-child(5){animation-delay:125ms}.candidate:nth-child(6){animation-delay:150ms}.candidate:nth-child(7){animation-delay:175ms}.candidate:nth-child(8){animation-delay:200ms}.candidate:nth-child(9){animation-delay:225ms}.candidate:nth-child(10){animation-delay:250ms}
-.candidate:hover{background:#fcfef9;border-left-color:var(--accent);box-shadow:2.5px 2.5px 0 var(--ink);transform:none}
-.candidate:active{background:#f6f8f0;transform:none}
+.candidate:hover, .launch-card:hover, .paper-stat:hover{transform:perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(-4px);background-color:#ffffff;background-image:radial-gradient(circle 280px at var(--spot-x, 50%) var(--spot-y, 50%), rgba(181, 255, 56, 0.22), transparent 75%);box-shadow:4px 6px 0 var(--ink);border-left-color:var(--accent);transition:transform 80ms ease-out,box-shadow var(--dur-base) var(--ease-spring),background-image 50ms ease-out,border-color var(--dur-fast) ease}
+.candidate:hover h3{transform:translateX(2px);transition:transform var(--dur-base) var(--ease-spring)}
+.candidate:hover summary{transform:translateX(3px);transition:transform var(--dur-base) var(--ease-spring)}
+.candidate:active, .launch-card:active, .paper-stat:active{transform:perspective(900px) rotateX(0deg) rotateY(0deg) translateY(1px);box-shadow:1.5px 1.5px 0 var(--ink);transition:transform 70ms ease,box-shadow 70ms ease}
 .candidate-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
 .candidate h3{font-size:14.5px;font-weight:800;margin:0}
 .chip, .badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:750;padding:3px 10px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:30px;box-shadow:1.5px 1.5px 0 var(--ink);white-space:nowrap;user-select:none;transition:transform var(--dur-recover) var(--ease-spring-soft)}
