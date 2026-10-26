@@ -8,9 +8,8 @@ pub struct Provider {
 }
 impl Provider {
     pub fn new() -> Result<Self, reqwest::Error> {
-        let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
-            client: reqwest::Client::builder()
+            client: super::network::client_builder()
                 .timeout(Duration::from_secs(20))
                 .user_agent("Mozilla/5.0 Parallax/0.1")
                 .build()?,

@@ -18,6 +18,7 @@ pub mod preflight;
 pub mod replanning;
 pub mod sale_research;
 pub mod scanner;
+pub mod steam_guard;
 pub mod strategy;
 
 use crate::domain::{

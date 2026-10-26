@@ -13,9 +13,8 @@ pub struct SteamInventory {
 }
 impl SteamInventory {
     pub fn new() -> anyhow::Result<Self> {
-        let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
-            client: Client::builder()
+            client: super::network::client_builder()
                 .timeout(Duration::from_secs(15))
                 .redirect(reqwest::redirect::Policy::none())
                 .build()?,

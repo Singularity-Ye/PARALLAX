@@ -15,6 +15,7 @@ async fn main() -> anyhow::Result<()> {
     let data_path =
         PathBuf::from(std::env::var("PARALLAX_DB").unwrap_or_else(|_| "data/parallax.db".into()));
     let store = Store::open(&data_path)?;
+    parallax::adapters::network::initialize()?;
     let auth = parallax::application::accounts::Accounts::new(
         store.clone(),
         parallax::adapters::credentials::NativeVault,
@@ -58,6 +59,10 @@ async fn main() -> anyhow::Result<()> {
     let holding_research =
         parallax::application::holding_research::HoldingResearchService::new(store.clone());
     let watches = parallax::application::watchlist::WatchService::new(store.clone());
+    let guard = parallax::application::steam_guard::SteamGuard::new(
+        store.clone(),
+        parallax::adapters::credentials::NativeVault,
+    );
     let state = Application::with_fx(Provider::new()?, store, fx);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -71,6 +76,8 @@ async fn main() -> anyhow::Result<()> {
         listener,
         router(state)
             .merge(parallax::transport::accounts::router(auth))
+            .merge(parallax::transport::steam_guard::router(guard))
+            .merge(parallax::transport::network::router())
             .merge(parallax::transport::buff_quotes::router(buff_quotes))
             .merge(parallax::transport::buff_orders::router(buff_orders))
             .merge(parallax::transport::inventory::router(inventory))

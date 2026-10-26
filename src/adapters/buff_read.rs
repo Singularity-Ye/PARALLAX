@@ -7,9 +7,8 @@ pub(super) struct BuffHttp {
 }
 impl BuffHttp {
     pub fn new() -> anyhow::Result<Self> {
-        let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
-            client: reqwest::Client::builder()
+            client: super::network::client_builder()
                 .timeout(Duration::from_secs(20))
                 .redirect(reqwest::redirect::Policy::none())
                 .build()?,

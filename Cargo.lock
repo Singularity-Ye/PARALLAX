@@ -940,10 +940,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "headless_chrome",
  "keyring",
  "reqwest",
+ "ring",
  "rusqlite",
  "rustls",
  "serde",

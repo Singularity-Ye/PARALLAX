@@ -82,6 +82,8 @@ pub fn router(state: AppState) -> Router {
         .route("/", get(|| async { Html(include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/app.js")) }))
         .route("/shell.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/shell.js")) }))
+        .route("/steam-guard.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/steam-guard.js")) }))
+        .route("/proxy.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/proxy.js")) }))
         .route("/lib/pages.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/pages.js")) }))
         .route("/accounts.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/accounts.js")) }))
         .route("/orderbook.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/orderbook.js")) }))

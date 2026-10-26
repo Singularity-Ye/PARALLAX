@@ -13,6 +13,12 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  guardStatus: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard`),
+  saveGuard: (a,shared_secret) => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard`,{shared_secret}),
+  guardCode: a => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard/code`,{}),
+  removeGuard: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard`,{method:'DELETE'}),
+  proxyStatus: () => request('/api/network/proxies'),
+  probeProxy: id => post(`/api/network/proxies/${encodeURIComponent(id)}/probe`,{}),
   strategyModules: () => request('/api/strategy-modules'),
   replan: value => post('/api/plans/replan',value),
   previewStrategy: value => post('/api/strategy-evaluations/preview',value),

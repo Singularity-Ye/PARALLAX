@@ -141,6 +141,12 @@ export const parallax: {
   strategyModules():Promise<{items:RuleDescriptor[];scope:'implemented_research_rules';holding_minimum_schema:3;execution_allowed:false}>;
   previewStrategy(value:StrategyEvaluationRequest):Promise<{persisted:false;scope:'saved_evidence_rule_preview';evaluation:StrategyEvaluation}>;
   replan(value:{evaluation_id:string;request:PlanRequest}):Promise<PlanPreview>;
+  guardStatus(a:string):Promise<{steam_id:string;configured:boolean;scope:'login_code_only';automatic_login_available:false}>;
+  saveGuard(a:string,shared_secret:string):Promise<{steam_id:string;configured:boolean;scope:'login_code_only';automatic_login_available:false}>;
+  guardCode(a:string):Promise<{code:string;generated_at:number;valid_until:number;period_secs:30;time_basis:'local_system_clock';scope:'login_code_only';automatic_login_available:false}>;
+  removeGuard(a:string):Promise<{removed:true;scope:'local_secret_only'}>;
+  proxyStatus():Promise<{mode:'system_environment'|'explicit_routes';nodes:string[];routes:Record<string,string>;browser_routed:false;automatic_rotation:false;requires_restart:true}>;
+  probeProxy(id:string):Promise<{node_id:string;outcome:'http_response'|'connection_failed';http_status?:number;latency_ms:number;identity_verified:false}>;
   exportStrategy(id:string,revision:number):Promise<StrategyPackage>;
   createHoldingResearch(account:string,value:HoldingResearchRequest):Promise<HoldingResearchReport>;
   priceHistories(account:string):Promise<{items:HistorySnapshot[]}>;

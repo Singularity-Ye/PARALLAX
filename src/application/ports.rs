@@ -6,6 +6,18 @@ use crate::domain::{
     selection::{MarketItem, ScanReport, ScanRequest},
 };
 use std::future::Future;
+pub trait GuardSecretStore: Send + Sync {
+    fn guard_secret(
+        &self,
+        key: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::steam_guard::GuardSecret>>> + Send;
+    fn put_guard_secret(
+        &self,
+        key: String,
+        secret: crate::domain::steam_guard::GuardSecret,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn remove_guard_secret(&self, key: String) -> impl Future<Output = anyhow::Result<()>> + Send;
+}
 
 pub trait FxProvider: Send + Sync {
     fn fetch_rates(

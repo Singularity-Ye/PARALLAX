@@ -8,9 +8,8 @@ pub struct Frankfurter {
 }
 impl Frankfurter {
     pub fn new() -> anyhow::Result<Self> {
-        let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
-            client: reqwest::Client::builder()
+            client: super::network::client_builder()
                 .timeout(std::time::Duration::from_secs(20))
                 .redirect(reqwest::redirect::Policy::none())
                 .user_agent("Parallax/0.1")

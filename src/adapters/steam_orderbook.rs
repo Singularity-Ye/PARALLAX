@@ -42,9 +42,8 @@ pub struct SteamOrderBook {
 }
 impl SteamOrderBook {
     pub fn new() -> anyhow::Result<Self> {
-        let _ = rustls::crypto::ring::default_provider().install_default();
         Ok(Self {
-            client: reqwest::Client::builder()
+            client: super::network::client_builder()
                 .timeout(Duration::from_secs(20))
                 .redirect(reqwest::redirect::Policy::none())
                 .user_agent("Mozilla/5.0 Parallax/0.1")
