@@ -1,5 +1,6 @@
 import {groups,pages,resolvePage} from './lib/pages.js';
 import {parallax} from './lib/api.js';
+import {renderTicker} from './lib/ticker.js';
 const el=id=>document.getElementById(id);
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 const iconPaths={
@@ -92,7 +93,7 @@ document.addEventListener('click',event=>{
 window.addEventListener('parallax:scan-selected',({detail:r})=>{
   el('dashboard-source').textContent=r.request.source==='demo'?'演示数据':'SteamDT 榜单';
   el('dashboard-scan-time').textContent=`${new Date(r.created_at*1000).toLocaleString()} · ${r.status==='completed'?'已完成':r.status==='running'?'扫描中':r.status}`;
-  el('dashboard-selection').textContent=`${r.coverage.accepted} / ${r.coverage.examined}`;
+  renderTicker(el('dashboard-selection'), `${r.coverage.accepted} / ${r.coverage.examined}`);
 });
 parallax.health().then(health=>{
   el('dashboard-service').textContent='已连接';el('dashboard-service-note').textContent=health.capabilities.live_execution?'请核对执行状态':'自动交易未接入 · 仅研究与预览';

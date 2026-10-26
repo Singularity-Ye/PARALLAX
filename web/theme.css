@@ -60,8 +60,8 @@ svg{flex-shrink:0}
 
 /* Staggered Candidate Reveal */
 @keyframes cardCascade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Strict Reduced Motion Guarantee */
@@ -77,5 +77,6 @@ svg{flex-shrink:0}
 }
 
 @media(prefers-reduced-motion:reduce){
+  .ticker-strip{transform:none!important;transition:none!important}
   .brand:hover .brand-mark,nav a:hover,.label-stamp:hover,.hero-note:hover,.paper-stat:hover,.metric:hover,.chip:hover,.badge:hover,.proxy-card:hover,.candidate:hover,.button-link:hover,.button-link:active,button:not(:disabled):hover,button:not(:disabled):active,.launch-card:hover,.launch-card:active,.button-link:hover>span,.launch-card:hover h3>span{transform:none!important}
 }

@@ -69,7 +69,9 @@ button:disabled{background:#dadfd0;color:#727969;border-color:#bfc5b4;opacity:.7
 .section-divider{border-top:2px solid var(--ink);padding-top:24px}
 .launch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:0 0 30px}
 .launch-card{display:block;background:var(--paper);border:2px solid var(--ink);border-radius:var(--radius);padding:24px;box-shadow:var(--hard-shadow);transition:transform var(--dur-recover) var(--ease-spring-soft),box-shadow var(--dur-recover) var(--ease-spring-soft),background-color var(--dur-recover) ease}
-.launch-card:hover{background:#f8ffed;transform:translate(-3px,-3px);box-shadow:6px 6px 0 var(--accent),8px 8px 0 var(--ink);transition:transform var(--dur-base) var(--ease-spring),box-shadow var(--dur-base) var(--ease-spring)}
+.launch-card:hover{background:#f8ffed;transform:translate(-3px,-3px) rotate(-0.5deg);box-shadow:6px 6px 0 var(--accent),8px 8px 0 var(--ink);transition:transform var(--dur-base) var(--ease-spring),box-shadow var(--dur-base) var(--ease-spring)}
+.launch-card:nth-child(2):hover{transform:translate(-3px,-3px) rotate(0.5deg)}
+.launch-card:nth-child(3):hover{transform:translate(-3px,-3px) rotate(-0.4deg)}
 .launch-card:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink);transition:transform 70ms ease,box-shadow 70ms ease}
 .launch-index{font-size:9.5px;font-weight:800;letter-spacing:1.5px;color:var(--muted)}
 .launch-card h2,.launch-card h3{font-size:19px;font-weight:850;margin:18px 0 10px}
@@ -108,8 +110,11 @@ details ul{padding-left:18px;margin-bottom:0}
 .result-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:11px;font-weight:700;padding-bottom:15px;border-bottom:2px solid var(--ink)}
 .result-toolbar label{display:flex;align-items:center;font-size:11px;cursor:pointer}
 .candidate-list{max-height:720px;overflow:auto;scrollbar-width:thin;padding:4px 0}
-.candidate{padding:16px 18px;margin-bottom:12px;background:#ffffff;border:1.5px solid var(--ink);border-radius:6px;box-shadow:2px 2px 0 var(--ink);animation:cardCascade var(--dur-base) var(--ease-paper) both;transition:transform var(--dur-recover) var(--ease-spring-soft),box-shadow var(--dur-recover) var(--ease-spring-soft),background-color var(--dur-recover) ease}
-.candidate:hover{background:#fafdf4;transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--accent),5px 5px 0 var(--ink);transition:transform var(--dur-base) var(--ease-spring),box-shadow var(--dur-base) var(--ease-spring)}
+.candidate{padding:16px 18px;margin-bottom:12px;background:#ffffff;border:1.5px solid var(--ink);border-radius:6px;box-shadow:2px 2px 0 var(--ink);animation:cardCascade var(--dur-base) var(--ease-spring) both;transition:transform var(--dur-recover) var(--ease-spring-soft),box-shadow var(--dur-recover) var(--ease-spring-soft),background-color var(--dur-recover) ease}
+.candidate:nth-child(1){animation-delay:25ms}.candidate:nth-child(2){animation-delay:50ms}.candidate:nth-child(3){animation-delay:75ms}.candidate:nth-child(4){animation-delay:100ms}.candidate:nth-child(5){animation-delay:125ms}.candidate:nth-child(6){animation-delay:150ms}.candidate:nth-child(7){animation-delay:175ms}.candidate:nth-child(8){animation-delay:200ms}.candidate:nth-child(9){animation-delay:225ms}.candidate:nth-child(10){animation-delay:250ms}
+.candidate:hover{background:#fafdf4;transform:translate(-3px,-3px) rotate(-0.5deg);box-shadow:5px 5px 0 var(--accent),7px 7px 0 var(--ink);transition:transform var(--dur-base) var(--ease-spring),box-shadow var(--dur-base) var(--ease-spring)}
+.candidate:nth-child(even):hover{transform:translate(-3px,-3px) rotate(0.6deg)}
+.candidate:active{transform:translate(2px,2px) rotate(0deg);box-shadow:0 0 0 var(--ink);transition:transform 70ms ease,box-shadow 70ms ease}
 .candidate-head{display:flex;justify-content:space-between;gap:12px;align-items:start}
 .candidate h3{font-size:14.5px;font-weight:800;margin:0}
 .chip, .badge{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:750;padding:3px 10px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:30px;box-shadow:1.5px 1.5px 0 var(--ink);white-space:nowrap;user-select:none;transition:transform var(--dur-recover) var(--ease-spring-soft)}
@@ -181,3 +186,9 @@ footer{display:flex;justify-content:space-between;gap:20px;margin-top:34px;paddi
 @media(max-width:700px){main{padding:17px 18px 24px}.workspace{grid-template-columns:1fr}.dashboard-hero{grid-template-columns:1fr;padding-top:0}.dashboard-hero h2{font-size:44px}.hero-note{transform:none;max-width:100%}.dashboard-metrics{gap:12px;margin-top:10px}.paper-stat{padding:14px}.paper-stat strong{font-size:22px}.paper-stat small{font-size:9.5px}.launch-grid{grid-template-columns:1fr}.launch-card h2,.launch-card h3{margin-top:12px}.section-title{align-items:start}.section-title>span{white-space:normal;text-align:right}.history-row{flex-direction:column;gap:5px;align-items:start}.capability-columns{grid-template-columns:1fr;gap:0}.capability-card{padding:24px}.capability-card h2{font-size:25px}.settings-list>div{grid-template-columns:95px 1fr;gap:12px}.folio{display:none}.card{padding:20px}.page-header p{font-size:12px}.page-header{gap:12px}.result-toolbar{flex-wrap:wrap}.mode-badge{max-width:60%;white-space:normal;text-align:right}}
 
 .nav-backdrop:not(:disabled):hover,.nav-backdrop:not(:disabled):active{transform:none;box-shadow:none;background:#12160b66}
+
+/* Mechanical Split-Flap Number Ticker */
+.ticker-slot{display:inline-block;height:1.15em;line-height:1.15em;overflow:hidden;vertical-align:-0.08em;position:relative}
+.ticker-strip{display:inline-flex;flex-direction:column;transition:transform 650ms var(--ease-spring-soft);will-change:transform}
+.ticker-strip span{display:block;height:1.15em;line-height:1.15em;text-align:center}
+.ticker-sym{display:inline-block;vertical-align:baseline}

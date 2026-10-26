@@ -3,6 +3,7 @@ import { readWalletPolicy, readPositionInputs, renderPositionInputs } from './pl
 import {readSteamSnapshotIds} from './orderbook.js';
 import {renderBuffCandidates,readBuffQuoteInputs} from './buff-quotes.js';
 import {renderHistoryCandidates} from './price-history.js';
+import {renderTicker} from './lib/ticker.js';
 const el = id => document.getElementById(id);
 const money = value => `¥${(value / 100).toFixed(2)}`;
 const reasonNames = {page_budget:'已达到页数预算，仍可能有未读取商品',item_budget:'已达到分析预算',source_exhausted:'当前来源查询已返回空页（不代表全市场）',source_error:'来源请求失败，保留已取得结果',cancelled:'已按要求停止',process_restart:'上次扫描被进程重启中断'};
@@ -19,7 +20,11 @@ function render(report) {
   feedback(report.status === 'running' ? '正在扫描来源，结果将在本轮结束后显示。可停止扫描。' : `${reasonNames[report.stop_reason] || report.stop_reason}。${report.error || ''}`, report.status === 'failed');
   const c = report.coverage;
   el('metrics').replaceChildren(...[['读取页数',c.pages_received],['收到条目',c.rows_received],['已分析',c.examined],['预筛通过',c.accepted]].map(([label,value]) => {
-    const box = node('div',undefined,'metric');box.append(node('b',String(value)),node('span',label));return box;
+    const box = node('div',undefined,'metric');
+    const valBox = node('b');
+    renderTicker(valBox, String(value));
+    box.append(valBox,node('span',label));
+    return box;
   }));
   el('result-summary').textContent = `淘汰 ${c.rejected} · 重复 ${c.duplicates} · 已收未分析 ${c.unexamined_received}`;
   renderCandidates();
