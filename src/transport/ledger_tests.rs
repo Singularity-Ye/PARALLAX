@@ -459,3 +459,109 @@ async fn sale_research_is_immutable_account_bound_and_independent_of_later_lot_e
     drop(store);
     std::fs::remove_file(path).unwrap();
 }
+
+#[tokio::test]
+async fn ledger_dashboard_is_account_scoped_paginated_read_only_and_no_store() {
+    let store = Store::open(std::path::Path::new(":memory:")).unwrap();
+    let at = now();
+    let (template, _) = seed(&store, at).await;
+    let app = router(PurchaseLedger::new(store.clone()));
+    let base = "/api/accounts/fixture-account/ledger";
+    let empty = call(app.clone(), "GET", &format!("{base}/summary"), Value::Null).await;
+    assert_eq!(empty.0, StatusCode::OK);
+    assert_eq!(empty.1["reported_purchase_cost"]["minor"], 0);
+    assert!(empty.1["total_cash_profit"]["value"].is_null());
+    store
+        .create_lot("fixture-account".into(), template.request, at)
+        .await
+        .unwrap();
+    let sum = call(app.clone(), "GET", &format!("{base}/summary"), Value::Null)
+        .await
+        .1;
+    assert_eq!(sum["reported_purchase_cost"]["minor"], 1000);
+    assert_eq!(sum["counts"]["pending_units"], 3);
+    let page = call(
+        app.clone(),
+        "GET",
+        &format!("{base}/rows?limit=1"),
+        Value::Null,
+    )
+    .await
+    .1;
+    assert_eq!(page["total"], 1);
+    assert_eq!(page["items"][0]["quantity"], 3);
+    assert!(page["items"][0]["asset_id"].is_null());
+    assert_eq!(page["items"][0]["purchase_cost"]["minor"], 1000);
+    assert!(page["items"][0]["current_market_price"]["value"].is_null());
+    assert_eq!(
+        call(
+            app.clone(),
+            "GET",
+            &format!("{base}/rows?limit=0"),
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::BAD_REQUEST
+    );
+    assert_eq!(
+        call(
+            app.clone(),
+            "GET",
+            "/api/accounts/other/ledger/summary",
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        call(
+            app.clone(),
+            "GET",
+            "/api/accounts/other/ledger/rows",
+            Value::Null
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    store
+        .add_account(Account {
+            id: "other-existing".into(),
+            label: "other".into(),
+            steam_id: "76561198000000002".into(),
+            created_at: at,
+        })
+        .await
+        .unwrap();
+    let other = call(
+        app.clone(),
+        "GET",
+        "/api/accounts/other-existing/ledger/summary",
+        Value::Null,
+    )
+    .await
+    .1;
+    assert_eq!(other["counts"]["lots"], 0);
+    assert_eq!(other["reported_purchase_cost"]["minor"], 0);
+    let other_rows = call(
+        app.clone(),
+        "GET",
+        "/api/accounts/other-existing/ledger/rows",
+        Value::Null,
+    )
+    .await
+    .1;
+    assert_eq!(other_rows["total"], 0);
+    let lots = store.lots("fixture-account".into()).await.unwrap();
+    assert_eq!(lots.len(), 1);
+    assert_eq!(lots[0].revision, 1);
+    assert!(
+        store
+            .lot_events("fixture-account".into(), lots[0].id.clone())
+            .await
+            .unwrap()
+            .is_empty()
+    );
+}

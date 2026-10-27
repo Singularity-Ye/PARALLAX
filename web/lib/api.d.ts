@@ -95,6 +95,8 @@ export interface BrowserLogin {
   message:string; session:SessionView|null;
 }
 export const parallax: {
+  ledgerSummary(account:string):Promise<LedgerSummary>;
+  ledgerRows(account:string,page?:{offset?:number;limit?:number}):Promise<LedgerRows>;
   searchCatalog(value:CatalogRequest):Promise<CatalogPage>;
   buffOrderObservations(account:string):Promise<{items:OrderHistorySnapshot[]}>;
   observeBuffOrders(account:string,value:OrderHistoryRequest):Promise<OrderHistorySnapshot>;
@@ -335,3 +337,23 @@ export interface WatchComparison {
 /** Single-page discovery, not cash quotes or a persisted scan. */
 export interface CatalogRequest {query:string; start:number}
 export interface CatalogPage {query:string;start:number;received:number;upstream_total:number;next_start:number|null;items:{market_hash_name:string;name:string;sell_listings:number|null}[];observed_at:number;source:string;scope:string}
+
+export interface LedgerMetric<T> {value:T|null;reason:string|null}
+export interface SignedMoney {minor:number;currency:string}
+export interface LedgerSummary {
+ account_id:string;generated_at:number;scope:'account_reported_ledger_only';complete:false;platform_verified:false;
+ counts:{lots:number;pending_units:number;held_units:number;listed_units:number;sold_units:number};
+ reported_purchase_cost:Money;open_purchase_cost:Money;sold_purchase_cost:Money;reported_sale_net_wallet:Money[];
+ total_cash_profit:LedgerMetric<SignedMoney>;actual_discount_bps:LedgerMetric<number>;warnings:string[];
+}
+export interface LedgerRow {
+ row_id:string;lot_id:string;lot_revision:number;purchased_at:number;state_observed_at:number;item_key:string;
+ asset_id:string|null;stage:'pending_receipt'|'held'|'listed'|'sold';quantity:number;purchase_cost:Money;
+ purchase_market_price:LedgerMetric<Money>;current_market_price:LedgerMetric<Money>;reported_listing_gross:Money|null;
+ sale_net_wallet:LedgerMetric<Money>;actual_discount_bps:LedgerMetric<number>;cash_profit:LedgerMetric<SignedMoney>;
+ self_use_profit:LedgerMetric<SignedMoney>;market_change:LedgerMetric<SignedMoney>;provenance:string;platform_verified:boolean;
+}
+export interface LedgerRows {
+ account_id:string;generated_at:number;scope:'account_reported_ledger_only';complete:false;
+ offset:number;limit:number;total:number;next_offset:number|null;sort:'purchased_at_desc_row_id_asc';items:LedgerRow[];warnings:string[];
+}

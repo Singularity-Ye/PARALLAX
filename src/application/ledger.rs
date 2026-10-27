@@ -96,6 +96,25 @@ impl<R: LedgerStore> PurchaseLedger<R> {
         )
         .map_err(AppError::Invalid)
     }
+    pub async fn summary(
+        &self,
+        account: String,
+    ) -> Result<crate::domain::ledger_view::LedgerSummary, AppError> {
+        let h = self.holdings(account, None).await?;
+        crate::domain::ledger_view::summary(&h).map_err(AppError::Invalid)
+    }
+    pub async fn rows(
+        &self,
+        account: String,
+        offset: usize,
+        limit: usize,
+    ) -> Result<crate::domain::ledger_view::LedgerRows, AppError> {
+        if limit == 0 || limit > 200 || offset > 10_000_000 {
+            return Err(AppError::Invalid("明细分页范围无效".into()));
+        }
+        let h = self.holdings(account, None).await?;
+        crate::domain::ledger_view::rows(&h, offset, limit).map_err(AppError::Invalid)
+    }
     fn outcome(result: LedgerOutcome) -> Result<LedgerWrite, AppError> {
         match result {
             LedgerOutcome::Saved(v) => Ok(v),

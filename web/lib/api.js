@@ -13,6 +13,8 @@ async function request(path, options = {}) {
 }
 const post = (path, value) => request(path, {method:'POST', body:JSON.stringify(value)});
 export const parallax = {
+  ledgerSummary: account => request(`/api/accounts/${encodeURIComponent(account)}/ledger/summary`),
+  ledgerRows: (account,{offset=0,limit=50}={}) => request(`/api/accounts/${encodeURIComponent(account)}/ledger/rows?offset=${encodeURIComponent(offset)}&limit=${encodeURIComponent(limit)}`),
   searchCatalog: value => post('/api/catalog/search',value),
   guardStatus: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard`),
   saveGuard: (a,shared_secret) => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard`,{shared_secret}),

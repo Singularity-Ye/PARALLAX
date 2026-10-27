@@ -5,7 +5,7 @@ use crate::{
 };
 use axum::{
     Json, Router,
-    extract::{DefaultBodyLimit, Path, State, rejection::JsonRejection},
+    extract::{DefaultBodyLimit, Path, Query, State, rejection::JsonRejection},
     routing::get,
 };
 use serde::Deserialize;
@@ -18,6 +18,8 @@ struct HoldingsRequest {
 }
 pub fn router<R: LedgerStore + 'static>(app: Arc<PurchaseLedger<R>>) -> Router {
     Router::new()
+        .route("/api/accounts/{account}/ledger/summary", get(summary::<R>))
+        .route("/api/accounts/{account}/ledger/rows", get(rows::<R>))
         .route(
             "/api/accounts/{account}/purchase-lots",
             get(list::<R>).post(create::<R>),
@@ -102,3 +104,35 @@ async fn holdings<R: LedgerStore>(
 #[cfg(test)]
 #[path = "ledger_tests.rs"]
 mod tests;
+
+async fn summary<R: LedgerStore>(
+    State(app): State<Arc<PurchaseLedger<R>>>,
+    Path(account): Path<String>,
+) -> Result<Json<crate::domain::ledger_view::LedgerSummary>, ApiError> {
+    Ok(Json(app.summary(account).await.map_err(app_error)?))
+}
+#[derive(Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct RowQuery {
+    offset: usize,
+    limit: usize,
+}
+impl Default for RowQuery {
+    fn default() -> Self {
+        Self {
+            offset: 0,
+            limit: 50,
+        }
+    }
+}
+async fn rows<R: LedgerStore>(
+    State(app): State<Arc<PurchaseLedger<R>>>,
+    Path(account): Path<String>,
+    Query(q): Query<RowQuery>,
+) -> Result<Json<crate::domain::ledger_view::LedgerRows>, ApiError> {
+    Ok(Json(
+        app.rows(account, q.offset, q.limit)
+            .await
+            .map_err(app_error)?,
+    ))
+}

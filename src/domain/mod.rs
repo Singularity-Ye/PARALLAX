@@ -37,3 +37,5 @@ pub mod candidate_comparison;
 pub mod watch_comparison;
 
 pub mod catalog;
+
+pub mod ledger_view;
