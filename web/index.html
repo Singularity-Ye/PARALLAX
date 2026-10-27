@@ -70,13 +70,149 @@
 <p id="inventory-feedback" role="status" aria-live="polite"></p><div id="inventory-result"></div><details><summary>该账户最近十份库存快照</summary><div id="inventory-history"></div></details></section>
 </section>
 <section class="page" data-page="accounts" id="page-accounts" hidden>
-<section class="card" id="accounts"><div class="section-title"><h2>账户与登录态</h2><span>04 / ACCOUNTS</span></div>
-<p class="hint">先创建账户，再选择独立浏览器登录或手动导入 Cookie。凭据保存在本机 Windows 凭据管理器；保存浏览器会话前核验平台身份。密码/Guard 自动登录尚未接入。</p>
-<div class="workspace"><form id="account-form"><label>账户备注<input name="label" required maxlength="80" autocomplete="off"></label><label>Steam ID（17 位数字）<input name="steam_id" required pattern="[0-9]{17}" inputmode="numeric" autocomplete="off"></label><button>创建账户</button></form>
-<form id="session-form" autocomplete="off"><label>账户<select id="account-select" required></select></label><label>平台<select id="session-platform"><option value="steam">Steam</option><option value="buff">BUFF</option></select></label><label>Cookie 请求头<input name="cookies" type="password" required autocomplete="off" maxlength="2300"></label><label>User-Agent（选填）<input name="user_agent" autocomplete="off" maxlength="300"></label><button>保存登录态</button><button id="session-verify" type="button" class="secondary">在线验证</button><button id="session-revoke" type="button" class="secondary">停用本地登录态</button></form></div>
-<div class="actions"><button id="browser-start" type="button" class="secondary">打开独立登录窗口</button><button id="browser-finish" type="button" class="secondary" disabled>完成登录并验证</button><button id="browser-cancel" type="button" class="secondary" disabled>取消登录</button></div>
-<p id="browser-feedback" role="status" aria-live="polite">在上方选择账户与平台，再打开独立窗口。密码与 Guard 码只输入官方页面；窗口十分钟后过期。</p>
-<p id="account-feedback" role="status" aria-live="polite"></p><div id="session-list"></div></section>
+  <div class="panel-toolbar panel-toolbar--accounts">
+    <div class="toolbar-title">
+      <h2>账号管理</h2>
+      <span class="hint">Steam 多账号 · 本地凭据安全存储</span>
+    </div>
+    <div class="toolbar-actions">
+      <div class="search-pill">
+        <span class="search-icon" aria-hidden="true">🔍</span>
+        <input id="accounts-search" type="text" placeholder="搜索用户名 / Steam ID" autocomplete="off" />
+      </div>
+      <button id="btn-show-add-account" class="btn btn-primary btn-sm" type="button">
+        <span>+</span> 添加账号
+      </button>
+    </div>
+  </div>
+
+  <div class="guide-callout" id="accounts-guide-callout">
+    <div class="guide-steps">
+      <div class="guide-step"><span class="step-num">1</span> 点击「<strong>+ 添加账号</strong>」登记 Steam ID / 备注</div>
+      <div class="guide-step"><span class="step-num">2</span> 点击右侧「<strong>打开独立登录窗</strong>」完成登录获取 Cookie</div>
+      <div class="guide-step"><span class="step-num">3</span> 前往选品工作台开启高频量化与比价</div>
+    </div>
+  </div>
+
+  <div class="accounts-layout">
+    <!-- Left Column: Accounts List -->
+    <aside class="accounts-left">
+      <div class="accounts-list-head">
+        <span>账号列表</span>
+        <span class="accounts-count-pill" id="accounts-count">0</span>
+      </div>
+      <div id="accounts-card-list" class="accounts-card-list"></div>
+      <select id="account-select" style="display:none"></select>
+    </aside>
+
+    <!-- Right Column: Selected Account Detail -->
+    <main class="accounts-right">
+      <div id="account-detail-card" class="account-detail-card">
+        <div class="detail-hero">
+          <div class="detail-avatar" id="detail-avatar">✦</div>
+          <div class="detail-user">
+            <div class="detail-title-row">
+              <h3 id="detail-display-name">选择一个账号</h3>
+              <span class="status-badge" id="detail-status-badge">未选择</span>
+            </div>
+            <div class="detail-sub" id="detail-sub-name">请从左侧列表选择账号查看详情</div>
+          </div>
+          <div class="detail-actions">
+            <button id="browser-start" type="button" class="btn btn-sm btn-primary">打开登录窗口</button>
+            <button id="session-verify" type="button" class="btn btn-sm btn-secondary">在线验证</button>
+            <button id="session-revoke" type="button" class="btn btn-sm btn-danger-outline">停用登录态</button>
+          </div>
+        </div>
+
+        <!-- 6-Grid Metadata Tiles (1:1 with AetherSwap) -->
+        <div class="detail-meta-grid">
+          <div class="meta-tile">
+            <span class="meta-label">STEAM 备注名</span>
+            <strong class="meta-val" id="meta-label">—</strong>
+          </div>
+          <div class="meta-tile">
+            <span class="meta-label">STEAM ID (64位)</span>
+            <strong class="meta-val" id="meta-steam-id">—</strong>
+          </div>
+          <div class="meta-tile">
+            <span class="meta-label">登录态有效性</span>
+            <strong class="meta-val" id="meta-session-status">—</strong>
+          </div>
+          <div class="meta-tile">
+            <span class="meta-label">登录平台</span>
+            <strong class="meta-val" id="meta-platform">Steam 官方社区</strong>
+          </div>
+          <div class="meta-tile">
+            <span class="meta-label">网络代理</span>
+            <strong class="meta-val" id="meta-proxy">本地直连</strong>
+          </div>
+          <div class="meta-tile">
+            <span class="meta-label">最后核验证据</span>
+            <strong class="meta-val" id="meta-checked-at">—</strong>
+          </div>
+        </div>
+
+        <!-- Secondary Action Row / Browser completion -->
+        <div class="browser-flow-bar" id="browser-flow-bar">
+          <span class="browser-flow-msg" id="browser-feedback">就绪：点击上方「打开登录窗口」可拉起独立浏览器登录并捕获凭据。</span>
+          <div class="browser-flow-btns">
+            <button id="browser-finish" type="button" class="btn btn-sm btn-primary" disabled>完成登录验证</button>
+            <button id="browser-cancel" type="button" class="btn btn-sm btn-secondary" disabled>取消登录</button>
+          </div>
+        </div>
+
+        <!-- Collapsible Manual Cookie Drawer -->
+        <details class="manual-cookie-drawer">
+          <summary>高级模式：手动导入 Cookie 请求头（不走浏览器自动捕获）</summary>
+          <form id="session-form" autocomplete="off" class="compact-cookie-form">
+            <div class="form-row">
+              <label>目标平台
+                <select id="session-platform">
+                  <option value="steam">Steam 官方社区</option>
+                  <option value="buff">网易 BUFF</option>
+                </select>
+              </label>
+              <label>User-Agent (选填)
+                <input name="user_agent" autocomplete="off" placeholder="默认使用系统 UA">
+              </label>
+            </div>
+            <label>Cookie 字符串
+              <input name="cookies" type="password" required autocomplete="off" placeholder="粘贴 sessionid=...; steamLoginSecure=...">
+            </label>
+            <div class="drawer-actions">
+              <button type="submit" class="btn btn-sm btn-primary">保存导入 Cookie</button>
+            </div>
+          </form>
+        </details>
+
+        <p class="security-tip">🛡️ 安全保证：凭据仅安全保存在本机 Windows 凭据管理器，不上传任何云端。</p>
+        <p id="account-feedback" role="status" aria-live="polite" class="action-feedback"></p>
+        <div id="session-list" style="display:none"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Account Modal Overlay -->
+  <div id="account-modal-overlay" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>添加新 Steam 账户</h3>
+        <button type="button" id="btn-close-account-modal" class="modal-close" aria-label="关闭">×</button>
+      </div>
+      <form id="account-form" autocomplete="off">
+        <label>账户备注名
+          <input name="label" required maxlength="80" placeholder="例如：虐你—如呼吸 / CS2主号" autocomplete="off">
+        </label>
+        <label>Steam ID (17位纯数字)
+          <input name="steam_id" required pattern="[0-9]{17}" inputmode="numeric" placeholder="76561198..." autocomplete="off">
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel-account-modal" class="btn btn-secondary">取消</button>
+          <button type="submit" class="btn btn-primary">确认添加</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </section>
 <section class="page" data-page="steam-research" id="page-steam-research" hidden>
 <section class="card" id="steam-research"><div class="section-title"><h2>Steam 公开盘口研究</h2><span>READ ONLY / CS2</span></div>
@@ -200,7 +336,68 @@
 <section class="page" data-page="settings" id="page-settings" hidden>
 <section class="card"><div class="section-title"><h2>当前运行方式</h2><span>LOCAL / PREVIEW</span></div><dl class="settings-list"><div><dt>运行范围</dt><dd>本机工作台，数据保存在本地</dd></div><div><dt>交易状态</dt><dd>自动交易未接入，预算仅作预览</dd></div><div><dt>账户选择</dt><dd>在各功能页显式选择，结果绑定对应账户</dd></div><div><dt>金额与币种</dt><dd>报价保留实际币种，费用按所选模型估算</dd></div></dl><p class="hint">配置编辑、导入导出与调度设置待接入。账户与登录态请在账号管理中维护。</p><a class="text-link" href="#accounts">管理账号与登录态 →</a></section>
 </section>
-<section class="page" data-page="steam-guard" id="page-steam-guard" hidden><section class="card"><h2>Steam Guard 登录验证码</h2><p class="hint">复用你本人已持有的shared_secret，不读取其它工具的令牌文件。密钥保存在本机Windows凭据管理器。这里只生成登录验证码，不创建/解绑手机令牌，不确认交易，也未接密码自动登录与续期。</p><button id="guard-refresh" type="button" class="secondary">刷新账户</button><label>账户<select id="guard-account"></select></label><p id="guard-status" role="status"></p><form id="guard-form"><label>shared_secret（标准Base64，保存后不回显）<input id="guard-secret" type="password" autocomplete="off" required maxlength="128"></label><button id="guard-save" type="submit">保存本机令牌密钥</button></form><div class="actions"><button id="guard-generate" type="button">生成当前登录验证码</button><button id="guard-remove" type="button" class="secondary">停用本机令牌密钥</button></div><div class="guard-box" id="guard-box"><div class="guard-row"><output id="guard-code" aria-live="polite">— — — — —</output><div class="guard-actions"><button id="guard-copy" type="button" class="secondary" disabled>复制验证码</button></div></div><p id="guard-remaining">未生成验证码</p><progress id="guard-progress" max="30" value="0" aria-label="验证码剩余秒数"></progress></div><p id="guard-feedback" role="status"></p><a class="text-link" href="#accounts">前往账户登录与在线身份验证 →</a></section></section>
+<section class="page" data-page="steam-guard" id="page-steam-guard" hidden>
+  <div class="steam-token-page">
+    <div class="steam-token-container">
+      
+      <!-- Top Account Switcher -->
+      <div class="token-account-bar">
+        <div class="token-acc-picker">
+          <span class="picker-label">当前账户：</span>
+          <select id="guard-account" class="compact-select"></select>
+        </div>
+        <button id="guard-refresh" type="button" class="btn btn-sm btn-secondary" title="刷新账户列表">刷新</button>
+      </div>
+
+      <!-- Centered Authenticator Dial Card (1:1 with AetherSwap) -->
+      <div class="steam-token-card">
+        <h2 class="steam-token-title">STEAM 令牌</h2>
+        
+        <!-- Radial Countdown Circle -->
+        <div class="steam-token-circle" id="guard-generate" role="button" tabindex="0" title="点击刷新/生成验证码">
+          <svg class="steam-token-ring" viewBox="0 0 260 260" aria-hidden="true">
+            <circle cx="130" cy="130" r="110" class="steam-ring-bg"></circle>
+            <circle id="steam-progress-circle" cx="130" cy="130" r="110" class="steam-ring-fg"></circle>
+          </svg>
+
+          <div class="steam-token-inner">
+            <div class="steam-code-wrap">
+              <span id="guard-code" class="steam-code-text">— — — — —</span>
+              <span id="guard-remaining" class="steam-code-subtitle">点击圆盘生成</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="token-action-row">
+          <button id="guard-copy" type="button" class="btn btn-primary btn-sm" disabled>
+            <span class="btn-icon">📋</span> 复制验证码
+          </button>
+        </div>
+
+        <p class="token-security-tip">🛡️ 您的账号受到 Steam Guard 本机双因子认证保护</p>
+        <p id="guard-status" class="guard-meta-status"></p>
+        <p id="guard-feedback" role="status" class="guard-feedback-text"></p>
+        <progress id="guard-progress" max="30" value="0" style="display:none"></progress>
+      </div>
+
+      <!-- Collapsible Drawer for shared_secret (No Scrolling!) -->
+      <details class="guard-secret-drawer">
+        <summary>⚙️ 本机 shared_secret 密钥设置（初次绑定与停用）</summary>
+        <div class="secret-drawer-body">
+          <p class="secret-hint">密钥仅保存在本机 Windows 凭据管理器，不会写入数据库或上传网络。</p>
+          <form id="guard-form" autocomplete="off" class="compact-secret-form">
+            <div class="secret-input-row">
+              <input id="guard-secret" type="password" placeholder="粘贴 shared_secret (标准 Base64 编码)" autocomplete="off" required maxlength="128">
+              <button id="guard-save" type="submit" class="btn btn-sm btn-primary">保存密钥</button>
+              <button id="guard-remove" type="button" class="btn btn-sm btn-danger-outline">停用密钥</button>
+            </div>
+          </form>
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
 <section class="page" data-page="proxy" id="page-proxy" hidden><section class="card"><div class="section-title"><h2>代理节点与平台路由</h2><span>NETWORK / EGRESS</span></div><p class="hint">当前支持本地配置的HTTP/HTTPS无密码代理，按平台固定出口。请求失败不自动轮换或直连重试。仅Rust后台请求接入，独立登录浏览器不随此配置切换；收到HTTP响应不证明身份认证成功。</p><button id="proxy-refresh" type="button" class="secondary">刷新当前路由</button><p id="proxy-feedback" role="status" aria-live="polite"></p><div id="proxy-content"></div></section></section>
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
