@@ -1,3 +1,4 @@
+import {initCockpit,renderCockpitScan} from './lib/cockpit.js';
 import {groups,pages,resolvePage} from './lib/pages.js';
 import {parallax} from './lib/api.js';
 import {renderTicker} from './lib/ticker.js';
@@ -96,66 +97,8 @@ document.addEventListener('click',event=>{
   if(link&&resolvePage(location.hash)?.id===link.dataset.route){setNav(false);el('page-heading').focus({preventScroll:true});}
 });
 
-function updateDashboardCandidates(r) {
-  const emptyEl = el('dashboard-empty-candidates');
-  const tableEl = el('dashboard-candidates-table');
-  const tbodyEl = el('dashboard-candidates-tbody');
-  const passRateEl = el('dashboard-pass-rate');
-
-  if (!r || !r.candidates || r.candidates.length === 0) {
-    if (emptyEl) emptyEl.style.display = 'flex';
-    if (tableEl) tableEl.style.display = 'none';
-    if (passRateEl) passRateEl.textContent = '命中率: —';
-    return;
-  }
-
-  const accepted = r.coverage?.accepted ?? 0;
-  const examined = r.coverage?.examined ?? r.candidates.length;
-  const pct = examined > 0 ? ((accepted / examined) * 100).toFixed(1) : '0';
-  if (passRateEl) passRateEl.textContent = `命中率: ${pct}%`;
-
-  if (emptyEl) emptyEl.style.display = 'none';
-  if (tableEl) tableEl.style.display = 'table';
-  if (!tbodyEl) return;
-
-  tbodyEl.innerHTML = '';
-  // Show top candidates (up to 8)
-  const items = r.candidates.slice(0, 8);
-  items.forEach(c => {
-    const tr = document.createElement('tr');
-    const passed = c.verdict?.passed ?? false;
-    const ratio = c.metrics?.discount_ratio ? `${(c.metrics.discount_ratio * 100).toFixed(2)}%` : '—';
-    const buffPrice = c.buff_price ? `¥ ${c.buff_price.toFixed(2)}` : '—';
-    const steamPrice = c.steam_price ? `¥ ${c.steam_price.toFixed(2)}` : '—';
-    const vol = c.steam_volume_24h ?? c.volume_24h ?? '—';
-
-    tr.innerHTML = `
-      <td style="font-weight:750;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-        ${escapeHtml(c.market_hash_name ?? c.name ?? '未知饰品')}
-      </td>
-      <td style="font-family:monospace;font-weight:700;">${steamPrice}</td>
-      <td style="font-family:monospace;font-weight:700;">${buffPrice}</td>
-      <td style="font-family:monospace;font-weight:800;color:${passed ? '#2b8a3e' : '#8c4b20'};">${ratio}</td>
-      <td style="color:var(--muted);">${vol}</td>
-      <td>
-        <span class="status-pill ${passed ? 'status-pill-success' : 'status-pill-active'}">
-          ${passed ? '✔ 通过' : '✘ 未通过'}
-        </span>
-      </td>
-      <td>
-        <a href="#planning" class="btn btn-sm btn-secondary" style="padding:2px 8px!important;min-height:22px!important;font-size:11px!important;">引用</a>
-      </td>
-    `;
-    tbodyEl.appendChild(tr);
-  });
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
 window.addEventListener('parallax:scan-selected',({detail:r})=>{
-  updateDashboardCandidates(r);
+  renderCockpitScan(r);
   el('dashboard-source').textContent=r.request.source==='demo'?'演示数据':'SteamDT 榜单';
   el('dashboard-scan-time').textContent=`${new Date(r.created_at*1000).toLocaleString()} · ${r.status==='completed'?'已完成':r.status==='running'?'扫描中':r.status}`;
   renderTicker(el('dashboard-selection'), `${r.coverage.accepted} / ${r.coverage.examined}`);
@@ -164,9 +107,11 @@ parallax.health().then(health=>{
   el('dashboard-service').textContent='已连接';el('dashboard-service-note').textContent=health.capabilities.live_execution?'请核对执行状态':'自动交易未接入 · 仅研究与预览';
   el('sidebar-status').textContent=health.capabilities.live_execution?'请核对执行状态':'研究与预算预览';
   el('mode-badge').textContent=health.capabilities.live_execution?'执行状态需核对':'研究模式 · 自动交易未接入';
-  document.querySelector('.status-dot')?.classList.add('online');
-}).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';document.querySelector('.status-dot')?.classList.remove('online');});
+  document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.add('online'));
+  el('sentinel-execution').textContent=health.capabilities.live_execution?'执行能力需独立核验':'未接入真实交易';
+}).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.remove('online'));el('sentinel-execution').textContent='能力检查失败';});
 
+initCockpit();
 initCardFx();
 initMagnet();
 initClickSpark();
@@ -183,6 +128,6 @@ parallax.accounts().then(accs => {
     const badgeEl = el('sentinel-acc-badge');
     if (nameEl) nameEl.textContent = cur.label || '默认账号';
     if (idEl) idEl.textContent = `SteamID: ${cur.steam_id || cur.id}`;
-    if (badgeEl) { badgeEl.textContent = '已登记'; badgeEl.className = 'status-badge online'; }
-  }
-}).catch(() => {});
+    if (badgeEl) { badgeEl.textContent = '已登记，登录有效性未核验'; badgeEl.className = 'hint'; }
+  } else { el('sentinel-acc-name').textContent='尚无登记账户';el('sentinel-acc-id').textContent='请在账号管理创建账户'; }
+}).catch(e => {el('sentinel-acc-name').textContent='读取失败';el('sentinel-acc-id').textContent=e.message;});

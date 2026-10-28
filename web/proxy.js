@@ -124,8 +124,8 @@ async function load() {
               resultBox.style.display = 'block';
               resultBox.replaceChildren();
               resultBox.append(
-                node('div', `✓ 收到 HTTP ${r.http_status} · 往返延迟 ${r.latency_ms} ms`),
-                node('small', '⚠️ 底层连通成功仅证明该代理通道物理可达；不代表已登录目标平台或拥有访问权限。')
+                node('div', `收到 HTTP ${r.http_status} · 往返延迟 ${r.latency_ms} ms`),
+                node('small', '底层连通成功仅证明该代理通道物理可达；不代表已登录目标平台或拥有访问权限。')
               );
             } else {
               statusBadge.textContent = '连接失败';
@@ -134,8 +134,8 @@ async function load() {
               resultBox.style.display = 'block';
               resultBox.replaceChildren();
               resultBox.append(
-                node('div', `✗ 连接失败 · 往返延迟 ${r.latency_ms} ms`),
-                node('small', '⚠️ 探测失败；系统保持固定路由，不会静默自动切换节点或直连重试。')
+                node('div', `连接失败 · 往返延迟 ${r.latency_ms} ms`),
+                node('small', '探测失败；系统保持固定路由，不会静默自动切换节点或直连重试。')
               );
             }
           } catch (e) {

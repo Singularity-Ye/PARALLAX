@@ -20,18 +20,18 @@
         <!-- 4-Grid Financial & Execution KPIs (Stats Grid) -->
         <div class="cockpit-stats-grid">
           <div class="cockpit-stat-card primary">
-            <span class="stat-kpi-label">估算总资产 / 钱包净值</span>
-            <div class="stat-kpi-val" id="dashboard-wallet-val">¥ 0.00</div>
+            <span class="stat-kpi-label">所选计划 / 估算净钱包</span>
+            <div class="stat-kpi-val" id="dashboard-wallet-val">—</div>
             <div class="stat-kpi-sub">
               <span class="status-pill status-pill-cny">CNY</span>
-              <span id="dashboard-wallet-uah" class="stat-kpi-hint">原币: — UAH</span>
+              <span id="dashboard-wallet-uah" class="stat-kpi-hint">计划估算 · 非账户余额</span>
             </div>
           </div>
           <div class="cockpit-stat-card">
-            <span class="stat-kpi-label">采购预算 / 可用资金</span>
-            <div class="stat-kpi-val" id="dashboard-budget-val">¥ 100.00</div>
+            <span class="stat-kpi-label">所选计划 / 采购预算</span>
+            <div class="stat-kpi-val" id="dashboard-budget-val">—</div>
             <div class="stat-kpi-sub">
-              <span class="status-pill status-pill-active">已预留: ¥0.00</span>
+              <span class="stat-kpi-hint" id="dashboard-reserved-val">尚未引用预算计划</span>
             </div>
           </div>
           <div class="cockpit-stat-card">
@@ -53,70 +53,118 @@
         <!-- Control Runway Bar -->
         <div class="cockpit-runway-bar">
           <div class="runway-status">
-            <span class="status-dot online"></span>
-            <span class="runway-title" id="dashboard-service">已连接</span>
+            <span class="status-dot" aria-hidden="true"></span>
+            <span class="runway-title" id="dashboard-service">待检查</span>
             <span class="runway-sep">·</span>
             <span class="runway-note" id="dashboard-service-note">自动交易未接入 · 仅研究与预算预览</span>
           </div>
           <div class="runway-actions">
-            <a href="#workspace" class="btn btn-primary btn-sm"><span>⚡</span> 启动选品扫描</a>
+            <a href="#workspace" class="btn btn-primary btn-sm"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>启动选品扫描</a>
             <a href="#planning" class="btn btn-secondary btn-sm">预算计划 ↗</a>
             <a href="#inventory" class="btn btn-secondary btn-sm">库存快照 ↗</a>
           </div>
         </div>
+
+        <!-- Telemetry Row (Plan B: Capital Allocation & Market Friction Benchmarks) -->
+        <div class="cockpit-telemetry-row">
+          <!-- Capital & Position Allocation Gauge -->
+          <div class="telemetry-card capital-gauge">
+            <div class="telemetry-head">
+              <span class="telemetry-label">资金配置与持仓水位</span>
+              <span class="telemetry-sub" id="telemetry-total-capital">总额度: ¥100.00</span>
+            </div>
+            <div class="allocation-track" title="资金配置分布">
+              <div class="alloc-seg alloc-available" id="alloc-bar-avail" style="width: 100%;" title="可用预算 100%"></div>
+              <div class="alloc-seg alloc-reserved" id="alloc-bar-resv" style="width: 0%;" title="待决锁定 0%"></div>
+              <div class="alloc-seg alloc-holdings" id="alloc-bar-hold" style="width: 0%;" title="在持饰品 0%"></div>
+            </div>
+            <div class="allocation-legend">
+              <div class="legend-item"><span class="legend-dot dot-avail"></span><span>可用预算: <strong id="legend-avail-val">¥100.00</strong></span></div>
+              <div class="legend-item"><span class="legend-dot dot-resv"></span><span>锁定待结: <strong id="legend-resv-val">¥0.00</strong></span></div>
+              <div class="legend-item"><span class="legend-dot dot-hold"></span><span>持仓占用: <strong id="legend-hold-val">¥0.00</strong></span></div>
+            </div>
+          </div>
+
+          <!-- Market Friction & FX Benchmark -->
+          <div class="telemetry-card friction-gauge">
+            <div class="telemetry-head">
+              <span class="telemetry-label">市场摩擦与折算标尺</span>
+              <span class="telemetry-sub">实时风控乘数</span>
+            </div>
+            <div class="friction-grid">
+              <div class="friction-item">
+                <span class="friction-name">Steam 税费</span>
+                <strong class="friction-val">15.0%</strong>
+                <small class="friction-hint">净得×0.8695</small>
+              </div>
+              <div class="friction-item">
+                <span class="friction-name">BUFF 提现</span>
+                <strong class="friction-val">1.0%</strong>
+                <small class="friction-hint">银联直连底仓</small>
+              </div>
+              <div class="friction-item highlight">
+                <span class="friction-name">保本折算线</span>
+                <strong class="friction-val">0.6500</strong>
+                <small class="friction-hint">安全垫阈值</small>
+              </div>
+              <div class="friction-item">
+                <span class="friction-name">日深度上限</span>
+                <strong class="friction-val">5.0%</strong>
+                <small class="friction-hint">防剧烈滑点</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <section class="cockpit-evidence" aria-labelledby="capital-heading">
+          <div class="section-title"><h2 id="capital-heading">资金与仓位配置</h2><span>PLAN / ALLOCATION</span></div>
+          <p class="hint" id="dashboard-plan-scope">尚未引用预算计划；不是账户余额或真实资金占用。</p>
+          <div class="capital-track" id="capital-track" role="img" aria-label="尚无预算分配数据"><span id="capital-planned"></span><span id="capital-reserved"></span></div>
+          <dl class="cockpit-spec capital-legend"><div><dt>计划分配</dt><dd id="capital-planned-value">—</dd></div><div><dt>填报预留</dt><dd id="capital-reserved-value">—</dd></div><div><dt>剩余预算</dt><dd id="capital-remaining-value">—</dd></div></dl>
+          <p class="hint" id="capital-position">仓位来源：未引用</p>
+        </section>
+        <section class="cockpit-evidence" aria-labelledby="friction-heading">
+          <div class="section-title"><h2 id="friction-heading">报价摩擦与折算标尺</h2><span>SCAN / MODEL</span></div>
+          <label class="cockpit-choice">扫描商品<select id="friction-item" aria-describedby="friction-scope" disabled><option>尚未选择扫描</option></select></label>
+          <div class="ratio-track" id="ratio-track" role="img" aria-label="尚无折算率证据"><span id="ratio-marker" hidden></span></div>
+          <dl class="cockpit-spec friction-readout"><div><dt>现金参考价</dt><dd id="friction-cash">—</dd></div><div><dt>估算净钱包</dt><dd id="friction-net">—</dd></div><div><dt>模型费用</dt><dd id="friction-fee">—</dd></div><div><dt>估算折算率</dt><dd id="friction-ratio">—</dd></div></dl>
+          <p class="hint" id="friction-scope">来源与时间未知；不是实时盘口、实际滑点或收益率。</p>
+        </section>
       </div>
 
       <!-- Right Column: Refined PageCurl Card (Sentinel & Account Security) -->
-      <aside class="dashboard-sentinel-aside">
-        <div class="hero-note sentinel-card" data-page-curl>
+      <div class="dashboard-sentinel-aside">
+        <div class="cockpit-evidence sentinel-sheet" data-page-curl>
           <div class="sentinel-header">
             <span class="sentinel-badge">SENTINEL</span>
             <h3 class="sentinel-title">操盘态势与安全哨兵</h3>
           </div>
-          <ul class="sentinel-metrics-list">
-            <li class="sentinel-item">
-              <div class="sentinel-item-head">
-                <span class="sentinel-item-label">当前活跃账户</span>
-                <span class="status-badge online" id="sentinel-acc-badge">在线</span>
-              </div>
-              <strong class="sentinel-item-val" id="sentinel-acc-name">虐你一如呼吸</strong>
-              <small class="sentinel-item-sub" id="sentinel-acc-id">SteamID: 76561198853197332</small>
-            </li>
-            <li class="sentinel-item">
-              <div class="sentinel-item-head">
-                <span class="sentinel-item-label">凭据会话与出站链路</span>
-                <span class="status-pill status-pill-success">直连</span>
-              </div>
-              <strong class="sentinel-item-val">独立浏览器捕获已就绪</strong>
-              <small class="sentinel-item-sub">Windows 本地凭据加密存储</small>
-            </li>
-            <li class="sentinel-item">
-              <div class="sentinel-item-head">
-                <span class="sentinel-item-label">风控与流动性约束</span>
-                <span class="status-pill status-pill-active">5% 日量</span>
-              </div>
-              <strong class="sentinel-item-val">低价数量与成交量保护已启用</strong>
-              <small class="sentinel-item-sub">未决买入与持有不重复计数</small>
-            </li>
-          </ul>
+          <dl class="cockpit-spec sentinel-spec">
+            <div><dt>登记账户</dt><dd><strong id="sentinel-acc-name">待加载</strong><small id="sentinel-acc-id">尚未读取账户列表</small><span id="sentinel-acc-badge">未核验会话</span></dd></div>
+            <div><dt>后台出站模式</dt><dd id="sentinel-route">待读取配置</dd></div>
+            <div><dt>浏览器出口</dt><dd>独立配置，未与后台代理联动</dd></div>
+            <div><dt>会话与凭据</dt><dd>账户登记不等于登录有效<small>请在账号管理显式在线验证</small></dd></div>
+            <div><dt>仓位证据</dt><dd id="sentinel-position">未引用</dd></div>
+            <div><dt>限购参数</dt><dd id="sentinel-risk">未引用计划</dd></div>
+            <div><dt>交易执行</dt><dd id="sentinel-execution">待检查能力</dd></div>
+          </dl>
           <div class="sentinel-actions">
             <a href="#accounts" class="btn btn-sm btn-secondary" style="width:100%;text-align:center;">切换账户与登录态 ↗</a>
           </div>
         </div>
-      </aside>
+      </div>
     </div>
 
     <!-- Lower Half: Quick Arbitrage & Candidate Monitor Table -->
     <section class="card cockpit-table-card">
       <div class="section-title">
-        <h2>最新预筛候选与套利价差速览</h2>
-        <span>ACTIVE ARBITRAGE RADAR</span>
+        <h2>扫描候选与折算证据</h2>
+        <span>SAVED SCAN / PREVIEW</span>
       </div>
       <div id="dashboard-candidates-container" class="cockpit-candidates-table-wrap">
         <div class="table-empty-notice" id="dashboard-empty-candidates">
           <span class="empty-icon">◈</span>
           <strong>当前尚未执行选品扫描</strong>
-          <p>点击上方「启动选品扫描」即可从 SteamDT 榜单或本地固定样例中捕获最新套利标的。</p>
+          <p>点击上方「启动选品扫描」即可从 SteamDT 榜单或本地固定样例中读取候选参考数据。</p>
         </div>
         <table class="cockpit-table" id="dashboard-candidates-table" style="display:none">
           <thead>
@@ -125,8 +173,8 @@
               <th>Steam 售价</th>
               <th>BUFF 底价</th>
               <th>预估折算率</th>
-              <th>24h 成交量</th>
-              <th>预检判定</th>
+              <th>来源成交量</th>
+              <th>预筛判定</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -428,7 +476,7 @@
 
   <!-- Single-line Quick Add Bar (1:1 with AetherSwap) -->
   <div class="add-purchase-bar">
-    <span class="add-bar-label">⚡ 快速登记购入</span>
+    <span class="add-bar-label"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" style="margin-right:4px;"><path d="M12 5v14M5 12h14"></path></svg>快捷建仓录入</span>
     <input type="text" id="add-purchase-name" placeholder="饰品名称或粘贴 Steam 市场链接" autocomplete="off" />
     <input type="number" id="add-purchase-price" step="0.01" min="0.01" placeholder="购入单价 (元)" autocomplete="off" />
     <input type="number" id="add-purchase-quantity" value="1" min="1" placeholder="数量" title="添加数量" />

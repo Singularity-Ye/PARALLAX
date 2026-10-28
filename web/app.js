@@ -83,6 +83,7 @@ function planFeedback(message, failed = false) {
 }
 window.addEventListener('parallax:quote-referenced',({detail})=>planFeedback(`已添加 ${detail.source} 报价引用；生成计划时将重新校验商品、账户及双方时效。`));
 function renderPlan(plan) {
+  window.dispatchEvent(new CustomEvent('parallax:plan-selected',{detail:plan}));
   const box = el('plan-result');
   const source = plan.source === 'demo' ? '固定演示数据' : `${plan.buff_valuations?.length?'BUFF 首屏现金报价':'SteamDT 现金榜单'} + ${plan.steam_valuations?.length?'Steam 盘口估值':'SteamDT 钱包估值'}`;
   box.replaceChildren(node('h3', `${source} · 预算预览`),
