@@ -20,7 +20,7 @@ function clear() {
   if (el('remaining')) el('remaining').textContent = '点击圆盘生成验证码';
   if (el('copy')) {
     el('copy').disabled = true;
-    el('copy').innerHTML = '<span class="btn-icon">📋</span> 复制验证码';
+    el('copy').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制验证码';
   }
   updateRing(0);
   if (copyTimer) {
@@ -147,11 +147,11 @@ async function copyCode() {
   if (!currentCode || !expires) return;
   try {
     await navigator.clipboard.writeText(currentCode);
-    if (el('copy')) el('copy').innerHTML = '<span class="btn-icon">✓</span> 已复制到剪贴板';
+    if (el('copy')) el('copy').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true" style="margin-right:4px"><polyline points="20 6 9 17 4 12"></polyline></svg>已复制';
     if (el('feedback')) el('feedback').textContent = '已复制！请尽快在 Steam 官方登录界面粘贴。';
     if (copyTimer) clearTimeout(copyTimer);
     copyTimer = setTimeout(() => {
-      if (el('copy') && currentCode) el('copy').innerHTML = '<span class="btn-icon">📋</span> 复制验证码';
+      if (el('copy') && currentCode) el('copy').innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制验证码';
     }, 1800);
   } catch (err) {
     if (el('feedback')) el('feedback').textContent = '复制失败，请手动选取输入。';
