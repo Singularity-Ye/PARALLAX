@@ -23,10 +23,30 @@
   --dur-fast:140ms;
   --dur-base:220ms;
   --dur-recover:360ms;
-  --hard-shadow-sm:2px 2px 0 var(--ink);
-  --hard-shadow:4px 4px 0 var(--ink);
-  --hard-shadow-lg:6px 6px 0 var(--ink);
-  --hard-shadow-accent:4px 4px 0 var(--accent);
+  /* Strict Single Source of Truth: Typography & Spacing Scale */
+  --text-xs: 10px;
+  --text-sm: 11.5px;
+  --text-base: 12.5px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  --btn-h-sm: 28px;
+  --btn-h-md: 32px;
+  --input-h: 32px;
+
+  --hard-shadow-sm: 1.5px 1.5px 0 var(--ink);
+  --hard-shadow: 2.5px 2.5px 0 var(--ink);
+  --hard-shadow-lg: 4px 4px 0 var(--ink);
+  --hard-shadow-accent: 2px 2px 0 var(--accent);
 }
 *{box-sizing:border-box}
 html{scrollbar-gutter:stable}
