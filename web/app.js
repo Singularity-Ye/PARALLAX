@@ -26,7 +26,7 @@ function render(report) {
     box.append(valBox,node('span',label));
     return box;
   }));
-  el('result-summary').textContent = `淘汰 ${c.rejected} · 重复 ${c.duplicates} · 已收未分析 ${c.unexamined_received}`;
+  if(el('result-summary')) el('result-summary').textContent = `淘汰 ${c.rejected} · 重复 ${c.duplicates} · 已收未分析 ${c.unexamined_received}`;
   renderCandidates();
   renderPositionInputs(report);
   renderBuffCandidates(report);
@@ -35,18 +35,76 @@ function render(report) {
 function renderCandidates() {
   if (!current) return;
   const rows = current.candidates.filter(c => !el('only-passed').checked || c.passed);
-  el('candidates').replaceChildren(...rows.map(c => {
-    const row = node('article',undefined,'candidate');
-    const head = node('div',undefined,'candidate-head');head.append(node('h3',c.item.name),node('span',c.passed?'预筛通过':'未通过',`chip ${c.passed?'':'rejected'}`));
-    const quotes = node('div',undefined,'quotes');
-    for(const [label,value] of [['现金',money(c.item.cash_cents)],['估算钱包',money(c.estimated_wallet_cents)],['折算率',c.ratio_bps === null?'未知':`${(c.ratio_bps/100).toFixed(2)}%`]]) {
-      const part = node('span',`${label} `);part.append(node('b',value));quotes.append(part);
+  const tbody = el('candidates-tbody');
+  if (tbody) {
+    if (!rows.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="7" class="empty-cell">当前没有符合筛选条件的商品；可调整上方过滤范围。</td></tr>';
+    } else {
+      const fragment = document.createDocumentFragment();
+      for (const c of rows) {
+        const tr = document.createElement('tr');
+        tr.className = c.passed ? 'candidate-row pass' : 'candidate-row fail';
+        
+        // 1. Name & key
+        const tdName = document.createElement('td');
+        tdName.className = 'col-name';
+        const strong = document.createElement('strong');
+        strong.textContent = c.item.name;
+        tdName.appendChild(strong);
+        tr.appendChild(tdName);
+
+        // 2. BUFF Cash
+        const tdCash = document.createElement('td');
+        tdCash.className = 'col-mono';
+        tdCash.textContent = c.item.cash_cents > 0 ? money(c.item.cash_cents) : '—';
+        tr.appendChild(tdCash);
+
+        // 3. Steam Gross
+        const tdSteam = document.createElement('td');
+        tdSteam.className = 'col-mono';
+        tdSteam.textContent = c.estimated_wallet_cents > 0 ? money(c.estimated_wallet_cents) : '—';
+        tr.appendChild(tdSteam);
+
+        // 4. Ratio
+        const tdRatio = document.createElement('td');
+        tdRatio.className = 'col-mono';
+        const ratioStr = c.ratio_bps === null ? '—' : `${(c.ratio_bps / 100).toFixed(2)}%`;
+        const ratioTag = document.createElement('span');
+        ratioTag.className = c.ratio_bps !== null && c.ratio_bps <= 7500 ? 'ratio-pill good' : 'ratio-pill';
+        ratioTag.textContent = ratioStr;
+        tdRatio.appendChild(ratioTag);
+        tr.appendChild(tdRatio);
+
+        // 5. Volume
+        const tdVol = document.createElement('td');
+        tdVol.className = 'col-mono';
+        tdVol.textContent = c.item.volume !== undefined ? String(c.item.volume) : '—';
+        tr.appendChild(tdVol);
+
+        // 6. Passed badge & reason toggle
+        const tdPass = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = c.passed ? 'status-pill status-pill-success' : 'status-pill status-pill-active';
+        badge.textContent = c.passed ? '预筛通过' : '未通过';
+        badge.title = c.rules.map(r => `${r.passed ? '✓' : '×'} ${r.rule}: ${r.reason}`).join('\n');
+        tdPass.appendChild(badge);
+        tr.appendChild(tdPass);
+
+        // 7. Actions
+        const tdAction = document.createElement('td');
+        tdAction.className = 'col-action';
+        const planLink = document.createElement('a');
+        planLink.href = '#planning';
+        planLink.className = 'table-action-link';
+        planLink.textContent = '加入计划 ↗';
+        tdAction.appendChild(planLink);
+        tr.appendChild(tdAction);
+
+        fragment.appendChild(tr);
+      }
+      tbody.replaceChildren(fragment);
     }
-    const detail = node('details');detail.append(node('summary',`查看 ${c.rules.length} 条判断依据`));
-    const list = node('ul');for(const rule of c.rules) list.append(node('li',`${rule.passed?'✓':'×'} ${rule.rule}：${rule.reason}`,rule.passed?'':'rule-fail'));
-    detail.append(list);row.append(head,quotes,detail);return row;
-  }));
-  if(!rows.length) el('candidates').append(node('p','当前没有符合展示条件的商品；可调整范围或查看失败说明。','hint'));
+  }
 }
 function busy(value) { el('start').disabled=value;el('cancel').hidden=!value;el('cancel').disabled=false; }
 async function history() {

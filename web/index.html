@@ -170,28 +170,146 @@
       </div>
     </section>
   </section>
-  <section class="page" data-page="workspace" id="workspace" hidden>
-<section class="card"><div class="section-title"><h2>Steam 市场商品检索</h2><span>CS2 / DISCOVERY</span></div><p class="hint">不依赖SteamDT榜单。每次匿名读取一页市场商品身份；无现金采购价，不自动加入预算，不代表全市场遍历。每次请求至少间隔15秒。</p><form id="catalog-form"><label>关键词<input id="catalog-query" required maxlength="100" placeholder="例如 Prisma 或 AK-47"></label><div class="actions"><button id="catalog-search" type="submit">检索第一页</button><button id="catalog-next" type="button" class="secondary" disabled>读取下一页</button></div></form><p id="catalog-feedback" role="status"></p><div id="catalog-results"></div></section>
+    <section class="page" data-page="workspace" id="workspace" hidden>
+    <!-- Top Aux Tool: Collapsible Market Discovery Drawer (Zero Screen Clutter) -->
+    <details class="workspace-aux-drawer">
+      <summary class="aux-drawer-toggle">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        单品手动关键词检索（Steam 市场原生搜索，不计入自动选品）
+      </summary>
+      <div class="aux-drawer-body">
+        <form id="catalog-form" class="catalog-quick-form">
+          <input id="catalog-query" required maxlength="100" placeholder="例如 Prisma 或 AK-47" class="compact-input">
+          <button id="catalog-search" type="submit" class="btn btn-sm btn-primary">检索第一页</button>
+          <button id="catalog-next" type="button" class="btn btn-sm btn-secondary" disabled>下一页</button>
+        </form>
+        <p id="catalog-feedback" role="status" class="hint"></p>
+        <div id="catalog-results" class="catalog-results-grid"></div>
+      </div>
+    </details>
 
-<section class="notice">当前支持演示扫描与 SteamDT 榜单读取。榜单通过仅代表预筛通过，尚未进行实时深度、历史风险和交易前复核；真实买卖正在迁移。</section>
-<div class="workspace"><section class="card controls"><div class="section-title"><h2>本轮选品范围</h2><span>01 / SCOPE</span></div>
-<form id="scan-form"><label>数据来源<select name="source"><option value="demo">演示数据 · 本地固定样例</option><option value="steamdt">SteamDT · BUFF → Steam 榜单</option></select></label>
-<details><summary>钱包净值估算方式</summary><label>费用模型<select name="wallet_policy"><option value="legacy115">原版 1.15 比例估算</option><option value="parameterized_fees">按自填费率与最低费用估算</option></select></label>
-<fieldset id="fee-fields" disabled><div class="pair"><label>平台费率 / %<input name="platform_rate" type="number" min="0" max="100" step="0.01" value="5" required></label><label>发行商费率 / %<input name="publisher_rate" type="number" min="0" max="100" step="0.01" value="10" required></label></div>
-<div class="pair"><label>最低平台费 / 元<input name="platform_min" type="number" min="0" step="0.01" required></label><label>最低发行商费 / 元<input name="publisher_min" type="number" min="0" step="0.01" required></label></div><label>净值步长 / 元<input name="fee_increment" type="number" min="0.01" step="0.01" value="0.01" required></label></fieldset>
-<p class="hint">用于本轮及其计划的 CNY 估算，不代表平台已确认结算。切换参数后请重新扫描。</p></details>
-<div class="pair"><label>最多请求页数<input name="max_pages" type="number" min="1" max="20" value="3" required></label><label>每页条数<input name="page_size" type="number" min="1" max="200" value="10" required></label></div>
-<label>最多分析商品数<input name="max_items" type="number" min="1" max="2000" value="100" required></label>
-<div class="pair"><label>最低现金价 / 元<input name="min_price" type="number" min="0" step="0.01" value="2" required></label><label>最高现金价 / 元<input name="max_price" type="number" min="0" max="1000000" step="0.01" value="5000" required></label></div>
-<div class="pair"><label>最低来源成交量<input name="min_volume" type="number" min="0" value="200" required></label><label>最高估算折算率 / %<input name="max_ratio" type="number" min="0.01" max="200" step="0.01" value="90" required></label></div>
-<label>排除关键词<small>使用逗号分隔</small><input name="exclude_keywords" value="印花" maxlength="500"></label>
-<p class="hint">扫描预算与展示数量分开。到达预算即说明停止原因，不把局部结果当作全市场。</p>
-<button id="start" type="submit">开始扫描 <span>↗</span></button><button id="cancel" class="secondary" type="button" hidden>停止当前扫描</button></form>
-</section>
-<section class="card results"><div class="section-title"><h2>扫描结果</h2><span id="source-label">等待开始</span></div><div id="feedback" role="status" aria-live="polite">选择范围后开始。演示数据可直接体验，无需登录账号。</div>
-<div class="metrics" id="metrics"></div><div class="result-toolbar"><strong id="result-summary">每件商品，都有理由</strong><label><input id="only-passed" type="checkbox"> 只看预筛通过</label></div>
-<div id="candidates" class="candidate-list"><div class="empty">◈<h3>市场很大，先画好范围。</h3><p>扫描后将在这里显示报价、折算率和逐条规则结果。</p></div></div></section></div>
-</section>
+    <!-- Main High-Density Filter & Scan Bar -->
+    <section class="card workspace-scan-card">
+      <form id="scan-form" class="scan-bar-form">
+        <!-- Main Controls Row (Inline Grid) -->
+        <div class="scan-main-row">
+          <div class="scan-field field-source">
+            <span class="scan-label">数据来源</span>
+            <select name="source" class="compact-select">
+              <option value="demo">固定演示数据 (无需登录)</option>
+              <option value="steamdt">SteamDT · BUFF → Steam</option>
+            </select>
+          </div>
+
+          <div class="scan-field field-price">
+            <span class="scan-label">现金区间 (元)</span>
+            <div class="range-inputs">
+              <input name="min_price" type="number" min="0" step="0.01" value="2" placeholder="最低" class="compact-input range-input" required>
+              <span class="range-sep">-</span>
+              <input name="max_price" type="number" min="0" max="1000000" step="0.01" value="5000" placeholder="最高" class="compact-input range-input" required>
+            </div>
+          </div>
+
+          <div class="scan-field field-volume">
+            <span class="scan-label">最低 24h 日量</span>
+            <input name="min_volume" type="number" min="0" value="200" class="compact-input" required>
+          </div>
+
+          <div class="scan-field field-ratio">
+            <span class="scan-label">最高折算比 (%)</span>
+            <input name="max_ratio" type="number" min="0.01" max="200" step="0.01" value="90" class="compact-input" required>
+          </div>
+
+          <div class="scan-actions">
+            <button id="start" type="submit" class="btn btn-primary btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-right:2px"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              开始扫描
+            </button>
+            <button id="cancel" class="btn btn-secondary btn-sm" type="button" hidden>停止</button>
+          </div>
+        </div>
+
+        <!-- Collapsible Advanced Scan Parameters (Fees, Page Budget, Exclusions) -->
+        <details class="scan-adv-drawer">
+          <summary class="adv-drawer-toggle">高级参数与费率模型设置</summary>
+          <div class="adv-drawer-grid">
+            <div class="adv-col">
+              <span class="scan-label">单次扫描限制</span>
+              <div class="pair">
+                <label>页数预算<input name="max_pages" type="number" min="1" max="20" value="3" class="compact-input" required></label>
+                <label>每页条数<input name="page_size" type="number" min="1" max="200" value="10" class="compact-input" required></label>
+                <label>最大分析数<input name="max_items" type="number" min="1" max="2000" value="100" class="compact-input" required></label>
+              </div>
+            </div>
+            <div class="adv-col">
+              <span class="scan-label">排除规则</span>
+              <label>排除关键词 (逗号分隔)<input name="exclude_keywords" value="印花" maxlength="500" class="compact-input"></label>
+            </div>
+            <div class="adv-col">
+              <span class="scan-label">费用估算模型</span>
+              <select name="wallet_policy" class="compact-select" style="margin-bottom:6px">
+                <option value="legacy115">原版 1.15 比例估算</option>
+                <option value="parameterized_fees">自填费率与最低费用</option>
+              </select>
+              <fieldset id="fee-fields" disabled class="mini-fieldset">
+                <div class="pair">
+                  <label>平台 %<input name="platform_rate" type="number" min="0" max="100" step="0.01" value="5" class="compact-input" required></label>
+                  <label>发行商 %<input name="publisher_rate" type="number" min="0" max="100" step="0.01" value="10" class="compact-input" required></label>
+                </div>
+                <div class="pair">
+                  <label>最低平台<input name="platform_min" type="number" min="0" step="0.01" value="0" class="compact-input" required></label>
+                  <label>最低发行<input name="publisher_min" type="number" min="0" step="0.01" value="0" class="compact-input" required></label>
+                </div>
+                <input name="fee_increment" type="hidden" value="0.01">
+              </fieldset>
+            </div>
+          </div>
+        </details>
+      </form>
+    </section>
+
+    <!-- Candidate Results Table Section (100% Full-Width Arbitrage Table) -->
+    <section class="card workspace-results-card">
+      <div class="results-toolbar">
+        <div class="results-meta-left">
+          <div class="section-title" style="margin:0">
+            <h2 style="font-size:15px;margin:0">选品候选与套利价差雷达</h2>
+            <span id="source-label" class="source-tag">等待开始</span>
+          </div>
+          <span class="results-sep">|</span>
+          <div id="metrics" class="scan-metrics-capsule"></div>
+        </div>
+
+        <div class="results-actions-right">
+          <div id="feedback" role="status" aria-live="polite" class="scan-feedback-pill">准备就绪</div>
+          <label class="filter-only-pass">
+            <input id="only-passed" type="checkbox"> 只看预筛通过
+          </label>
+        </div>
+      </div>
+
+      <!-- High-Density Arbitrage Candidates Table -->
+      <div class="candidates-table-wrap">
+        <table class="candidates-table" id="candidates-table">
+          <thead>
+            <tr>
+              <th style="width:30%">商品名称</th>
+              <th style="width:12%">BUFF 现货</th>
+              <th style="width:12%">Steam 估价</th>
+              <th style="width:11%">折算比率</th>
+              <th style="width:10%">24h 成交</th>
+              <th style="width:10%">预筛判定</th>
+              <th style="width:15%">操作</th>
+            </tr>
+          </thead>
+          <tbody id="candidates-tbody">
+            <tr class="empty-row"><td colspan="7" class="empty-cell">市场很大，设定上方参数并点击「开始扫描」捕获套利标的。</td></tr>
+          </tbody>
+        </table>
+        <div id="candidates" style="display:none"></div>
+      </div>
+    </section>
+  </section>
 <section class="page" data-page="planning" id="page-planning" hidden>
 <section class="card" id="planning"><div class="section-title"><h2>交易预算计划</h2><span>02 / PLAN</span></div>
 <p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>

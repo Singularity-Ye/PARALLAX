@@ -1674,3 +1674,318 @@ footer{display:flex;justify-content:space-between;gap:20px;margin-top:34px;paddi
 @media(max-width:1100px){#page-dashboard .dashboard-cockpit-grid{grid-template-columns:minmax(0,1fr)}#page-dashboard .cockpit-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:900px){#app,main#app{margin-left:0;padding:var(--space-4) var(--space-5)}#sidebar,aside#sidebar{transform:translateX(-100%)}body[data-nav-open=true] #sidebar{transform:translateX(0)}}
 @media(max-width:600px){#app,main#app{padding:var(--space-3)}#page-dashboard .capital-legend,#page-dashboard .friction-readout{grid-template-columns:repeat(2,minmax(0,1fr))}#page-dashboard .cockpit-spec>div{grid-template-columns:minmax(0,1fr)}#page-dashboard .sentinel-spec>div{gap:var(--space-1)}}
+
+
+/* ========================================================================== */
+/* High-Density Modern Workspace & Arbitrage Candidates Table                */
+/* ========================================================================== */
+
+/* Top Collapsible Aux Discovery Drawer */
+.workspace-aux-drawer {
+  background: #ffffff;
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  padding: 6px 14px;
+  margin-bottom: 10px;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.2s ease;
+}
+.aux-drawer-toggle {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+}
+.aux-drawer-toggle:hover {
+  color: #18181b;
+}
+.aux-drawer-body {
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  margin-top: 8px;
+}
+.catalog-quick-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.compact-input {
+  min-height: 28px !important;
+  padding: 3px 8px !important;
+  font-size: 12px !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: 5px !important;
+  background: #ffffff !important;
+  color: #18181b !important;
+}
+.catalog-results-grid {
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+
+/* Main Scan Filter Bar */
+.workspace-scan-card {
+  background: #ffffff !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: 8px !important;
+  padding: 10px 16px !important;
+  margin-bottom: 12px !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.scan-main-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.scan-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.scan-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.range-input {
+  width: 72px !important;
+  text-align: center;
+}
+.range-sep {
+  color: var(--muted);
+  font-size: 11px;
+}
+.field-volume input,
+.field-ratio input {
+  width: 82px !important;
+  text-align: center;
+}
+.scan-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  align-self: flex-end;
+}
+
+/* Advanced Scan Parameters Drawer */
+.scan-adv-drawer {
+  margin-top: 10px;
+  border-top: 1px dashed var(--border-card);
+  padding-top: 8px;
+}
+.adv-drawer-toggle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.adv-drawer-toggle:hover {
+  color: #18181b;
+}
+.adv-drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+.adv-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mini-fieldset {
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 0;
+  background: #ffffff;
+}
+
+/* Results Full-Width Arbitrage Table Card */
+.workspace-results-card {
+  background: #ffffff !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: 8px !important;
+  padding: 14px 16px !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+.results-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+.results-meta-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.source-tag {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  background: #f1f5f9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+}
+.results-sep {
+  color: #cbd5e1;
+  font-size: 12px;
+}
+.scan-metrics-capsule {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.scan-metrics-capsule .metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  box-shadow: none !important;
+  transform: none !important;
+  margin: 0;
+}
+.scan-metrics-capsule .metric b {
+  font-size: 11.5px;
+  font-weight: 750;
+  color: #0f172a;
+}
+.scan-metrics-capsule .metric span {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+}
+.results-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.scan-feedback-pill {
+  font-size: 11px;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+.scan-feedback-pill.error {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+.filter-only-pass {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Arbitrage Table */
+.candidates-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 6px;
+}
+.candidates-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.candidates-table th {
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+.candidates-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.candidates-table tr:hover td {
+  background: #f8fafc;
+}
+.candidate-row.fail td {
+  opacity: 0.72;
+}
+.col-name strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+.col-mono {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: #1e293b;
+  white-space: nowrap;
+}
+.ratio-pill {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+}
+.ratio-pill.good {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+.col-action .table-action-link {
+  font-size: 11px;
+  font-weight: 650;
+  color: #0284c7;
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+.col-action .table-action-link:hover {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+.empty-row .empty-cell {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
