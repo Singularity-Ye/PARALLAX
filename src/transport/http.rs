@@ -10,7 +10,7 @@ use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Path, State, rejection::JsonRejection},
     http::{StatusCode, header},
-    response::{Html, IntoResponse, Response},
+    response::{IntoResponse, Response},
     routing::{get, post},
 };
 use serde_json::json;
@@ -89,6 +89,8 @@ fn static_response(content_type: &'static str, body: &'static str) -> ([(header:
 
 pub fn router(state: AppState) -> Router {
     Router::new()
+        .route("/lib/ledger-view.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/ledger-view.js")) }))
+        .route("/lib/motion.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/motion.js")) }))
         .route("/lib/cockpit.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/cockpit.js")) }))
         .route("/catalog.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/catalog.js")) }))
         .route("/", get(|| async { static_response("text/html; charset=utf-8", include_str!("../../web/index.html")) }))

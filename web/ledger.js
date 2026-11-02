@@ -1,5 +1,6 @@
 import {parallax} from './lib/api.js';
 import {node,nativeMoney} from './lib/pricing-view.js';
+import {renderLedgerTable,renderLedgerSummary} from './lib/ledger-view.js';
 import {currencyOptions} from './lib/currencies.js';
 import {populateSelect,localTime,unixTime,retryableCommand} from './lib/forms.js';
 import {assetStageLabels as stages} from './lib/evidence-view.js';
@@ -20,6 +21,7 @@ let currentHoldings = null;
 const createCommand = retryableCommand();
 const eventCommand = retryableCommand();
 const receiveCommand = retryableCommand();
+let quickAttempt = null;
 
 // Default times and currency setup
 el('purchased-at').value = localTime();
@@ -41,6 +43,8 @@ function lock(value) {
   for (const id of ['create-form', 'receive-form', 'event-form']) {
     for (const field of el(id).elements) field.disabled = value;
   }
+  dom('ledger-page-prev').disabled = value || !tablePage || tableOffset===0;
+  dom('ledger-page-next').disabled = value || !tablePage || tablePage.next_offset===null;
   for (const id of ['account', 'lot', 'inventory', 'refresh', 'events', 'holdings']) {
     const target = el(id);
     if (target) target.disabled = value;
@@ -97,117 +101,41 @@ function receiveChoices() {
   host.replaceChildren(...(rows.length ? rows : [node('p', '这份观察没有可绑定的单件精确身份资产；不按名称自动猜测。')]));
 }
 
-// ==========================================================================
-// 13-Column Table & Purchases Summary Computation
-// ==========================================================================
+let tablePage = null;
+let tableOffset = 0;
 function renderPurchasesTable() {
-  const tbody = dom('purchases-tbody');
-  if (!tbody) return;
-
-  if (!currentLots || currentLots.length === 0) {
-    tbody.innerHTML = `
-      <tr class="empty-table-tr">
-        <td colspan="13" class="empty-table-td">
-          <div class="table-empty-notice">
-            <span class="empty-icon">◈</span>
-            <strong>暂无持有饰品记录</strong>
-            <p>可通过上方「快速登记购入」录入持仓，或刷新同步库存观察快照。</p>
-          </div>
-        </td>
-      </tr>
-    `;
-    updateSummaryBar(0, 0, 0, 0);
-    return;
-  }
-
-  tbody.innerHTML = '';
-  let totalHeldUnits = 0;
-  let totalCostCents = 0;
-  let totalEstimatedValueCents = 0;
-
-  currentLots.forEach(lot => {
-    const req = lot.request;
-    const qty = req.quantity || 1;
-    const costCents = req.cash_cost_cents || 0;
-    const unitCost = costCents / qty / 100;
-    totalHeldUnits += qty;
-    totalCostCents += costCents;
-
-    // Estimated current price benchmark (markup ~1.28 for Steam market valuation baseline)
-    const estSteamPrice = unitCost * 1.30;
-    const netSteamPrice = estSteamPrice * 0.85; // Steam wallet after 15% fee
-    const estTotalValue = netSteamPrice * qty * 100;
-    totalEstimatedValueCents += estTotalValue;
-
-    const discountRatio = netSteamPrice > 0 ? (unitCost / netSteamPrice) * 100 : 0;
-    const profit = (netSteamPrice - unitCost) * qty;
-
-    const dateStr = req.purchased_at ? new Date(req.purchased_at * 1000).toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}) : '—';
-    const firstAsset = lot.assets?.[0];
-    const assetId = firstAsset?.asset?.asset_id || `批次 #${lot.id.slice(0, 8)}`;
-    const stage = firstAsset ? stages[firstAsset.stage] || '在库持有' : '未核验凭据';
-
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="text-align:center;"><input type="checkbox" class="holding-item-cb" value="${lot.id}" /></td>
-      <td style="font-size:11.5px;color:var(--muted);white-space:nowrap;">${dateStr}</td>
-      <td>
-        <strong style="color:var(--ink);">${escapeHtml(req.item_key)}</strong>
-        <small style="display:block;color:var(--muted);font-size:10px;">${qty > 1 ? `整批 ${qty} 件` : '单件持仓'}</small>
-      </td>
-      <td style="font-family:monospace;font-size:11px;color:var(--muted);">${assetId}</td>
-      <td style="text-align:right;font-family:monospace;font-weight:750;">¥ ${unitCost.toFixed(2)}</td>
-      <td style="text-align:right;font-family:monospace;color:var(--muted);">¥ ${(unitCost * 1.15).toFixed(2)}</td>
-      <td style="text-align:right;font-family:monospace;font-weight:700;">¥ ${estSteamPrice.toFixed(2)}</td>
-      <td style="text-align:right;font-family:monospace;font-weight:750;color:var(--ink);">¥ ${netSteamPrice.toFixed(2)}</td>
-      <td style="text-align:right;font-family:monospace;font-weight:850;color:${discountRatio <= 82 ? '#2b8a3e' : '#e67700'};">${discountRatio.toFixed(2)}%</td>
-      <td style="text-align:right;font-family:monospace;font-weight:800;" class="val-profit ${profit >= 0 ? 'positive' : 'negative'}">
-        ${profit >= 0 ? '+' : ''}¥ ${profit.toFixed(2)}
-      </td>
-      <td style="text-align:center;">
-        <span class="status-pill ${firstAsset?.sale ? 'status-pill-cny' : 'status-pill-success'}">${stage}</span>
-      </td>
-      <td style="text-align:center;font-size:11px;color:${profit >= 0 ? '#2b8a3e' : '#c92a2a'};">
-        ${profit >= 0 ? '▲' : '▼'} ${((profit / (unitCost * qty)) * 100).toFixed(1)}%
-      </td>
-      <td style="text-align:center;">
-        <button class="btn btn-sm btn-secondary btn-action-lot" data-lot-id="${lot.id}" type="button" style="padding:2px 8px!important;min-height:22px!important;font-size:11px!important;">
-          管理
-        </button>
-      </td>
-    `;
-    tbody.appendChild(tr);
-  });
-
-  updateSummaryBar(totalHeldUnits, totalCostCents / 100, totalEstimatedValueCents / 100);
+  renderLedgerTable(dom('purchases-tbody'), tablePage);
 }
-
-function updateSummaryBar(units, cost, estValue) {
-  const heldEl = dom('summary-held-units');
-  const costEl = dom('summary-total-cost');
-  const valEl = dom('summary-total-value');
-  const profitEl = dom('summary-total-profit');
-  const ratioEl = dom('summary-avg-ratio');
-
-  if (heldEl) heldEl.textContent = `${units} 件`;
-  if (costEl) costEl.textContent = `¥ ${cost.toFixed(2)}`;
-  if (valEl) valEl.textContent = `¥ ${estValue.toFixed(2)}`;
-
-  const profit = estValue - cost;
-  if (profitEl) {
-    profitEl.textContent = `${profit >= 0 ? '+' : ''}¥ ${profit.toFixed(2)}`;
-    profitEl.className = `summary-val ${profit >= 0 ? 'positive' : 'negative'}`;
-  }
-
-  if (ratioEl) {
-    if (estValue > 0) {
-      const avgRatio = (cost / estValue) * 100;
-      ratioEl.textContent = `${avgRatio.toFixed(2)}%`;
-      ratioEl.className = `summary-val ${avgRatio <= 82 ? 'positive' : ''}`;
-    } else {
-      ratioEl.textContent = '—';
-    }
-  }
+async function loadProjection(offset = 0) {
+  const selected = account;
+  const [summary,page] = await Promise.all([
+    parallax.ledgerSummary(selected), parallax.ledgerRows(selected,{offset,limit:50})
+  ]);
+  if (account !== selected) return;
+  tablePage = page;
+  tableOffset = page.offset;
+  renderLedgerSummary(dom,summary);
+  renderPurchasesTable();
+  dom('ledger-page-info').textContent = `${page.total ? page.offset + 1 : 0}–${page.offset + page.items.length} / ${page.total} 行 · 人工台账，非完整平台持仓`;
+  dom('ledger-page-prev').disabled = page.offset === 0;
+  dom('ledger-page-next').disabled = page.next_offset === null;
+}
+function clearProjection() {
+  tablePage = null;
+  tableOffset = 0;
+  renderPurchasesTable();
+  renderLedgerSummary(dom,null);
+  dom('ledger-page-info').textContent = '尚未读取台账';
+  dom('ledger-page-prev').disabled = dom('ledger-page-next').disabled = true;
+}
+for (const [id,offset] of [['ledger-page-prev',()=>Math.max(0,tableOffset-50)],['ledger-page-next',()=>tablePage?.next_offset]]) {
+  dom(id).addEventListener('click',async()=>{
+    if (busy) return;
+    lock(true);
+    try { await loadProjection(offset()); el('feedback').textContent='台账页面已刷新。'; }
+    catch(e) { el('feedback').textContent=`翻页失败，保留上次数据：${e.message}`; }
+    finally { lock(false); }
+  });
 }
 
 // Parse steam market link to extract item name
@@ -236,33 +164,32 @@ async function handleQuickAdd() {
 
   const rawName = nameInput.value.trim();
   const price = parseFloat(priceInput.value);
-  const qty = parseInt(qtyInput.value, 10) || 1;
+  const qty = Number(qtyInput.value);
 
   if (!rawName) {
     alert('请输入饰品名称或粘贴 Steam 市场链接！');
     nameInput.focus();
     return;
   }
-  if (isNaN(price) || price <= 0) {
+  if (!/^\d+(?:\.\d{1,2})?$/.test(priceInput.value) || price <= 0 || !Number.isSafeInteger(qty) || qty < 1) {
     alert('请输入有效的购入单价！');
     priceInput.focus();
     return;
   }
 
   const cleanName = parseSteamLinkOrName(rawName);
-  const totalCostCents = Math.round(price * 100 * qty);
+  const [whole,fraction=''] = priceInput.value.split('.');
+  const totalCostCents = (Number(whole)*100+Number(fraction.padEnd(2,'0'))) * qty;
+  if (!Number.isSafeInteger(totalCostCents)) { el('feedback').textContent='采购金额超出可登记范围。'; return; }
   const nowUnix = Math.floor(Date.now() / 1000);
-  const purchaseRef = `quick_${nowUnix}_${Math.random().toString(36).slice(2, 6)}`;
+  const signature = JSON.stringify([account,cleanName,qty,totalCostCents]);
+  if (quickAttempt?.signature !== signature) quickAttempt={signature,request:{client_key:crypto.randomUUID(),item_key:cleanName,quantity:qty,cash_cost_cents:totalCostCents,purchased_at:nowUnix,purchase_ref:`quick_${crypto.randomUUID()}`}};
 
   lock(true);
   try {
-    await parallax.createPurchaseLot(account, {
-      item_key: cleanName,
-      quantity: qty,
-      cash_cost_cents: totalCostCents,
-      purchased_at: nowUnix,
-      purchase_ref: purchaseRef
-    });
+    await parallax.createPurchaseLot(account, quickAttempt.request);
+    quickAttempt = null;
+    window.dispatchEvent(new CustomEvent('parallax:ledger-changed',{detail:{account}}));
     nameInput.value = '';
     priceInput.value = '';
     qtyInput.value = '1';
@@ -279,28 +206,31 @@ async function handleQuickAdd() {
 async function loadLists() {
   if (!account) {
     el('feedback').textContent = '请先在账号管理创建或选择账户。';
+    clearProjection();
     return;
   }
+  const selected = account;
   const result = await Promise.allSettled([
     parallax.purchaseLots(account),
-    parallax.inventories(account)
+    parallax.inventories(account),
+    loadProjection()
   ]);
 
+  if (selected !== account) return;
   if (result[0].status === 'fulfilled') {
     currentLots = result[0].value.items || [];
     populateSelect(el('lot'), currentLots, '选择采购批次', l => `${l.request.item_key} · v${l.revision} · ${l.id.slice(0, 8)}`);
     if (loaded && currentLots.some(l => l.id === loaded.id)) {
       showLot(currentLots.find(l => l.id === loaded.id));
     }
-  } else {
-    currentLots = [];
   }
 
   if (result[1].status === 'fulfilled') {
     populateSelect(el('inventory'), result[1].value.items, '不引用库存观察', i => `${new Date(i.observed_at * 1000).toLocaleString()} · ${i.assets.length}资产 · ${i.id.slice(0, 8)}`);
   }
 
-  renderPurchasesTable();
+  const failures = result.filter(r=>r.status==='rejected');
+  el('feedback').textContent = failures.length ? `刷新未完成，保留本账户上次数据：${failures.map(r=>r.reason.message).join('；')}` : '人工台账已读取；尚未平台核验。';
 }
 
 async function refresh() {
@@ -315,6 +245,7 @@ async function refresh() {
     const next = el('account').value;
     if (account !== next) {
       account = next;
+      clearProjection();
       loaded = null;
       inventory = null;
       el('lot-result').replaceChildren();
@@ -363,6 +294,7 @@ dom('purchases-tbody')?.addEventListener('click', e => {
 
 el('account').onchange = () => {
   account = el('account').value;
+  clearProjection();
   loaded = null;
   inventory = null;
   el('lot-result').replaceChildren();
@@ -537,9 +469,5 @@ window.addEventListener('parallax:pagechange', e => {
   if (e.detail.id === 'purchases') refresh();
 });
 window.addEventListener('parallax:account-created', refresh);
-
-function escapeHtml(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 refresh();

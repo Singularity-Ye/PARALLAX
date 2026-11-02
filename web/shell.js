@@ -1,3 +1,4 @@
+import {initMotion} from './lib/motion.js';
 import {initCockpit,renderCockpitScan} from './lib/cockpit.js';
 import {groups,pages,resolvePage} from './lib/pages.js';
 import {parallax} from './lib/api.js';
@@ -112,11 +113,7 @@ parallax.health().then(health=>{
 }).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.remove('online'));el('sentinel-execution').textContent='能力检查失败';});
 
 initCockpit();
-initCardFx();
-initMagnet();
-initClickSpark();
-initHoldButton();
-initPageCurl();
+initMotion([initCardFx,initMagnet,initClickSpark,initHoldButton,initPageCurl]);
 
 
 parallax.accounts().then(accs => {

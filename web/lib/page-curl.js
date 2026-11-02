@@ -1,11 +1,12 @@
+import {motionScope,springStep,frameClock} from './motion.js';
 /**
  * Vanilla SVG Bézier Page Curl (柔韧书页矢量弧面卷角 - 黄金克制版)
  * Zero external libraries. 100% vector math with self-sleeping spring physics.
- * 0% Idle CPU. Frame cost < 0.2ms.
+ * Stops requesting frames once the spring settles.
  */
 export function initPageCurl(selector = '.launch-card, [data-page-curl]') {
   if (typeof window === 'undefined') return;
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  const scope=motionScope();
 
   const cards = document.querySelectorAll(selector);
 
@@ -13,6 +14,7 @@ export function initPageCurl(selector = '.launch-card, [data-page-curl]') {
     if (card.querySelector('.page-curl-svg')) return;
 
     // Card needs relative positioning
+    const previousPosition=card.style.position;
     card.style.position = 'relative';
 
     const SIZE = 72; // SVG viewport size in px
@@ -86,7 +88,8 @@ export function initPageCurl(selector = '.launch-card, [data-page-curl]') {
     // State for spring physics
     let curSize = IDLE_SIZE;
     let targetSize = IDLE_SIZE;
-    let vel = 0;
+    const state={x:IDLE_SIZE,v:0};
+    let clock=frameClock();
     let rafId = 0;
 
     function renderGeometry(s) {
@@ -130,40 +133,26 @@ export function initPageCurl(selector = '.launch-card, [data-page-curl]') {
 
     renderGeometry(curSize);
 
-    function step() {
+    function step(now) {
       rafId = 0;
       // Spring physics (stiffness: 220, damping: 18 - crisp, tactile paper response)
-      const force = 220 * (targetSize - curSize) - 18 * vel;
-      vel += force * (1 / 60);
-      curSize += vel * (1 / 60);
-
-      renderGeometry(curSize);
-
-      if (Math.abs(targetSize - curSize) > 0.08 || Math.abs(vel) > 0.08) {
-        rafId = requestAnimationFrame(step);
-      } else {
-        curSize = targetSize;
-        vel = 0;
-        renderGeometry(curSize);
-      }
+      const moving=springStep(state,targetSize,clock(now),220,18);
+      curSize=state.x;renderGeometry(curSize);
+      if(moving)rafId=scope.frame(step);
     }
-
     function wake(size) {
-      targetSize = size;
-      if (!rafId && !reduced) {
-        rafId = requestAnimationFrame(step);
-      } else if (reduced) {
-        curSize = size;
-        renderGeometry(size);
-      }
+      targetSize=size;
+      if(!rafId){clock=frameClock();rafId=scope.frame(step);}
     }
+    scope.cleanup(()=>{svg.remove();card.style.position=previousPosition;});
 
-    card.addEventListener('pointerenter', () => {
+    scope.on(card,'pointerenter', () => {
       wake(HOVER_SIZE);
     });
 
-    card.addEventListener('pointerleave', () => {
+    scope.on(card,'pointerleave', () => {
       wake(IDLE_SIZE);
     });
   });
+  return ()=>scope.dispose();
 }

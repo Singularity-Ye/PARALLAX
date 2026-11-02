@@ -77,3 +77,7 @@ const request = {pricing:pricing.read(), fees:fees.read()};
 ## 2026-10-26 第二轮视觉集成
 
 反重力增强共享card、candidate、导航、输入框及令牌样式，只修改theme/components。集成保留局部reduced-motion取消装饰transform，禁止恢复全局transform:none（会破坏关闭侧栏定位）。候选入场动画只使用backwards填充，结束后不持续占用transform，允许hover正常反馈；令牌字符使用系统等宽字体。卡片为统一入场，斜纹为静态纹理，未实现交错延迟或持续流动；不因回执名称扩大完成范围。
+
+### 2026-11-02 动效与台账接线约定
+
+五种交互动效统一由 `lib/motion.js` 挂载与销毁，新增效果沿用 `motionScope`，返回清理函数；磁吸/卷角复用已有时间步长和弹簧积分，禁止另起独立生命周期或固定帧率物理循环。长按效果只管表现，不拥有提交权限。台账展示复用 `lib/ledger-view.js` 与后端 summary/rows，不在页面估价。细节及测试见 [UI 数据与动效维护](ui-data-motion.md)。

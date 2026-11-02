@@ -1,12 +1,12 @@
+import {motionScope} from './motion.js';
 /**
  * Vanilla ClickSpark (adapted from React Bits Animations/ClickSpark)
  * Emits crisp, neon-green retro sparks/stars on click.
- * Self-sleeping RAF loop, single fixed canvas, 0% CPU idle.
+ * Single canvas; requests frames only while sparks remain.
  */
 export function initClickSpark(options = {}) {
   if (typeof window === 'undefined') return;
-  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if (reduced) return;
+  const scope=motionScope();
 
   const config = {
     colors: options.colors || ['#b5ff38', '#ffffff', '#8be000'],
@@ -23,17 +23,19 @@ export function initClickSpark(options = {}) {
   document.body.appendChild(canvas);
 
   const ctx = canvas.getContext('2d');
+  if(!ctx){canvas.remove();return ()=>scope.dispose();}
+  scope.cleanup(()=>canvas.remove());
   let bursts = [];
   let rafId = 0;
 
   function resize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1,2);
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
     ctx.scale(dpr, dpr);
   }
   resize();
-  window.addEventListener('resize', resize, { passive: true });
+  scope.on(window,'resize', resize, { passive: true });
 
   // 4-pointed retro star shape (matches CS2 / Neo-Brutalist ✦ star)
   function drawStar(ctx, x, y, radius, rotation) {
@@ -69,7 +71,7 @@ export function initClickSpark(options = {}) {
       });
     }
     bursts.push({ x, y, start: performance.now(), sparks });
-    if (!rafId) rafId = requestAnimationFrame(loop);
+    if (!rafId) rafId = scope.frame(loop);
   }
 
   function loop(now) {
@@ -102,17 +104,18 @@ export function initClickSpark(options = {}) {
 
     bursts = aliveBursts;
     if (bursts.length > 0) {
-      rafId = requestAnimationFrame(loop);
+      rafId = scope.frame(loop);
     } else {
       rafId = 0;
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     }
   }
 
-  window.addEventListener('pointerdown', (e) => {
+  scope.on(window,'pointerdown', (e) => {
     // Trigger spark on clicks (primary button)
     if (e.button === 0) {
       addBurst(e.clientX, e.clientY);
     }
   }, { passive: true });
+  return ()=>scope.dispose();
 }

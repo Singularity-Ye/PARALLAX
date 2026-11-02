@@ -547,8 +547,8 @@
         </div>
         <button id="btn-holdings-multiselect" class="btn btn-sm btn-secondary" type="button">多选</button>
         <div id="holdings-batch-actions" class="batch-actions-wrap" style="display:none;">
-          <button id="btn-holdings-batch-sell" class="btn btn-sm btn-primary" type="button">批量挂牌</button>
-          <button id="btn-holdings-batch-del" class="btn btn-sm btn-danger-outline" type="button">批量删除</button>
+          <button disabled title="真实批量挂牌尚未实现" id="btn-holdings-batch-sell" class="btn btn-sm btn-primary" type="button">批量挂牌</button>
+          <button disabled title="台账为追加式记录，不支持批量删除" id="btn-holdings-batch-del" class="btn btn-sm btn-danger-outline" type="button">批量删除</button>
         </div>
         <button id="ledger-refresh" class="btn btn-sm btn-secondary" type="button" title="刷新台账与持仓">刷新</button>
       </div>
@@ -558,19 +558,19 @@
     <div id="purchases-summary" class="purchases-summary-bar">
       <div class="summary-stat-tile">
         <span class="summary-label">在持饰品</span>
-        <strong class="summary-val" id="summary-held-units">0 件</strong>
+        <strong class="summary-val" id="summary-held-units">未知</strong>
       </div>
       <div class="summary-stat-tile">
-        <span class="summary-label">总投入成本</span>
-        <strong class="summary-val" id="summary-total-cost">¥ 0.00</strong>
+        <span class="summary-label">未结登记成本</span>
+        <strong class="summary-val" id="summary-total-cost">未知</strong>
       </div>
       <div class="summary-stat-tile">
         <span class="summary-label">当前公允现值</span>
-        <strong class="summary-val" id="summary-total-value">¥ 0.00</strong>
+        <strong class="summary-val" id="summary-total-value">未知</strong>
       </div>
       <div class="summary-stat-tile">
         <span class="summary-label">未实现盈亏</span>
-        <strong class="summary-val" id="summary-total-profit">¥ 0.00</strong>
+        <strong class="summary-val" id="summary-total-profit">未知</strong>
       </div>
       <div class="summary-stat-tile">
         <span class="summary-label">综合折算比率</span>
@@ -598,10 +598,10 @@
             <th style="min-width:105px;">购入时间</th>
             <th style="min-width:200px;">物品名称 / 说明</th>
             <th style="min-width:130px;">AssetID</th>
-            <th style="min-width:85px;text-align:right;">购入成本</th>
+            <th style="min-width:85px;text-align:right;">行总成本</th>
             <th style="min-width:85px;text-align:right;">购入市价</th>
             <th style="min-width:85px;text-align:right;">现市场价</th>
-            <th style="min-width:85px;text-align:right;">税后净得</th>
+            <th style="min-width:85px;text-align:right;">实报净钱包</th>
             <th style="min-width:85px;text-align:right;">实际折算比</th>
             <th style="min-width:85px;text-align:right;">变现盈亏</th>
             <th style="min-width:80px;text-align:center;">状态</th>
@@ -614,13 +614,14 @@
             <td colspan="13" class="empty-table-td">
               <div class="table-empty-notice">
                 <span class="empty-icon">◈</span>
-                <strong>暂无持有饰品记录</strong>
-                <p>可通过上方「快速登记购入」录入持仓，或刷新同步库存观察快照。</p>
+                <strong>尚未读取台账</strong>
+                <p>读取失败会保留当前账户上次数据；此表仅展示人工登记台账。</p>
               </div>
             </td>
           </tr>
         </tbody>
       </table>
+<div class="ledger-pagination"><button id="ledger-page-prev" type="button" class="secondary" disabled>上一页</button><span id="ledger-page-info" role="status">尚未读取台账</span><button id="ledger-page-next" type="button" class="secondary" disabled>下一页</button></div>
     </div>
   </div>
 

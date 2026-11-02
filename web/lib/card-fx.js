@@ -1,32 +1,16 @@
-/**
- * Parallax & Spotlight Card Effect (inspired by React Bits SpotlightCard & TiltedCard)
- * Zero external dependencies. Uses CSS variables, 3D perspective and radial glow tracking.
- */
-export function initCardFx(selector = '.candidate, .launch-card, .paper-stat') {
-  if (typeof window === 'undefined') return;
-  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  if (reducedMotion) return;
-
-  document.addEventListener('pointermove', event => {
-    const card = event.target.closest(selector);
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    const pctX = (x / rect.width) - 0.5;
-    const pctY = (y / rect.height) - 0.5;
-    card.style.setProperty('--spot-x', `${x.toFixed(1)}px`);
-    card.style.setProperty('--spot-y', `${y.toFixed(1)}px`);
-    card.style.setProperty('--tilt-x', `${(-pctY * 6.5).toFixed(2)}deg`);
-    card.style.setProperty('--tilt-y', `${(pctX * 6.5).toFixed(2)}deg`);
-  }, {passive: true});
-
-  document.addEventListener('pointerout', event => {
-    const card = event.target.closest(selector);
-    if (!card) return;
-    if (!card.contains(event.relatedTarget)) {
-      card.style.setProperty('--tilt-x', '0deg');
-      card.style.setProperty('--tilt-y', '0deg');
-    }
-  }, {passive: true});
+import {motionScope} from './motion.js';
+export function initCardFx(selector='.candidate, .launch-card, .paper-stat') {
+  const scope=motionScope(),touched=new Set();let frame=0,pointer=null;
+  function clear(card){for(const key of ['--spot-x','--spot-y','--tilt-x','--tilt-y'])card.style.removeProperty(key);}
+  scope.on(document,'pointermove',event=>{
+    if(event.pointerType==='touch')return;
+    const card=event.target.closest(selector);if(!card)return;
+    pointer={card,x:event.clientX,y:event.clientY};
+    if(!frame)frame=scope.frame(()=>{frame=0;const {card,x,y}=pointer;if(!card.isConnected)return;const rect=card.getBoundingClientRect();touched.add(card);
+      card.style.setProperty('--spot-x',`${x-rect.left}px`);card.style.setProperty('--spot-y',`${y-rect.top}px`);
+      card.style.setProperty('--tilt-x',`${-((y-rect.top)/rect.height-.5)*6.5}deg`);card.style.setProperty('--tilt-y',`${((x-rect.left)/rect.width-.5)*6.5}deg`);
+    });
+  },{passive:true});
+  scope.on(document,'pointerout',event=>{const card=event.target.closest(selector);if(card&&!card.contains(event.relatedTarget)){if(pointer?.card===card){scope.cancel(frame);frame=0;}clear(card);}});
+  scope.cleanup(()=>touched.forEach(clear));return ()=>scope.dispose();
 }

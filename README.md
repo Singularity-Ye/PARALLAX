@@ -274,3 +274,5 @@ web/
 基于本地 `AetherSwap_audit`（Steam-Alpha，4dcd80d + 本地改动）及 `AetherSwap_reference`（AetherSwap，02552e5 + 本地改动）研究。原工程及其本地改动保留，不迁移账号配置和密钥。
 
 复用 [Axum](https://docs.rs/axum/latest/axum/)、Tokio、[reqwest](https://docs.rs/reqwest/latest/reqwest/) 和 [rusqlite](https://github.com/rusqlite/rusqlite)。Axum 与 Tokio/Tower 直接组合，适合现有异步任务结构；没有进行框架性能排名。项目保留 GPL-3.0-only，见 LICENSE 和 NOTICE；公开分发前仍需整理锁定依赖的完整许可清单。
+
+前端数据与动效的维护边界、生命周期和定向验证见 [UI 数据与动效维护](docs/ui-data-motion.md)：持仓页使用后端台账投影，动效通过共享生命周期管理，长按只提供视觉反馈。
