@@ -331,12 +331,76 @@
 </form><div id="plan-result"><p class="hint">计划会保留报价快照、预算分配与跳过原因。</p></div></div>
 </section>
 </section>
-<section class="page" data-page="inventory" id="page-inventory" hidden>
-<section class="card" id="inventory"><div class="section-title"><h2>Steam 库存观察</h2><span>READ ONLY / CS2</span></div>
-<p class="hint">读取所选账户的 CS2 库存区 2 与 16。先完成最近五分钟内的 Steam 在线身份核验并等待冷却。每页 75 个资产；分页读完也不代表完整交易敞口，不含已挂牌和未决采购。读取范围与限制以快照说明为准。</p>
-<form id="inventory-form"><label>库存账户<select id="inventory-account" required></select></label><label>每区最多页数<input id="inventory-pages" type="number" min="1" max="10" value="4" required></label><button id="inventory-fetch" disabled>读取并保存库存快照</button></form>
-<p id="inventory-feedback" role="status" aria-live="polite"></p><div id="inventory-result"></div><details><summary>该账户最近十份库存快照</summary><div id="inventory-history"></div></details></section>
-</section>
+  <section class="page" data-page="inventory" id="page-inventory" hidden>
+    <!-- Inventory Workspace Section -->
+    <section class="card inventory-card">
+      <!-- Top Toolbar (Summary Bar & Action Controls) -->
+      <div class="inventory-toolbar">
+        <div class="inv-controls-row">
+          <div class="inv-acc-picker">
+            <span class="inv-label">库存账户：</span>
+            <select id="inventory-account" class="compact-select" required></select>
+          </div>
+          <div class="inv-pages-picker">
+            <span class="inv-label">每区页数：</span>
+            <input id="inventory-pages" type="number" min="1" max="10" value="4" class="compact-input inv-page-input" required>
+          </div>
+          <button id="inventory-fetch" type="button" class="btn btn-primary btn-sm" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            读取并保存快照
+          </button>
+        </div>
+
+        <!-- 3-Capsule Financial Summary Bar (1:1 with AetherSwap) -->
+        <div class="inventory-summary-bar">
+          <div class="inv-stat-capsule">
+            <span class="capsule-label">库存总数</span>
+            <span class="capsule-val" id="inv-total-count">0</span>
+            <span class="capsule-unit">件</span>
+          </div>
+          <div class="inv-stat-capsule">
+            <span class="capsule-label">总资产条目</span>
+            <span class="capsule-val mono" id="inv-asset-count">0</span>
+            <span class="capsule-unit">项</span>
+          </div>
+          <div class="inv-stat-capsule">
+            <span class="capsule-label">快照状态</span>
+            <span class="capsule-val text-sm" id="inv-status-label">等待读取</span>
+          </div>
+        </div>
+      </div>
+
+      <p id="inventory-feedback" role="status" aria-live="polite" class="inv-feedback-hint"></p>
+      <div id="inventory-result"></div>
+
+      <!-- 100% Full-Width Inventory Financial Table -->
+      <div class="inventory-table-wrap">
+        <table class="inventory-table" id="inv-table">
+          <thead>
+            <tr>
+              <th style="width:52px">饰品</th>
+              <th>物品名称</th>
+              <th style="width:110px">资产 ID / 区</th>
+              <th style="width:70px">数量</th>
+              <th style="width:90px">可交易</th>
+              <th style="width:90px">可挂牌</th>
+              <th style="width:150px">市场链接</th>
+              <th style="width:160px">操作</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-tbody">
+            <tr class="empty-row"><td colspan="8" class="empty-cell">选择账户后点击「读取并保存快照」即可载入饰品资产。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Collapsible History Snapshots -->
+      <details class="inventory-history-drawer">
+        <summary>该账户最近十份库存快照记录</summary>
+        <div id="inventory-history" class="inv-history-list"></div>
+      </details>
+    </section>
+  </section>
 <section class="page" data-page="accounts" id="page-accounts" hidden>
   <div class="panel-toolbar panel-toolbar--accounts">
     <div class="toolbar-title">
