@@ -1,13 +1,23 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Parallax</title><link rel="stylesheet" href="/style.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Parallax</title><link rel="stylesheet" href="/style.css?v=20261102_avatar_inv"></head>
 <body>
 <a class="skip-link" href="#page-heading">跳到页面内容</a>
 <aside id="sidebar" aria-label="应用导航">
   <a class="brand" href="#dashboard"><span class="brand-mark" aria-hidden="true">✦</span><span>PARALLAX<small>MARKET WORKSTATION</small></span></a>
   <button id="nav-close" class="nav-close secondary" aria-label="关闭功能导航" type="button">关闭 ×</button>
   <nav id="page-navigation" aria-label="功能页面"></nav>
-  <div class="aside-foot"><span class="status-dot" aria-hidden="true"></span><span id="sidebar-status">本地研究工作台</span><small>观其异，度其值。</small></div>
+  <div class="aside-foot">
+    <div class="sidebar-user-block">
+      <img id="sidebar-avatar" class="sidebar-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='%2364748b'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 4-6 8-6s8 2 8 6'/></svg>" alt="Avatar">
+      <div style="display:flex;flex-direction:column;min-width:0;">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="sidebar-status" style="font-size:11px;font-weight:700;">研究台</span>
+        </div>
+        <small style="font-size:9.5px;color:var(--muted);">观其异，度其值。</small>
+      </div>
+    </div>
 </aside>
 <button id="nav-backdrop" class="nav-backdrop" aria-label="关闭功能导航" type="button" tabindex="-1" hidden></button>
 <main id="app">
@@ -59,7 +69,7 @@
             <span class="runway-note" id="dashboard-service-note">自动交易未接入 · 仅研究与预算预览</span>
           </div>
           <div class="runway-actions">
-            <a href="#workspace" class="btn btn-primary btn-sm"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-right:4px;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>启动选品扫描</a>
+            <a href="#workspace" class="btn btn-primary btn-sm" style="color:#ffffff !important;background:#18181b !important;"><svg width="12" height="12" viewBox="0 0 24 24" fill="#ffffff" style="margin-right:4px;fill:#ffffff;color:#ffffff;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg><span style="color:#ffffff !important;">启动选品扫描</span></a>
             <a href="#planning" class="btn btn-secondary btn-sm">预算计划 ↗</a>
             <a href="#inventory" class="btn btn-secondary btn-sm">库存快照 ↗</a>
           </div>
@@ -126,7 +136,14 @@
             <h3 class="sentinel-title">操盘态势与安全哨兵</h3>
           </div>
           <dl class="cockpit-spec sentinel-spec">
-            <div><dt>登记账户</dt><dd><strong id="sentinel-acc-name">待加载</strong><small id="sentinel-acc-id">尚未读取账户列表</small><span id="sentinel-acc-badge">未核验会话</span></dd></div>
+            <div><dt>登记账户</dt><dd class="sentinel-acc-box">
+  <img id="sentinel-acc-avatar" class="sentinel-avatar" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 24 24' fill='%2364748b'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-4 4-6 8-6s8 2 8 6'/></svg>" alt="Avatar">
+  <div class="sentinel-acc-meta">
+    <strong id="sentinel-acc-name">待登记</strong>
+    <small id="sentinel-acc-id">尚未读取账户列表</small>
+    <span id="sentinel-acc-badge">未建会话</span>
+  </div>
+</dd></div>
             <div><dt>后台出站模式</dt><dd id="sentinel-route">待读取配置</dd></div>
             <div><dt>浏览器出口</dt><dd>独立配置，未与后台代理联动</dd></div>
             <div><dt>会话与凭据</dt><dd>账户登记不等于登录有效<small>请在账号管理显式在线验证</small></dd></div>
@@ -341,17 +358,20 @@
             <span class="inv-label">库存账户：</span>
             <select id="inventory-account" class="compact-select" required></select>
           </div>
-          <div class="inv-pages-picker">
-            <span class="inv-label">每区页数：</span>
-            <input id="inventory-pages" type="number" min="1" max="10" value="4" class="compact-input inv-page-input" required>
-          </div>
-          <button id="inventory-fetch" type="button" class="btn btn-primary btn-sm" disabled>
+          <button id="inventory-fetch" type="button" class="btn btn-primary btn-sm" disabled style="color:#ffffff !important;background:#18181b !important;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            读取并保存快照
+            <span style="color:#ffffff !important;">立即刷新快照</span>
           </button>
+          <details class="inv-advanced-picker" style="font-size:11px;color:var(--muted);cursor:pointer;">
+            <summary style="font-weight:600;padding:2px 6px;">分页设置 ⚙</summary>
+            <div style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">
+              <span>每区页数:</span>
+              <input id="inventory-pages" type="number" min="1" max="10" value="4" class="compact-input inv-page-input" style="width:48px;">
+            </div>
+          </details>
         </div>
 
-        <!-- 3-Capsule Financial Summary Bar (1:1 with AetherSwap) -->
+        <!-- 4-Capsule Financial Summary Bar (1:1 with AetherSwap) -->
         <div class="inventory-summary-bar">
           <div class="inv-stat-capsule">
             <span class="capsule-label">库存总数</span>
@@ -359,48 +379,54 @@
             <span class="capsule-unit">件</span>
           </div>
           <div class="inv-stat-capsule">
-            <span class="capsule-label">总资产条目</span>
-            <span class="capsule-val mono" id="inv-asset-count">0</span>
-            <span class="capsule-unit">项</span>
+            <span class="capsule-label">预估总价值</span>
+            <span class="capsule-val mono" id="inv-total-market">¥0.00</span>
           </div>
           <div class="inv-stat-capsule">
-            <span class="capsule-label">快照状态</span>
+            <span class="capsule-label">税后净值 (手存)</span>
+            <span class="capsule-val mono" id="inv-net-val" style="color:#16a34a;">¥0.00</span>
+          </div>
+          <div class="inv-stat-capsule">
+            <span class="capsule-label">解禁状态</span>
             <span class="capsule-val text-sm" id="inv-status-label">等待读取</span>
           </div>
         </div>
       </div>
 
       <p id="inventory-feedback" role="status" aria-live="polite" class="inv-feedback-hint"></p>
-      <div id="inventory-result"></div>
 
       <!-- 100% Full-Width Inventory Financial Table -->
       <div class="inventory-table-wrap">
         <table class="inventory-table" id="inv-table">
           <thead>
             <tr>
-              <th style="width:52px">饰品</th>
+              <th style="width:48px;text-align:center;">饰品</th>
               <th>物品名称</th>
-              <th style="width:110px">资产 ID / 区</th>
-              <th style="width:70px">数量</th>
-              <th style="width:90px">可交易</th>
-              <th style="width:90px">可挂牌</th>
-              <th style="width:150px">市场链接</th>
-              <th style="width:160px">操作</th>
+              <th style="width:70px;text-align:center;">数量</th>
+              <th style="width:80px;text-align:center;">可出售</th>
+              <th style="width:80px;text-align:center;">可交易</th>
+              <th style="width:130px;">解禁时间 (到期)</th>
+              <th style="width:110px;">买入成本</th>
+              <th style="width:110px;">市场底价</th>
+              <th style="width:90px;">折算率/盈亏</th>
+              <th style="width:130px;text-align:center;">市场直达 / 操作</th>
             </tr>
           </thead>
           <tbody id="inventory-tbody">
-            <tr class="empty-row"><td colspan="8" class="empty-cell">选择账户后点击「读取并保存快照」即可载入饰品资产。</td></tr>
+            <tr class="empty-row"><td colspan="10" class="empty-cell" style="text-align:center;padding:24px;color:var(--muted);">选择账户后点击「立即刷新快照」即可载入真实饰品资产。</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Collapsible History Snapshots -->
-      <details class="inventory-history-drawer">
-        <summary>该账户最近十份库存快照记录</summary>
-        <div id="inventory-history" class="inv-history-list"></div>
-      </details>
-    </section>
-  </section>
+      <!-- Collapsible Audit Footnote & Snapshots -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;border-top:1px dashed var(--border-card);padding-top:8px;">
+        <details class="inventory-history-drawer" style="font-size:11px;color:var(--muted);">
+          <summary>技术审计证据与快照历史 (点击展开)</summary>
+          <div id="inventory-result" style="margin-top:6px;font-size:10.5px;color:var(--muted);"></div>
+          <div id="inventory-history" class="inv-history-list" style="margin-top:6px;"></div>
+        </details>
+      </div>
+    </section></section>
 <section class="page" data-page="accounts" id="page-accounts" hidden>
   <div class="panel-toolbar panel-toolbar--accounts">
     <div class="toolbar-title">
@@ -875,5 +901,5 @@
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/catalog.js" type="module"></script><script src="/steam-guard.js" type="module"></script><script src="/proxy.js" type="module"></script><script src="/shell.js" type="module"></script><script src="/app.js" type="module"></script><script src="/accounts.js" type="module"></script><script src="/inventory.js" type="module"></script><script src="/strategies.js" type="module"></script><script src="/preflight.js" type="module"></script><script src="/ledger.js" type="module"></script><script src="/checkout.js" type="module"></script><script src="/buff-orders.js" type="module"></script><script src="/sale-research.js" type="module"></script>
+<script src="/catalog.js?v=20261102_avatar_inv" type="module"></script><script src="/steam-guard.js?v=20261102_avatar_inv" type="module"></script><script src="/proxy.js?v=20261102_avatar_inv" type="module"></script><script src="/shell.js?v=20261102_avatar_inv" type="module"></script><script src="/app.js?v=20261102_avatar_inv" type="module"></script><script src="/accounts.js?v=20261102_avatar_inv" type="module"></script><script src="/inventory.js?v=20261102_avatar_inv" type="module"></script><script src="/strategies.js?v=20261102_avatar_inv" type="module"></script><script src="/preflight.js?v=20261102_avatar_inv" type="module"></script><script src="/ledger.js?v=20261102_avatar_inv" type="module"></script><script src="/checkout.js?v=20261102_avatar_inv" type="module"></script><script src="/buff-orders.js?v=20261102_avatar_inv" type="module"></script><script src="/sale-research.js?v=20261102_avatar_inv" type="module"></script>
 </body></html>

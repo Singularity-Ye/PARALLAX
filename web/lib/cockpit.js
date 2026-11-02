@@ -43,15 +43,18 @@ export function renderCockpitScan(report){
     const action=node('td');const link=node('a','查看预算');link.href='#planning';link.className='text-link';action.append(link);row.append(action);fragment.append(row);
   }
   el('dashboard-candidates-tbody').replaceChildren(fragment);
-  const previous=el('friction-item')?.value ?? '';
-  if(el('friction-item')) el('friction-item').replaceChildren();
-  for(const c of rows){const option=node('option',c.item.name);option.value=c.item.key;el('friction-item').append(option);}
-  if(el('friction-item')) el('friction-item').disabled=!rows.length;
-  if(el('friction-item') && rows.some(c=>c.item.key===previous))el('friction-item').value=previous;
-  if(rows.length)showFriction();else{
-    for(const id of ['cash','net','fee','ratio'])el(`friction-${id}`).textContent='未知';
-    el('ratio-marker').hidden=true;el('ratio-track').setAttribute('aria-label','没有候选折算率证据');
-    el('friction-scope').textContent='本次扫描没有可展示候选；不代表全市场无商品。';
+  const fItem = el('friction-item');
+  if (fItem) {
+    const previous = fItem.value ?? '';
+    fItem.replaceChildren();
+    for (const c of rows) {
+      const option = node('option', c.item.name);
+      option.value = c.item.key;
+      fItem.append(option);
+    }
+    fItem.disabled = !rows.length;
+    if (rows.some(c => c.item.key === previous)) fItem.value = previous;
+    if (rows.length) showFriction();
   }
 }
 function renderPlan(plan){

@@ -87,6 +87,7 @@ export const parallax = {
   orderBookValuation: (id,value={}) => post(`/api/steam/order-books/${encodeURIComponent(id)}/valuation`,value),
   health: () => request('/api/health'),
   accounts: () => request('/api/accounts'),
+  accountProfile: id => request(`/api/accounts/${encodeURIComponent(id)}/profile`),
   createAccount: value => post('/api/accounts', value),
   sessions: id => request(`/api/accounts/${encodeURIComponent(id)}/sessions`),
   importSession: (id, platform, value) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}`, value),

@@ -39,7 +39,21 @@ const states = {
   missing: '本地凭据已停用或缺失'
 };
 
+
+const profileCache = new Map();
+async function getAccountProfile(accId) {
+  if (profileCache.has(accId)) return profileCache.get(accId);
+  try {
+    const prof = await parallax.accountProfile(accId);
+    profileCache.set(accId, prof);
+    return prof;
+  } catch (_) {
+    return null;
+  }
+}
+
 function renderAccountDetail(acc, session) {
+  const avatarEl = el('detail-avatar');
   if (!acc) {
     el('detail-display-name').textContent = '请选择一个账户';
     el('detail-sub-name').textContent = '在左侧点击账户卡片，或点击「+ 添加账号」';
@@ -49,6 +63,7 @@ function renderAccountDetail(acc, session) {
     el('meta-steam-id').textContent = '—';
     el('meta-session-status').textContent = '—';
     el('meta-checked-at').textContent = '—';
+    if (avatarEl) avatarEl.innerHTML = '✦';
     return;
   }
 
@@ -63,6 +78,20 @@ function renderAccountDetail(acc, session) {
   el('detail-status-badge').className = `status-badge ${isValid ? 'online' : 'warn'}`;
   el('meta-session-status').textContent = statusText;
   el('meta-checked-at').textContent = session?.checked_at ? new Date(session.checked_at * 1000).toLocaleString() : '尚未检查';
+
+  if (avatarEl) avatarEl.innerHTML = `${acc.label.charAt(0).toUpperCase()}`;
+
+  // Async load true Steam avatar & persona name
+  getAccountProfile(acc.id).then(prof => {
+    if (!prof) return;
+    if (prof.persona_name && el('detail-display-name')) {
+      el('detail-display-name').textContent = `${prof.persona_name}`;
+      el('detail-sub-name').textContent = `${acc.label} · SteamID: ${acc.steam_id}`;
+    }
+    if (prof.avatar_url && avatarEl) {
+      avatarEl.innerHTML = `<img class="detail-avatar-img" src="${prof.avatar_url}" alt="Avatar">`;
+    }
+  });
 }
 
 async function sessions() {
@@ -107,15 +136,28 @@ function renderAccountCards(items, selectedId) {
     card.className = `account-item-card ${isSelected ? 'active' : ''}`;
     card.dataset.id = acc.id;
     card.innerHTML = `
-      <div class="acc-card-avatar">${acc.label.charAt(0).toUpperCase()}</div>
+      <div class="acc-card-avatar" id="acc-card-avatar-${acc.id}">${acc.label.charAt(0).toUpperCase()}</div>
       <div class="acc-card-body">
         <div class="acc-card-name-row">
-          <strong class="acc-card-name">${acc.label}</strong>
+          <strong class="acc-card-name" id="acc-card-name-${acc.id}">${acc.label}</strong>
           ${isSelected ? '<span class="acc-current-tag">当前</span>' : ''}
         </div>
         <div class="acc-card-steamid">${acc.steam_id}</div>
       </div>
     `;
+
+    // Async load avatar for this card
+    getAccountProfile(acc.id).then(prof => {
+      if (!prof) return;
+      const avBox = document.getElementById(`acc-card-avatar-${acc.id}`);
+      if (avBox && prof.avatar_url) {
+        avBox.innerHTML = `<img class="acc-card-avatar-img" src="${prof.avatar_url}" alt="Avatar">`;
+      }
+      const nameBox = document.getElementById(`acc-card-name-${acc.id}`);
+      if (nameBox && prof.persona_name) {
+        nameBox.textContent = prof.persona_name;
+      }
+    });
     card.onclick = () => {
       selectAccount(acc.id);
     };

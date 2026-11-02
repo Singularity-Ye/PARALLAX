@@ -116,7 +116,7 @@ initCockpit();
 initMotion([initCardFx,initMagnet,initClickSpark,initHoldButton,initPageCurl]);
 
 
-parallax.accounts().then(accs => {
+parallax.accounts().then(async accs => {
   const items = accs?.items ?? [];
   if (items.length > 0) {
     const cur = items[0];
@@ -126,5 +126,20 @@ parallax.accounts().then(accs => {
     if (nameEl) nameEl.textContent = cur.label || '默认账号';
     if (idEl) idEl.textContent = `SteamID: ${cur.steam_id || cur.id}`;
     if (badgeEl) { badgeEl.textContent = '已登记，登录有效性未核验'; badgeEl.className = 'hint'; }
+
+    try {
+      const prof = await parallax.accountProfile(cur.id);
+      if (prof) {
+        if (prof.persona_name && nameEl) {
+          nameEl.textContent = `${prof.persona_name} (${cur.label})`;
+        }
+        if (prof.avatar_url) {
+          const sentinelAvatar = el('sentinel-acc-avatar');
+          if (sentinelAvatar) sentinelAvatar.src = prof.avatar_url;
+          const sidebarAvatar = el('sidebar-avatar');
+          if (sidebarAvatar) sidebarAvatar.src = prof.avatar_url;
+        }
+      }
+    } catch (_) {}
   } else { el('sentinel-acc-name').textContent='尚无登记账户';el('sentinel-acc-id').textContent='请在账号管理创建账户'; }
 }).catch(e => {el('sentinel-acc-name').textContent='读取失败';el('sentinel-acc-id').textContent=e.message;});
