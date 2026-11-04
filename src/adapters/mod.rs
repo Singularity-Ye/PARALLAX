@@ -17,3 +17,6 @@ mod steam_read;
 mod buff_read;
 
 pub mod steam_catalog;
+
+#[cfg(windows)]
+pub mod steam_password;

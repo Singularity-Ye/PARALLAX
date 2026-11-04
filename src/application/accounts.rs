@@ -86,9 +86,7 @@ impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C
         let account = self.account(id).await?;
         let old = self.repo.session(id.into(), platform).await?;
         if &old.as_ref().map(|s| s.view.generation.clone()) != expected_generation {
-            return Err(AppError::Conflict(
-                "账户登录态已变化，请取消旧窗口并重新发起登录",
-            ));
+            return Err(AppError::Conflict("账户登录态已变化，请重新发起登录"));
         }
         secret
             .validate(platform, &account.steam_id)
@@ -146,7 +144,7 @@ impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C
                 status: SessionStatus::Valid,
                 checked_at: Some(now()),
                 retry_at: now() + result.retry_secs,
-                message: "浏览器登录态已通过在线身份验证并保存".into(),
+                message: "登录态已通过在线身份验证并保存".into(),
                 subject: result.subject,
             },
         };

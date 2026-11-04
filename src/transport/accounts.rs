@@ -183,7 +183,11 @@ async fn profile<R: AccountRepository, C: CredentialStore, V: SessionVerifier>(
             .timeout(std::time::Duration::from_millis(800))
             .build()
             .unwrap_or_default();
-        if let Ok(resp) = client.get("http://127.0.0.1:29472/api/accounts").send().await {
+        if let Ok(resp) = client
+            .get("http://127.0.0.1:29472/api/accounts")
+            .send()
+            .await
+        {
             if resp.status().is_success() {
                 if let Ok(data) = resp.json::<Value>().await {
                     if let Some(arr) = data.get("accounts").and_then(|v| v.as_array()) {
@@ -214,4 +218,64 @@ async fn profile<R: AccountRepository, C: CredentialStore, V: SessionVerifier>(
         "persona_name": persona_name.unwrap_or_else(|| account.label.clone()),
         "avatar_url": avatar_url,
     })))
+}
+
+#[cfg(windows)]
+pub fn steam_password_router(
+    accounts: Arc<
+        Accounts<
+            crate::adapters::sqlite::Store,
+            crate::adapters::credentials::NativeVault,
+            crate::adapters::session::OnlineVerifier,
+        >,
+    >,
+    guard: Arc<
+        crate::application::steam_guard::SteamGuard<
+            crate::adapters::sqlite::Store,
+            crate::adapters::credentials::NativeVault,
+        >,
+    >,
+) -> Router {
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Login {
+        username: String,
+        password: String,
+    }
+    let gate = Arc::new(tokio::sync::Mutex::new(None::<std::time::Instant>));
+    Router::new()
+        .route("/api/accounts/{id}/sessions/steam/password", post(move |Path(id): Path<String>, body: Result<Json<Login>, JsonRejection>| {
+            let (accounts, guard, gate) = (accounts.clone(), guard.clone(), gate.clone());
+            async move {
+                let Json(Login { username, password }) = body.map_err(|_| (StatusCode::BAD_REQUEST, Json(json!({"error":"登录请求格式错误"}))))?;
+                let username = username.trim();
+                if username.is_empty() || username.len() > 128 || password.is_empty() || password.len() > 245 {
+                    return Err((StatusCode::BAD_REQUEST, Json(json!({"error":"Steam 用户名或密码长度无效"}))));
+                }
+                let account = accounts.account(&id).await.map_err(app_error)?;
+                let generation = accounts.generation(&id, Platform::Steam).await.map_err(app_error)?;
+                let mut attempt = gate.try_lock().map_err(|_| (StatusCode::CONFLICT, Json(json!({"error":"已有 Steam 登录正在进行"}))))?;
+                if attempt.is_some_and(|at| at.elapsed() < std::time::Duration::from_secs(30)) {
+                    return Err((StatusCode::TOO_MANY_REQUESTS, Json(json!({"error":"请等待 30 秒再尝试登录"}))));
+                }
+                *attempt = Some(std::time::Instant::now());
+                let login = crate::adapters::steam_password::login(username, &password, &account.steam_id, async || {
+                    guard.code(&id).await.ok().map(|value| value.code)
+                });
+                let secret = tokio::time::timeout(std::time::Duration::from_secs(60), login)
+                    .await
+                    .ok()
+                    .and_then(Result::ok)
+                    .ok_or_else(|| (StatusCode::BAD_GATEWAY, Json(json!({"error":"Steam 自动登录未完成。请核对账号密码与 Guard 配置，或使用浏览器登录。"}))))?;
+                let view = accounts.recover_browser(&id, Platform::Steam, &generation, secret).await.map_err(app_error)?;
+                Ok(Json(view))
+            }
+        }))
+        .layer(DefaultBodyLimit::max(2048))
+        .layer(axum::middleware::from_fn(same_origin))
+        .layer(axum::middleware::from_fn(|request: axum::extract::Request, next: axum::middleware::Next| async move {
+            let mut response = next.run(request).await;
+            response.headers_mut().insert(axum::http::header::CACHE_CONTROL, axum::http::HeaderValue::from_static("no-store"));
+            response
+        }))
 }

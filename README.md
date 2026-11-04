@@ -276,3 +276,9 @@ web/
 复用 [Axum](https://docs.rs/axum/latest/axum/)、Tokio、[reqwest](https://docs.rs/reqwest/latest/reqwest/) 和 [rusqlite](https://github.com/rusqlite/rusqlite)。Axum 与 Tokio/Tower 直接组合，适合现有异步任务结构；没有进行框架性能排名。项目保留 GPL-3.0-only，见 LICENSE 和 NOTICE；公开分发前仍需整理锁定依赖的完整许可清单。
 
 前端数据与动效的维护边界、生命周期和定向验证见 [UI 数据与动效维护](docs/ui-data-motion.md)：持仓页使用后端台账投影，动效通过共享生命周期管理，长按只提供视觉反馈。
+
+### Steam 账号密码登录（Windows）
+
+对已有 Steam ID 的账户调用 `POST /api/accounts/{id}/sessions/steam/password`，JSON 为 `{ "username": "...", "password": "..." }`。前端客户端方法为 `steamPasswordLogin(id, username, password)`。请求只在当次使用密码，设备码挑战复用账户的 Steam Guard 密钥。成功返回已有 `SessionView` 格式。重新检查会话仍调用现有 `/verify`。
+
+当前只支持无需二次验证和已配置 Guard 的设备验证码流程。邮件验证、手机手动确认等挑战可转到浏览器入口。端点为本机同源，串行执行并设有超时和冷却。Windows CNG 提供 RSA 加密。上线前需使用真实账户验收 Steam 返回的挑战和 Cookie 交换。

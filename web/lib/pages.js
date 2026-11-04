@@ -17,7 +17,7 @@ export const pages = [
   {id:'strategies',title:'策略中心',group:2,kicker:'AUTOMATION / STRATEGIES',description:'保存购入研究规则，用明确证据逐项验证。',icon:'sliders'},
   {id:'proxy',title:'代理池',group:2,kicker:'SYSTEM / NETWORK',description:'查看平台固定路由与代理节点，手动测试连通性。',icon:'globe'},
   {id:'settings',title:'系统设置',group:2,kicker:'SYSTEM / PREFERENCES',description:'查看当前运行方式与配置边界。',icon:'sliders',kind:'settings'},
-  {id:'debug',title:'运行日志',group:2,kicker:'SYSTEM / LOGS',description:'追踪运行事件和失败原因。',icon:'terminal',pending:['脱敏事件日志与任务状态','日志筛选及导出'],related:'purchase-history'},
+  {id:'debug',title:'运行日志',group:2,kicker:'SYSTEM / LOGS',description:'追踪运行事件和失败原因。',icon:'terminal'},
   {id:'steam-deals',title:'Steam 折扣',group:3,kicker:'EXPLORE / DEALS',description:'关注游戏折扣、区域价格与历史低价。',icon:'tag',pending:['折扣与区域价格采集','历史低价、评分和折扣卡片'],related:'dashboard'},
   {id:'gift',title:'Steam 赠礼',group:3,kicker:'EXPLORE / GIFTS',description:'管理游戏版本、好友与赠礼流程。',icon:'gift',pending:['好友和游戏版本查询','购物车与赠礼流程','区域和钱包条件核验'],related:'dashboard'},
 ];

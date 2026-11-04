@@ -1,7 +1,7 @@
 use super::http::{ApiError, same_origin};
 use axum::{
     Json, Router,
-    extract::Path,
+    extract::{DefaultBodyLimit, Path},
     http::StatusCode,
     routing::{get, post},
 };
@@ -12,6 +12,8 @@ pub fn router() -> Router {
             get(|| async { Json(crate::adapters::network::view()) }),
         )
         .route("/api/network/proxies/{id}/probe", post(probe))
+        .route("/api/settings/network", get(settings).put(save_settings))
+        .layer(DefaultBodyLimit::max(65536))
         .layer(axum::middleware::from_fn(same_origin))
         .layer(axum::middleware::from_fn(
             |r: axum::extract::Request, n: axum::middleware::Next| async move {
@@ -91,4 +93,35 @@ mod tests {
             assert_eq!(response.headers()["cache-control"], "no-store");
         }
     }
+}
+
+async fn settings() -> Result<Json<serde_json::Value>, ApiError> {
+    tokio::task::spawn_blocking(crate::adapters::network::editable_config)
+        .await
+        .map_err(|_| settings_error())?
+        .map(Json)
+        .map_err(|_| settings_error())
+}
+
+fn settings_error() -> ApiError {
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(serde_json::json!({"error":"本地网络配置读取或保存失败"})),
+    )
+}
+
+async fn save_settings(
+    Json(config): Json<crate::adapters::network::ProxyConfig>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    config.validate().map_err(|err| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error":err.to_string()})),
+        )
+    })?;
+    tokio::task::spawn_blocking(move || crate::adapters::network::save_config(config))
+        .await
+        .map_err(|_| settings_error())?
+        .map_err(|_| settings_error())?;
+    settings().await
 }

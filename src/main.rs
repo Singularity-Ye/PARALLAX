@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
     let data_path =
         PathBuf::from(std::env::var("PARALLAX_DB").unwrap_or_else(|_| "data/parallax.db".into()));
     let store = Store::open(&data_path)?;
-    parallax::adapters::network::initialize()?;
+    parallax::adapters::network::initialize(&data_path)?;
     let auth = parallax::application::accounts::Accounts::new(
         store.clone(),
         parallax::adapters::credentials::NativeVault,
@@ -75,9 +75,15 @@ async fn main() -> anyhow::Result<()> {
         "Parallax http://127.0.0.1:{port} | SQLite: {} | live execution: unavailable",
         data_path.display()
     );
+    let routes = router(state);
+    #[cfg(windows)]
+    let routes = routes.merge(parallax::transport::accounts::steam_password_router(
+        auth.clone(),
+        guard.clone(),
+    ));
     axum::serve(
         listener,
-        router(state)
+        routes
             .merge(parallax::transport::catalog::router(catalog))
             .merge(parallax::transport::accounts::router(auth))
             .merge(parallax::transport::steam_guard::router(guard))

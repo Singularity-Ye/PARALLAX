@@ -98,6 +98,9 @@ pub fn router(state: AppState) -> Router {
         .route("/shell.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/shell.js")) }))
         .route("/steam-guard.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/steam-guard.js")) }))
         .route("/proxy.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/proxy.js")) }))
+        .route("/settings.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/settings.js")) }))
+        .route("/debug.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/debug.js")) }))
+        .route("/index.html", get(|| async { static_response("text/html; charset=utf-8", include_str!("../../web/index.html")) }))
         .route("/lib/pages.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/pages.js")) }))
         .route("/accounts.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/accounts.js")) }))
         .route("/orderbook.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/orderbook.js")) }))
@@ -131,7 +134,7 @@ pub fn router(state: AppState) -> Router {
         .route("/theme.css", get(|| async { static_response("text/css; charset=utf-8", include_str!("../../web/theme.css")) }))
         .route("/components.css", get(|| async { static_response("text/css; charset=utf-8", include_str!("../../web/components.css")) }))
         .route("/api/health", get(|| async { Json(json!({"name":"Parallax","version":env!("CARGO_PKG_VERSION"), "api_version":"1",
-            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":false,"live_execution":false,"history_analysis":true,"strategy_research":true,"independent_holding_research":true,"preflight_inspection":true,"reported_purchase_ledger":true,"holdings_research":true,"sell_policy_research":true,"local_checkout_preparation":true,"steam_order_books":true,"buff_order_observations":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
+            "capabilities":{"scan":true,"live_ranking":true,"plan_preview":true,"manual_sessions":true,"browser_login":true,"automatic_login":cfg!(windows),"live_execution":false,"history_analysis":true,"strategy_research":true,"independent_holding_research":true,"preflight_inspection":true,"reported_purchase_ledger":true,"holdings_research":true,"sell_policy_research":true,"local_checkout_preparation":true,"steam_order_books":true,"buff_order_observations":true,"buff_quote_reads":true,"inventory_reads":true}})) }))
         .route("/api/scans", get(list).post(start))
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))

@@ -171,6 +171,7 @@ export const parallax: {
   createAccount(value:{label:string;steam_id:string}):Promise<Account>;
   sessions(id:string):Promise<{items:SessionView[]}>;
   importSession(id:string,platform:Platform,value:{cookies:string;user_agent?:string}):Promise<SessionView>;
+  steamPasswordLogin(id:string,username:string,password:string):Promise<SessionView>;
   verifySession(id:string,platform:Platform):Promise<SessionView>;
   revokeSession(id:string,platform:Platform):Promise<SessionView>;
   browserLogin():Promise<{item:BrowserLogin|null}>;

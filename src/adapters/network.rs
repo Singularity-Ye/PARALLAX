@@ -1,14 +1,14 @@
 //! Process-stable outbound routes. No automatic proxy rotation on authenticated requests.
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, sync::OnceLock};
-#[derive(Clone, Default, Deserialize)]
+#[derive(Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ProxyConfig {
     pub enabled: bool,
     pub nodes: Vec<ProxyNode>,
     pub routes: BTreeMap<String, String>,
 }
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ProxyNode {
     pub id: String,
@@ -19,6 +19,7 @@ fn scope(host: &str) -> Option<&'static str> {
     match host {
         "steamcommunity.com"
         | "www.steamcommunity.com"
+        | "login.steampowered.com"
         | "store.steampowered.com"
         | "api.steampowered.com" => Some("steam"),
         "buff.163.com" => Some("buff"),
@@ -73,8 +74,10 @@ impl ProxyConfig {
             .map(|n| n.url.clone())
     }
 }
-pub fn initialize() -> anyhow::Result<()> {
-    let config = if let Some(path) = std::env::var_os("PARALLAX_PROXY_CONFIG") {
+static CONFIG_PATH: OnceLock<std::path::PathBuf> = OnceLock::new();
+
+fn read_config(path: &std::path::Path) -> anyhow::Result<ProxyConfig> {
+    let config = if path.exists() {
         let bytes = std::fs::read(path)
             .map_err(|_| anyhow::anyhow!("无法读取PARALLAX_PROXY_CONFIG文件"))?;
         anyhow::ensure!(bytes.len() <= 65536, "代理配置至多64KiB");
@@ -84,6 +87,20 @@ pub fn initialize() -> anyhow::Result<()> {
         ProxyConfig::default()
     };
     config.validate()?;
+    Ok(config)
+}
+
+pub fn initialize(data_path: &std::path::Path) -> anyhow::Result<()> {
+    let path = std::env::var_os("PARALLAX_PROXY_CONFIG")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| data_path.with_extension("proxy.json"));
+    if std::env::var_os("PARALLAX_PROXY_CONFIG").is_some() && !path.is_file() {
+        anyhow::bail!("无法读取 PARALLAX_PROXY_CONFIG 文件");
+    }
+    let config = read_config(&path)?;
+    CONFIG_PATH
+        .set(path)
+        .map_err(|_| anyhow::anyhow!("网络配置已初始化"))?;
     CONFIG
         .set(config)
         .map_err(|_| anyhow::anyhow!("网络配置已初始化"))?;
@@ -320,4 +337,33 @@ mod tests {
             assert!(invalid.validate().is_err());
         }
     }
+}
+
+pub fn editable_config() -> anyhow::Result<serde_json::Value> {
+    let path = CONFIG_PATH
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("配置未初始化"))?;
+    let saved = read_config(path)?;
+    let pending_restart = CONFIG.get() != Some(&saved);
+    Ok(serde_json::json!({"config": saved, "pending_restart": pending_restart}))
+}
+
+pub fn save_config(config: ProxyConfig) -> anyhow::Result<()> {
+    config.validate()?;
+    let path = CONFIG_PATH
+        .get()
+        .ok_or_else(|| anyhow::anyhow!("配置未初始化"))?;
+    let parent = path
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or_else(|| std::path::Path::new("."));
+    let mut file = tempfile::NamedTempFile::new_in(parent)?;
+    serde_json::to_writer_pretty(file.as_file_mut(), &config)?;
+    anyhow::ensure!(
+        file.as_file().metadata()?.len() <= 65536,
+        "代理配置至多64KiB"
+    );
+    file.as_file().sync_all()?;
+    file.persist(path)?;
+    Ok(())
 }

@@ -52,6 +52,12 @@ async function getAccountProfile(accId) {
   }
 }
 
+function decodeEntities(str) {
+  if (!str) return '';
+  const doc = new DOMParser().parseFromString(str, 'text/html');
+  return doc.body.textContent || str;
+}
+
 function renderAccountDetail(acc, session) {
   const avatarEl = el('detail-avatar');
   if (!acc) {
@@ -67,10 +73,17 @@ function renderAccountDetail(acc, session) {
     return;
   }
 
-  el('detail-display-name').textContent = acc.label;
+  const cleanLabel = decodeEntities(acc.label);
+  el('detail-display-name').textContent = cleanLabel;
   el('detail-sub-name').textContent = `Steam ID: ${acc.steam_id}`;
-  el('meta-label').textContent = acc.label;
+  el('meta-label').textContent = cleanLabel;
   el('meta-steam-id').textContent = acc.steam_id;
+
+  // Pre-fill username in password form if empty
+  const unameInput = el('steam-login-username');
+  if (unameInput && !unameInput.value) {
+    unameInput.value = cleanLabel;
+  }
 
   const statusText = session ? (states[session.status] || session.status) : '未导入凭据';
   const isValid = session?.status === 'valid';
@@ -133,13 +146,14 @@ function renderAccountCards(items, selectedId) {
   items.forEach(acc => {
     const card = document.createElement('div');
     const isSelected = String(acc.id) === String(selectedId);
+    const labelClean = decodeEntities(acc.label);
     card.className = `account-item-card ${isSelected ? 'active' : ''}`;
     card.dataset.id = acc.id;
     card.innerHTML = `
-      <div class="acc-card-avatar" id="acc-card-avatar-${acc.id}">${acc.label.charAt(0).toUpperCase()}</div>
+      <div class="acc-card-avatar" id="acc-card-avatar-${acc.id}">${labelClean.charAt(0).toUpperCase()}</div>
       <div class="acc-card-body">
         <div class="acc-card-name-row">
-          <strong class="acc-card-name" id="acc-card-name-${acc.id}">${acc.label}</strong>
+          <strong class="acc-card-name" id="acc-card-name-${acc.id}">${labelClean}</strong>
           ${isSelected ? '<span class="acc-current-tag">当前</span>' : ''}
         </div>
         <div class="acc-card-steamid">${acc.steam_id}</div>
@@ -322,3 +336,103 @@ loadAccounts().catch(e => {
 loadLogin().catch(e => {
   if (el('browser-feedback')) el('browser-feedback').textContent = e.message;
 });
+
+
+
+// Tab Switching for Credential Hub
+document.querySelectorAll('.login-hub-tab-btn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.login-hub-tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.login-hub-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    const target = document.getElementById(`tab-panel-${btn.dataset.tab}`);
+    if (target) target.classList.add('active');
+  };
+});
+
+// Standalone Browser Hub Trigger
+const btnStartHub = el('browser-start-hub');
+if (btnStartHub) {
+  btnStartHub.onclick = () => {
+    if (el('browser-start')) el('browser-start').click();
+  };
+}
+const btnFinishHub = el('browser-finish-hub');
+if (btnFinishHub) {
+  btnFinishHub.onclick = () => {
+    if (el('browser-finish')) el('browser-finish').click();
+  };
+}
+const btnCancelHub = el('browser-cancel-hub');
+if (btnCancelHub) {
+  btnCancelHub.onclick = () => {
+    if (el('browser-cancel')) el('browser-cancel').click();
+  };
+}
+
+// Sync Browser Flow Buttons state
+const originalRenderLogin = renderLogin;
+renderLogin = function() {
+  originalRenderLogin();
+  const pending = login?.status === 'pending';
+  if (btnStartHub) btnStartHub.disabled = pending;
+  if (btnFinishHub) btnFinishHub.disabled = !pending;
+  if (btnCancelHub) btnCancelHub.disabled = !pending;
+  if (el('browser-feedback-hub') && login) {
+    el('browser-feedback-hub').textContent = `${login.platform.toUpperCase()} · ${login.message} · 绑定账户 ${login.account_id} · 截止 ${new Date(login.expires_at*1000).toLocaleTimeString()}`;
+  }
+};
+
+
+// Steam Password + Guard 2FA Login
+const passwordForm = el('steam-password-form');
+if (passwordForm) {
+  passwordForm.onsubmit = async event => {
+    event.preventDefault();
+    const status = el('steam-password-status');
+    const id = select.value || activeAccountId;
+    if (!id) {
+      if (status) status.textContent = '请先在左侧选择需要登录的账户。';
+      return;
+    }
+    const submit = passwordForm.querySelector('button[type="submit"]');
+    if (submit && submit.disabled) return;
+
+    const usernameInput = passwordForm.elements.username;
+    const passwordInput = passwordForm.elements.password;
+    const username = (usernameInput?.value || '').trim();
+    const password = passwordInput?.value || '';
+
+    if (!username || !password) {
+      if (status) status.textContent = '请输入 Steam 账户名与密码。';
+      return;
+    }
+
+    // Clear password immediately after capturing into memory
+    passwordInput.value = '';
+
+    if (submit) {
+      submit.disabled = true;
+      submit.dataset.originalText = submit.innerHTML;
+      submit.innerHTML = '<span>⏳</span> 正在登录并核验 Steam…';
+    }
+    if (status) status.textContent = '正在通过 Steam 协议握手并校验 Guard 令牌…';
+
+    try {
+      const result = await parallax.steamPasswordLogin(id, username, password);
+      if (status) status.textContent = `✅ ${result.message || '登录成功，登录态已更新'}`;
+      await sessions();
+    } catch (error) {
+      if (status) status.textContent = `❌ 登录失败：${error.message || '网络或密码错误'}`;
+    } finally {
+      if (submit) {
+        submit.disabled = false;
+        submit.innerHTML = submit.dataset.originalText || '<span>⚡</span> 验证并登录 Steam';
+      }
+    }
+  };
+}
