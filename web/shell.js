@@ -1,3 +1,7 @@
+function decodeEntities(str) {
+  if (!str) return '';
+  return str.replace(/&gt;/g, '→').replace(/&lt;/g, '←').replace(/&amp;/g, '&');
+}
 import {initMotion} from './lib/motion.js';
 import {initCockpit,renderCockpitScan} from './lib/cockpit.js';
 import {groups,pages,resolvePage} from './lib/pages.js';
@@ -123,7 +127,7 @@ parallax.accounts().then(async accs => {
     const nameEl = el('sentinel-acc-name');
     const idEl = el('sentinel-acc-id');
     const badgeEl = el('sentinel-acc-badge');
-    if (nameEl) nameEl.textContent = cur.label || '默认账号';
+    if (nameEl) nameEl.textContent = decodeEntities(cur.label) || '默认账号';
     if (idEl) idEl.textContent = `SteamID: ${cur.steam_id || cur.id}`;
     if (badgeEl) { badgeEl.textContent = '已登记，登录有效性未核验'; badgeEl.className = 'hint'; }
 
@@ -131,7 +135,7 @@ parallax.accounts().then(async accs => {
       const prof = await parallax.accountProfile(cur.id);
       if (prof) {
         if (prof.persona_name && nameEl) {
-          nameEl.textContent = `${prof.persona_name} (${cur.label})`;
+          nameEl.textContent = `${decodeEntities(prof.persona_name || cur.label)}`;
         }
         if (prof.avatar_url) {
           const sentinelAvatar = el('sentinel-acc-avatar');

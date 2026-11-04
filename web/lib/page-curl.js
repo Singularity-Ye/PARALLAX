@@ -43,9 +43,9 @@ export function initPageCurl(selector = '.launch-card, [data-page-curl]') {
       <defs>
         <!-- Exposed void lining (underneath paper) -->
         <linearGradient id="${ID}-under" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#b5ff38" />
-          <stop offset="65%" stop-color="#98e61e" />
-          <stop offset="100%" stop-color="#6bb800" />
+          <stop offset="0%" stop-color="#f8fafc" />
+          <stop offset="65%" stop-color="#e2e8f0" />
+          <stop offset="100%" stop-color="#cbd5e1" />
         </linearGradient>
 
         <!-- Curled flap cylindrical specular highlight (paper cylinder) -->
