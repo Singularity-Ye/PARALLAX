@@ -42,6 +42,10 @@ pub struct InventoryAsset {
     pub reported_tradable: bool,
     pub reported_marketable: bool,
     pub restriction_note_present: bool,
+    #[serde(default)]
+    pub icon_url: Option<String>,
+    #[serde(default)]
+    pub cooldown_until: Option<String>,
 }
 impl InventoryAsset {
     pub fn validate(&self, context: &str) -> bool {

@@ -80,16 +80,31 @@ fn launch_at(
     headless: bool,
     url: &str,
 ) -> Result<LoginWindow, &'static str> {
-    let options = LaunchOptions::default_builder()
+    let mut builder = LaunchOptions::default_builder();
+    builder
         .path(path)
         .headless(headless)
         .sandbox(true)
         .enable_logging(false)
         .ignore_certificate_errors(false)
         .idle_browser_timeout(Duration::from_secs(660))
-        .args(vec![OsStr::new("--remote-debugging-address=127.0.0.1")])
-        .build()
-        .map_err(|_| "浏览器启动配置无效")?;
+        .args(vec![OsStr::new("--remote-debugging-address=127.0.0.1")]);
+    if !headless {
+        let profile_name = if url.contains("buff.163.com") {
+            "buff"
+        } else {
+            "steam"
+        };
+        let profile_dir = std::env::current_dir()
+            .unwrap_or_else(|_| PathBuf::from("."))
+            .join("data")
+            .join("browser_profiles")
+            .join(profile_name);
+        if std::fs::create_dir_all(&profile_dir).is_ok() {
+            builder.user_data_dir(Some(profile_dir));
+        }
+    }
+    let options = builder.build().map_err(|_| "浏览器启动配置无效")?;
     let browser = Browser::new(options).map_err(
         |_| "无法启动本地 Chrome/Edge；请安装浏览器或设置 PARALLAX_BROWSER 可执行文件路径",
     )?;

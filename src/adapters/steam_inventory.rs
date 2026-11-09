@@ -41,6 +41,36 @@ struct Description {
     tradable: bool,
     marketable: bool,
     restricted: bool,
+    icon_url: Option<String>,
+    cooldown_until: Option<String>,
+}
+
+fn extract_cooldown_until(d: &Value) -> Option<String> {
+    if let Some(exp) = d.get("cache_expiration").and_then(|v| v.as_str()).map(str::trim).filter(|s| !s.is_empty()) {
+        return Some(exp.to_owned());
+    }
+    if let Some(arr) = d.get("owner_descriptions").and_then(|v| v.as_array()) {
+        for item in arr {
+            if let Some(val) = item.get("value").and_then(|v| v.as_str()) {
+                let lower = val.to_ascii_lowercase();
+                if lower.contains("until ") || lower.contains("after ") || lower.contains("tradable") || lower.contains("trade-protected") {
+                    if let Some((_, after)) = val.split_once("until ").or_else(|| val.split_once("After ")) {
+                        let cleaned = after
+                            .split('<')
+                            .next()
+                            .unwrap_or(after)
+                            .trim()
+                            .trim_end_matches('.')
+                            .to_owned();
+                        if !cleaned.is_empty() {
+                            return Some(cleaned);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 fn parse(body: &[u8], context: &str) -> Result<InventoryPage, E> {
@@ -97,11 +127,21 @@ fn parse(body: &[u8], context: &str) -> Result<InventoryPage, E> {
                 .ok_or(E::InvalidPayload)?
                 .is_empty(),
         };
+        let icon_url = d
+            .get("icon_url")
+            .or_else(|| d.get("icon_url_large"))
+            .and_then(|v| v.as_str())
+            .map(str::trim)
+            .filter(|s| !s.is_empty() && s.len() <= 500)
+            .map(str::to_owned);
+        let cooldown_until = extract_cooldown_until(d);
         let desc = Description {
             name,
             tradable: flag(&d["tradable"])?,
             marketable: flag(&d["marketable"])?,
             restricted,
+            icon_url,
+            cooldown_until,
         };
         // Equal duplicates are allowed; conflicting metadata may not override silently.
         if descriptions.get(&key).is_some_and(|old| old != &desc) {
@@ -134,6 +174,8 @@ fn parse(body: &[u8], context: &str) -> Result<InventoryPage, E> {
             reported_tradable: desc.tradable,
             reported_marketable: desc.marketable,
             restriction_note_present: desc.restricted,
+            icon_url: desc.icon_url.clone(),
+            cooldown_until: desc.cooldown_until.clone(),
         });
     }
     let next_asset_id = if more {

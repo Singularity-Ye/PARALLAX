@@ -139,6 +139,7 @@ pub fn router(state: AppState) -> Router {
         .route("/api/scans/{id}", get(detail))
         .route("/api/scans/{id}/cancel", post(cancel))
         .route("/api/plans", get(plans).post(create_plan).layer(DefaultBodyLimit::max(2 * 1024 * 1024)))
+        .route("/api/plans/auto", post(create_auto_plan).layer(DefaultBodyLimit::max(2 * 1024 * 1024)))
         .route("/api/plans/{id}", get(plan))
         .route("/api/plans/replan", post(replan).layer(DefaultBodyLimit::max(2 * 1024 * 1024)))
         .route("/api/trades", post(|| async { error(StatusCode::NOT_IMPLEMENTED, "真实交易执行尚未迁移；未创建订单") }))
@@ -226,6 +227,15 @@ async fn create_plan(
     Ok((
         StatusCode::CREATED,
         Json(app.create_plan(input(body)?).await.map_err(app_error)?),
+    ))
+}
+async fn create_auto_plan(
+    State(app): State<AppState>,
+    body: Result<Json<crate::application::planning::AutoPlanRequest>, JsonRejection>,
+) -> Result<(StatusCode, Json<PlanPreview>), ApiError> {
+    Ok((
+        StatusCode::CREATED,
+        Json(app.create_auto_plan(input(body)?).await.map_err(app_error)?),
     ))
 }
 

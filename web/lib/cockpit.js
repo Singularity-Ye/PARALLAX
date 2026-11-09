@@ -38,9 +38,12 @@ export function renderCockpitScan(report){
   }
   const fragment=document.createDocumentFragment();
   for(const c of rows.slice(0,8)){
+    const d = c.deep_analysis || {};
     const row=node('tr');
-    for(const text of [c.item.name,c.item.steam_gross_cents>0?amount(c.item.steam_gross_cents):'未知',c.item.cash_cents>0?amount(c.item.cash_cents):'未知',ratio(c.ratio_bps),String(c.item.volume),c.passed?'预筛通过':'未通过'])row.append(node('td',text));
-    const action=node('td');const link=node('a','查看预算');link.href='#planning';link.className='text-link';action.append(link);row.append(action);fragment.append(row);
+    const volText = `${c.item.volume}${d.sell_pressure !== undefined ? ` (卖压 ${d.sell_pressure.toFixed(1)})` : ''}`;
+    const passText = c.passed ? `✓ 通过 (限购 ${d.safe_purchase_limit ?? '—'}件)` : '未通过';
+    for(const text of [c.item.name,c.item.steam_gross_cents>0?amount(c.item.steam_gross_cents):'未知',c.item.cash_cents>0?amount(c.item.cash_cents):'未知',ratio(c.ratio_bps),volText,passText])row.append(node('td',text));
+    const action=node('td');const link=node('a','智能配平 ↗');link.href='#planning';link.className='text-link';action.append(link);row.append(action);fragment.append(row);
   }
   el('dashboard-candidates-tbody').replaceChildren(fragment);
   const fItem = el('friction-item');
@@ -84,7 +87,10 @@ function renderPlan(plan){
   if(el('capital-track')) el('capital-track').setAttribute('aria-label',valid?`预算${amount(budget)}，计划${amount(planned)}，填报预留${amount(reserved)}，剩余${amount(remaining)}`:'预算金额无法组成完整比例，未显示水位');
   if(el('capital-planned-value')) el('capital-planned-value').textContent=amount(planned);if(el('capital-reserved-value')) el('capital-reserved-value').textContent=amount(reserved);if(el('capital-remaining-value')) el('capital-remaining-value').textContent=amount(remaining);
   const position=plan.request.position_snapshot;
-  const positionText=position?`手工填报 · 账户${position.account_id} · ${new Date(position.observed_at*1000).toLocaleString()}；不是实时持仓`:'未引用账户仓位；不是零持仓';
+  const isAuto = plan.position_source === 'auto_inventory_and_ledger';
+  const positionText=isAuto
+    ? `自动关联真实库存与台账 · 账户 ${position?.account_id?.slice(0,8) ?? '默认'}`
+    : (position?`手工填报 · 账户${position.account_id} · ${new Date(position.observed_at*1000).toLocaleString()}；不是实时持仓`:'未引用账户仓位；不是零持仓');
   if(el('capital-position')) el('capital-position').textContent=`${positionText}。单品硬上限${plan.request.max_units_per_item}件，种类上限${plan.request.max_positions}。`;
   if(el('sentinel-position')) el('sentinel-position').textContent=positionText;
   const policy=plan.request.liquidity_policy;

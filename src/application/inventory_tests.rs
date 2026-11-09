@@ -53,6 +53,8 @@ fn asset(id: &str, context: &str) -> InventoryAsset {
         reported_tradable: true,
         reported_marketable: true,
         restriction_note_present: false,
+        icon_url: None,
+        cooldown_until: None,
     }
 }
 fn page(

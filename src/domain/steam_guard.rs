@@ -43,6 +43,37 @@ impl GuardSecret {
             automatic_login_available: false,
         }
     }
+    pub fn signature(identity_secret_b64: &str, tag: &str, timestamp: u64) -> Result<String, String> {
+        let cleaned = identity_secret_b64
+            .trim()
+            .replace("\\u002B", "+")
+            .replace("\\u002b", "+")
+            .replace("\\/", "/");
+        let secret_bytes = STANDARD
+            .decode(&cleaned)
+            .map_err(|_| "identity_secret 必须为有效的 Base64 字符串")?;
+        if secret_bytes.len() != 20 {
+            return Err("Steam identity_secret 解码后必须为 20 字节".into());
+        }
+        let mut msg = Vec::with_capacity(8 + tag.len());
+        msg.extend_from_slice(&timestamp.to_be_bytes());
+        msg.extend_from_slice(tag.as_bytes());
+        let key = ring::hmac::Key::new(ring::hmac::HMAC_SHA1_FOR_LEGACY_USE_ONLY, &secret_bytes);
+        let mac = ring::hmac::sign(&key, &msg);
+        Ok(STANDARD.encode(mac.as_ref()))
+    }
+    pub fn default_device_id(steam_id: &str) -> String {
+        let digest = ring::digest::digest(&ring::digest::SHA1_FOR_LEGACY_USE_ONLY, steam_id.as_bytes());
+        let hex: String = digest.as_ref().iter().map(|b| format!("{b:02x}")).collect();
+        format!(
+            "android:{}-{}-{}-{}-{}",
+            &hex[0..8],
+            &hex[8..12],
+            &hex[12..16],
+            &hex[16..20],
+            &hex[20..32]
+        )
+    }
 }
 impl Drop for GuardSecret {
     fn drop(&mut self) {
@@ -63,6 +94,10 @@ pub struct GuardCode {
 pub struct GuardStatus {
     pub steam_id: String,
     pub configured: bool,
+    #[serde(default)]
+    pub identity_configured: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<String>,
     pub scope: &'static str,
     pub automatic_login_available: bool,
 }

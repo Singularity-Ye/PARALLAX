@@ -26,6 +26,8 @@ pub(crate) fn fixture(at: u64) -> (PurchaseLot, InventorySnapshot) {
             reported_tradable: true,
             reported_marketable: true,
             restriction_note_present: false,
+            icon_url: None,
+            cooldown_until: None,
         })
         .collect();
     let inventory = InventorySnapshot {

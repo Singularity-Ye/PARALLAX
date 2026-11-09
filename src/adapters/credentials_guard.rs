@@ -36,6 +36,43 @@ impl GuardSecretStore for NativeVault {
         })
         .await?
     }
+    async fn identity_secret(&self, key: String) -> anyhow::Result<Option<(String, Option<String>)>> {
+        tokio::task::spawn_blocking(move || {
+            match keyring::Entry::new("Parallax.steam-identity.v1", &key)?.get_secret() {
+                Ok(raw) => {
+                    let parsed: (String, Option<String>) = serde_json::from_slice(&raw)
+                        .map_err(|_| anyhow::anyhow!("identity_secret 存储格式无效"))?;
+                    Ok(Some(parsed))
+                }
+                Err(keyring::Error::NoEntry) => Ok(None),
+                Err(_) => anyhow::bail!("Windows identity_secret 读取失败"),
+            }
+        })
+        .await?
+    }
+    async fn put_identity_secret(
+        &self,
+        key: String,
+        identity_secret: String,
+        device_id: Option<String>,
+    ) -> anyhow::Result<()> {
+        tokio::task::spawn_blocking(move || {
+            let bytes = serde_json::to_vec(&(identity_secret, device_id))?;
+            keyring::Entry::new("Parallax.steam-identity.v1", &key)?
+                .set_secret(&bytes)
+                .map_err(|_| anyhow::anyhow!("Windows identity_secret 保存失败"))
+        })
+        .await?
+    }
+    async fn remove_identity_secret(&self, key: String) -> anyhow::Result<()> {
+        tokio::task::spawn_blocking(move || {
+            match keyring::Entry::new("Parallax.steam-identity.v1", &key)?.delete_credential() {
+                Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+                Err(_) => anyhow::bail!("Windows identity_secret 停用失败"),
+            }
+        })
+        .await?
+    }
 }
 #[cfg(not(windows))]
 impl GuardSecretStore for NativeVault {

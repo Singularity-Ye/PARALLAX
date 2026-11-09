@@ -114,4 +114,54 @@ impl AccountRepository for Store {
             Ok(())
         }).await
     }
+    async fn update_account(&self, account: Account) -> anyhow::Result<()> {
+        self.account_db(move |db| {
+            db.execute(
+                "INSERT INTO accounts(id, steam_id, metadata) VALUES(?1,?2,?3) ON CONFLICT(id) DO UPDATE SET steam_id=excluded.steam_id, metadata=excluded.metadata",
+                params![
+                    account.id,
+                    account.steam_id,
+                    serde_json::to_string(&account)?
+                ],
+            )?;
+            Ok(())
+        })
+        .await
+    }
+    async fn delete_account(&self, id: String) -> anyhow::Result<bool> {
+        self.account_db(move |db| {
+            let deleted = db.execute("DELETE FROM accounts WHERE id=?1", params![id])?;
+            let _ = db.execute("DELETE FROM account_sessions WHERE account_id=?1", params![id]);
+            let _ = db.execute(
+                "DELETE FROM auth_policy WHERE key=?1",
+                params![format!("profile:{id}")],
+            );
+            Ok(deleted > 0)
+        })
+        .await
+    }
+    async fn account_profile(&self, id: String) -> anyhow::Result<Option<AccountProfile>> {
+        self.account_db(move |db| {
+            let key = format!("profile:{id}");
+            let raw: Option<String> = db
+                .query_row("SELECT value FROM auth_policy WHERE key=?1", [key], |r| {
+                    r.get(0)
+                })
+                .optional()?;
+            raw.map(|s| serde_json::from_str(&s).map_err(Into::into))
+                .transpose()
+        })
+        .await
+    }
+    async fn save_account_profile(&self, id: String, profile: AccountProfile) -> anyhow::Result<()> {
+        self.account_db(move |db| {
+            let key = format!("profile:{id}");
+            db.execute(
+                "INSERT INTO auth_policy(key,value) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                params![key, serde_json::to_string(&profile)?],
+            )?;
+            Ok(())
+        })
+        .await
+    }
 }

@@ -53,6 +53,178 @@ impl<R: AccountRepository, C: CredentialStore, V: SessionVerifier> Accounts<R, C
         self.repo.add_account(account.clone()).await?;
         Ok(account)
     }
+    pub async fn create_flexible(
+        &self,
+        label: String,
+        steam_id: String,
+        username: Option<String>,
+        has_saved_password: bool,
+    ) -> Result<Account, AppError> {
+        let uname = username.unwrap_or_default().trim().to_string();
+        let mut label = label.trim().to_string();
+        if label.is_empty() && !uname.is_empty() {
+            label = uname.clone();
+        }
+        let mut steam_id = steam_id.trim().to_string();
+        if steam_id.is_empty() && !uname.is_empty() {
+            // Allow creating by username/password first; real 17-digit SteamID is populated on login
+            steam_id = "00000000000000000".to_string();
+        }
+        if label.is_empty()
+            || label.chars().count() > 80
+            || label.chars().any(char::is_control)
+            || steam_id.len() != 17
+            || !steam_id.bytes().all(|b| b.is_ascii_digit())
+        {
+            return Err(AppError::Invalid(
+                "请填写 Steam 用户名（或备注名）；若手动填写 Steam ID 需为 17 位纯数字".into(),
+            ));
+        }
+        let account = Account {
+            id: uuid::Uuid::new_v4().to_string(),
+            label,
+            steam_id,
+            created_at: now(),
+        };
+        self.repo.add_account(account.clone()).await?;
+        if !uname.is_empty() || has_saved_password {
+            let prof = AccountProfile {
+                username: uname,
+                has_saved_password,
+                updated_at: Some(now()),
+                ..Default::default()
+            };
+            self.repo
+                .save_account_profile(account.id.clone(), prof)
+                .await?;
+        }
+        Ok(account)
+    }
+    pub async fn update(
+        &self,
+        id: &str,
+        label: Option<String>,
+        steam_id: Option<String>,
+        username: Option<String>,
+        has_saved_password: Option<bool>,
+    ) -> Result<Account, AppError> {
+        let mut account = self.account(id).await?;
+        if let Some(l) = label.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()) {
+            if l.chars().count() > 80 || l.chars().any(char::is_control) {
+                return Err(AppError::Invalid("名称需要 1–80 个字符".into()));
+            }
+            account.label = l;
+        }
+        if let Some(sid) = steam_id.map(|s| s.trim().to_string()).filter(|s| !s.is_empty()) {
+            if sid.len() != 17 || !sid.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(AppError::Invalid("Steam ID 需要 17 位数字".into()));
+            }
+            account.steam_id = sid;
+        }
+        self.repo.update_account(account.clone()).await?;
+        if username.is_some() || has_saved_password.is_some() {
+            let mut prof = self
+                .repo
+                .account_profile(id.into())
+                .await?
+                .unwrap_or_default();
+            if let Some(u) = username {
+                prof.username = u.trim().to_string();
+            }
+            if let Some(saved) = has_saved_password {
+                prof.has_saved_password = saved;
+            }
+            prof.updated_at = Some(now());
+            self.repo.save_account_profile(id.into(), prof).await?;
+        }
+        Ok(account)
+    }
+    pub async fn delete(&self, id: &str) -> Result<(), AppError> {
+        let _guard = self.gate.lock().await;
+        self.account(id).await?;
+        if let Ok(sessions) = self.repo.sessions(id.into()).await {
+            for s in sessions {
+                let _ = self.vault.remove(s.credential_key).await;
+            }
+        }
+        self.repo.delete_account(id.into()).await?;
+        Ok(())
+    }
+    pub async fn profile_meta(&self, id: &str) -> Result<AccountProfile, AppError> {
+        Ok(self
+            .repo
+            .account_profile(id.into())
+            .await?
+            .unwrap_or_default())
+    }
+    pub async fn save_profile_meta(&self, id: &str, profile: AccountProfile) -> Result<(), AppError> {
+        self.repo.save_account_profile(id.into(), profile).await?;
+        Ok(())
+    }
+    pub async fn stored_steam_cookies(&self, id: &str) -> Option<String> {
+        let s = self.repo.session(id.into(), Platform::Steam).await.ok()??;
+        let cred = self.vault.get(s.credential_key).await.ok()??;
+        Some(cred.cookies)
+    }
+    pub async fn account_info(&self, id: &str) -> Result<Account, AppError> {
+        self.account(id).await
+    }
+    pub async fn steam_credentials(&self, id: &str) -> Result<(Account, Credentials), AppError> {
+        let account = self.account(id).await?;
+        let s = self
+            .repo
+            .session(id.into(), Platform::Steam)
+            .await?
+            .ok_or(AppError::Missing("请先登录或导入该账号的 Steam 会话"))?;
+        let cred = self
+            .vault
+            .get(s.credential_key)
+            .await?
+            .ok_or(AppError::Missing("Steam 凭据已失效或未保存，请点击验证重新登录"))?;
+        Ok((account, cred))
+    }
+    pub async fn save_verified_login(
+        &self,
+        id: &str,
+        platform: Platform,
+        secret: Credentials,
+        discovered_steam_id: Option<String>,
+    ) -> Result<SessionView, AppError> {
+        let _guard = self.gate.lock().await;
+        let mut account = self.account(id).await?;
+        if let Some(sid) = discovered_steam_id.filter(|s| s.len() == 17 && s.bytes().all(|b| b.is_ascii_digit())) {
+            if account.steam_id != sid {
+                account.steam_id = sid;
+                self.repo.update_account(account.clone()).await?;
+            }
+        }
+        secret
+            .validate(platform, &account.steam_id)
+            .map_err(AppError::Invalid)?;
+        let old = self.repo.session(id.into(), platform).await?;
+        let key = uuid::Uuid::new_v4().to_string();
+        self.vault.put(key.clone(), secret).await?;
+        let stored = StoredSession {
+            credential_key: key.clone(),
+            view: SessionView {
+                platform,
+                generation: key.clone(),
+                status: SessionStatus::Valid,
+                checked_at: Some(now()),
+                retry_at: now(),
+                message: "Steam 账号密码登录并验证通过".into(),
+                subject: Some(account.steam_id.clone()),
+            },
+        };
+        if let Err(err) = self.repo.save_session(id.into(), stored.clone()).await {
+            let _ = self.vault.remove(key).await;
+            return Err(err.into());
+        }
+        if let Some(old) = old {
+            let _ = self.vault.remove(old.credential_key).await;
+        }
+        Ok(stored.view)
+    }
     pub(crate) async fn account(&self, id: &str) -> Result<Account, AppError> {
         self.repo
             .account(id.into())

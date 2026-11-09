@@ -85,6 +85,10 @@ async fn main() -> anyhow::Result<()> {
         listener,
         routes
             .merge(parallax::transport::catalog::router(catalog))
+            .merge(parallax::transport::steam_guard::live_market_router(
+                auth.clone(),
+                guard.clone(),
+            ))
             .merge(parallax::transport::accounts::router(auth))
             .merge(parallax::transport::steam_guard::router(guard))
             .merge(parallax::transport::network::router())

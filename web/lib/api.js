@@ -17,9 +17,14 @@ export const parallax = {
   ledgerRows: (account,{offset=0,limit=50}={}) => request(`/api/accounts/${encodeURIComponent(account)}/ledger/rows?offset=${encodeURIComponent(offset)}&limit=${encodeURIComponent(limit)}`),
   searchCatalog: value => post('/api/catalog/search',value),
   guardStatus: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard`),
-  saveGuard: (a,shared_secret) => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard`,{shared_secret}),
+  saveGuard: (a, payload) => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard`, typeof payload === 'string' ? {shared_secret: payload} : payload),
   guardCode: a => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard/code`,{}),
   removeGuard: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard`,{method:'DELETE'}),
+  guardConfirmations: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-guard/confirmations`),
+  confirmGuardAll: (a, ids = null) => post(`/api/accounts/${encodeURIComponent(a)}/steam-guard/confirm`, ids ? {ids} : {}),
+  steamMarketListings: a => request(`/api/accounts/${encodeURIComponent(a)}/steam-market/listings`),
+  steamMarketSell: (a, value) => post(`/api/accounts/${encodeURIComponent(a)}/steam-market/sell`, value),
+  steamMarketDelist: (a, listing_id) => post(`/api/accounts/${encodeURIComponent(a)}/steam-market/delist`, {listing_id}),
   networkSettings: () => request("/api/settings/network"),
   saveNetworkSettings: config => request("/api/settings/network", {method:"PUT", body:JSON.stringify(config)}),
   proxyStatus: () => request('/api/network/proxies'),
@@ -75,10 +80,32 @@ export const parallax = {
   strategyEvaluation: id => request(`/api/strategy-evaluations/${encodeURIComponent(id)}`),
   priceHistories: account => request(`/api/accounts/${encodeURIComponent(account)}/price-histories`),
   priceHistory: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/price-histories/${encodeURIComponent(id)}`),
-  fetchPriceHistory: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/price-histories`,value),
+  fetchPriceHistory: async (account,value) => {
+    try {
+      return await post(`/api/accounts/${encodeURIComponent(account)}/price-histories`,value);
+    } catch (e) {
+      if (e.status === 409 || e.status === 404) {
+        try { await post(`/api/accounts/${encodeURIComponent(account)}/sessions/steam/verify`, {}); }
+        catch { await post(`/api/accounts/${encodeURIComponent(account)}/sessions/steam/password`, {username:'', password:''}); }
+        return await post(`/api/accounts/${encodeURIComponent(account)}/price-histories`,value);
+      }
+      throw e;
+    }
+  },
   inventories: account => request(`/api/accounts/${encodeURIComponent(account)}/inventories`),
   inventory: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/inventories/${encodeURIComponent(id)}`),
-  fetchInventory: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/inventories`,value),
+  fetchInventory: async (account,value) => {
+    try {
+      return await post(`/api/accounts/${encodeURIComponent(account)}/inventories`,value);
+    } catch (e) {
+      if (e.status === 409 || e.status === 404) {
+        try { await post(`/api/accounts/${encodeURIComponent(account)}/sessions/steam/verify`, {}); }
+        catch { await post(`/api/accounts/${encodeURIComponent(account)}/sessions/steam/password`, {username:'', password:''}); }
+        return await post(`/api/accounts/${encodeURIComponent(account)}/inventories`,value);
+      }
+      throw e;
+    }
+  },
   buffQuotes: account => request(`/api/accounts/${encodeURIComponent(account)}/buff-quotes`),
   buffQuote: (account,id) => request(`/api/accounts/${encodeURIComponent(account)}/buff-quotes/${encodeURIComponent(id)}`),
   fetchBuffQuote: (account,value) => post(`/api/accounts/${encodeURIComponent(account)}/buff-quotes`,value),
@@ -91,9 +118,11 @@ export const parallax = {
   accounts: () => request('/api/accounts'),
   accountProfile: id => request(`/api/accounts/${encodeURIComponent(id)}/profile`),
   createAccount: value => post('/api/accounts', value),
+  updateAccount: (id, value) => request(`/api/accounts/${encodeURIComponent(id)}`, {method:'PUT', body:JSON.stringify(value)}),
+  deleteAccount: id => request(`/api/accounts/${encodeURIComponent(id)}`, {method:'DELETE'}),
   sessions: id => request(`/api/accounts/${encodeURIComponent(id)}/sessions`),
   importSession: (id, platform, value) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}`, value),
-  steamPasswordLogin: (id, username, password) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/steam/password`, {username, password}),
+  steamPasswordLogin: (id, username = '', password = '', extra = {}) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/steam/password`, {username, password, ...extra}),
   verifySession: (id, platform) => post(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}/verify`, {}),
   revokeSession: (id, platform) => request(`/api/accounts/${encodeURIComponent(id)}/sessions/${platform}`, {method:'DELETE'}),
   browserLogin: () => request('/api/browser-logins'),
@@ -107,4 +136,5 @@ export const parallax = {
   plans: () => request('/api/plans'),
   plan: id => request(`/api/plans/${encodeURIComponent(id)}`),
   createPlan: value => post('/api/plans', value),
+  createAutoPlan: value => post('/api/plans/auto', value),
 };

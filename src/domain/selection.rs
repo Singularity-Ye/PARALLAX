@@ -84,6 +84,23 @@ pub struct RuleResult {
     pub passed: bool,
     pub reason: String,
 }
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+pub struct CandidateDeepAnalysis {
+    pub smart_price_cents: u64,
+    pub sell_pressure: f64,
+    pub sell_pressure_ok: bool,
+    pub cv_30d: f64,
+    pub r_squared: f64,
+    pub trend_status: String,
+    pub ema7_cents: u64,
+    pub ema30_cents: u64,
+    pub price_percentile: u8,
+    pub held_same_units: u32,
+    pub safe_purchase_limit: u32,
+    pub stability_passed: bool,
+    pub summary: String,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Candidate {
     pub item: MarketItem,
@@ -94,6 +111,8 @@ pub struct Candidate {
     /// Absent for historical v1 reports; their original estimates remain unchanged.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub valuation: Option<super::money::FeeQuote>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub deep_analysis: Option<CandidateDeepAnalysis>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Coverage {

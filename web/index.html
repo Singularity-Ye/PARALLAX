@@ -302,6 +302,11 @@
           <label class="filter-only-pass">
             <input id="only-passed" type="checkbox"> 只看预筛通过
           </label>
+          <div style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding-left:10px;border-left:1px solid var(--border-subtle,rgba(255,255,255,0.12));">
+            <span style="font-size:12px;color:var(--text-secondary);">预算 ¥</span>
+            <input id="workspace-auto-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:76px;height:28px;padding:2px 6px;" title="智能建仓现金预算（元）">
+            <button id="workspace-auto-plan-btn" type="button" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border-color:#38bdf8;font-weight:600;">⚡ 一键智能建仓配平</button>
+          </div>
         </div>
       </div>
 
@@ -310,17 +315,18 @@
         <table class="candidates-table" id="candidates-table">
           <thead>
             <tr>
-              <th style="width:30%">商品名称</th>
-              <th style="width:12%">BUFF 现货</th>
-              <th style="width:12%">Steam 估价</th>
-              <th style="width:11%">折算比率</th>
-              <th style="width:10%">24h 成交</th>
-              <th style="width:10%">预筛判定</th>
-              <th style="width:15%">操作</th>
+              <th style="width:24%">商品名称</th>
+              <th style="width:9%">BUFF 现货</th>
+              <th style="width:10%">Steam 壁垒/净得</th>
+              <th style="width:9%">折算比率</th>
+              <th style="width:11%">24h 量 &amp; 卖压</th>
+              <th style="width:14%">30日稳定性 &amp; 趋势</th>
+              <th style="width:11%">在库 &amp; 安全限购</th>
+              <th style="width:12%">综合判定 / 操作</th>
             </tr>
           </thead>
           <tbody id="candidates-tbody">
-            <tr class="empty-row"><td colspan="7" class="empty-cell">市场很大，设定上方参数并点击「开始扫描」捕获套利标的。</td></tr>
+            <tr class="empty-row"><td colspan="8" class="empty-cell">市场很大，设定上方参数并点击「开始扫描」捕获套利标的。</td></tr>
           </tbody>
         </table>
         <div id="candidates" style="display:none"></div>
@@ -328,7 +334,19 @@
     </section>
   </section>
 <section class="page" data-page="planning" id="page-planning" hidden>
-<section class="card" id="planning"><div class="section-title"><h2>交易预算计划</h2><span>02 / PLAN</span></div>
+<section class="card" id="planning"><div class="section-title"><h2>交易预算计划与智能配平</h2><span>02 / SMART PLAN</span></div>
+<div style="margin-bottom:16px;padding:14px 16px;border-radius:10px;background:linear-gradient(135deg,rgba(14,165,233,0.12),rgba(37,99,235,0.06));border:1px solid rgba(56,189,248,0.28);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
+  <div>
+    <strong style="font-size:14px;color:#38bdf8;display:block;margin-bottom:4px;">⚡ 全自动智能建仓配平（AetherSwap 同源算法）</strong>
+    <span style="font-size:12px;color:var(--text-secondary);">无需手动复制快照 ID 或手填库存！自动读取当前账户真实 Steam 库存 + 在途采购台账，结合 5% 日量上限与 &lt;¥5.00 低价折半保护一键生成最优采购清单。</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">预算(元)<input id="auto-plan-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:90px;"></label>
+    <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">单品上限<input id="auto-plan-max-units" type="number" min="1" max="100" value="50" class="compact-input" style="width:64px;"></label>
+    <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">最大品类<input id="auto-plan-max-pos" type="number" min="1" max="50" value="8" class="compact-input" style="width:60px;"></label>
+    <button id="auto-plan-submit" type="button" class="btn btn-primary" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border-color:#38bdf8;font-weight:600;">⚡ 一键智能配平</button>
+  </div>
+</div>
 <p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>
 <div class="workspace"><form id="plan-form">
 <label>现金预算 / 元（含已预留现金）<input name="budget" type="number" min="0.01" max="1000000" step="0.01" value="100" required></label>
@@ -360,8 +378,16 @@
           </div>
           <button id="inventory-fetch" type="button" class="btn btn-primary btn-sm" disabled style="color:#ffffff !important;background:#18181b !important;">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            <span style="color:#ffffff !important;">立即刷新快照</span>
+            <span style="color:#ffffff !important;">立即刷新</span>
           </button>
+          <div class="inv-acc-picker" style="margin-left:6px;">
+            <span class="inv-label">计价时段：</span>
+            <select id="inventory-price-period" class="compact-select" title="切换用于计算折扣率与税后净值的参考时段交易价">
+              <option value="now">当前实时底价</option>
+              <option value="d7">7 日成交均价</option>
+              <option value="d30">30 日成交均价</option>
+            </select>
+          </div>
           <details class="inv-advanced-picker" style="font-size:11px;color:var(--muted);cursor:pointer;">
             <summary style="font-weight:600;padding:2px 6px;">分页设置 ⚙</summary>
             <div style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">
@@ -371,7 +397,7 @@
           </details>
         </div>
 
-        <!-- 4-Capsule Financial Summary Bar (1:1 with AetherSwap) -->
+        <!-- Financial Summary Bar (1:1 with AetherSwap + Discount Rate) -->
         <div class="inventory-summary-bar">
           <div class="inv-stat-capsule">
             <span class="capsule-label">库存总数</span>
@@ -379,12 +405,16 @@
             <span class="capsule-unit">件</span>
           </div>
           <div class="inv-stat-capsule">
-            <span class="capsule-label">预估总价值</span>
+            <span class="capsule-label">库存价值</span>
             <span class="capsule-val mono" id="inv-total-market">¥0.00</span>
           </div>
           <div class="inv-stat-capsule">
-            <span class="capsule-label">税后净值 (手存)</span>
+            <span class="capsule-label">税后价值</span>
             <span class="capsule-val mono" id="inv-net-val" style="color:#16a34a;">¥0.00</span>
+          </div>
+          <div class="inv-stat-capsule">
+            <span class="capsule-label">平均折扣率</span>
+            <span class="capsule-val mono" id="inv-avg-discount">—</span>
           </div>
           <div class="inv-stat-capsule">
             <span class="capsule-label">解禁状态</span>
@@ -400,16 +430,16 @@
         <table class="inventory-table" id="inv-table">
           <thead>
             <tr>
-              <th style="width:48px;text-align:center;">饰品</th>
+              <th style="width:46px;text-align:center;">图标</th>
               <th>物品名称</th>
-              <th style="width:70px;text-align:center;">数量</th>
-              <th style="width:80px;text-align:center;">可出售</th>
-              <th style="width:80px;text-align:center;">可交易</th>
-              <th style="width:130px;">解禁时间 (到期)</th>
-              <th style="width:110px;">买入成本</th>
-              <th style="width:110px;">市场底价</th>
-              <th style="width:90px;">折算率/盈亏</th>
-              <th style="width:130px;text-align:center;">市场直达 / 操作</th>
+              <th style="width:58px;text-align:center;">数量</th>
+              <th style="width:74px;text-align:center;">可出售</th>
+              <th style="width:74px;text-align:center;">可交易</th>
+              <th style="width:145px;">解禁时间 (冷却期)</th>
+              <th style="width:115px;">我的买入价 ✎</th>
+              <th style="width:165px;">各时段交易价 (现/7日/30日)</th>
+              <th style="width:120px;">折扣率 / 税后盈亏</th>
+              <th style="width:125px;text-align:center;">链接 / 询价</th>
             </tr>
           </thead>
           <tbody id="inventory-tbody">
@@ -446,9 +476,9 @@
 
   <div class="guide-callout" id="accounts-guide-callout">
     <div class="guide-steps">
-      <div class="guide-step"><span class="step-num">1</span> 点击「<strong>+ 添加账号</strong>」登记 Steam ID / 备注</div>
-      <div class="guide-step"><span class="step-num">2</span> 点击右侧「<strong>打开独立登录窗</strong>」完成登录获取 Cookie</div>
-      <div class="guide-step"><span class="step-num">3</span> 前往选品工作台开启高频量化与比价</div>
+      <div class="guide-step"><span class="step-num">1</span> 点击「<strong>+ 添加账号</strong>」填写 Steam 用户名与密码（本机加密记住，无需模拟浏览器）</div>
+      <div class="guide-step"><span class="step-num">2</span> 点击账号卡片上的「<strong>⚡ 验证</strong>」自动登录并同步头像、结算币种与地区</div>
+      <div class="guide-step"><span class="step-num">3</span> 前往库存管理或选品工作台开启自动化比价与交易</div>
     </div>
   </div>
 
@@ -476,37 +506,41 @@
             <div class="detail-sub" id="detail-sub-name">请从左侧列表选择账号查看详情</div>
           </div>
           <div class="detail-actions">
-            <button id="browser-start" type="button" class="btn btn-sm btn-primary">打开登录窗口</button>
-            <button id="session-verify" type="button" class="btn btn-sm btn-secondary">在线验证</button>
-            <button id="session-revoke" type="button" class="btn btn-sm btn-danger-outline">停用登录态</button>
+            <button id="btn-account-quick-verify" type="button" class="btn btn-sm btn-primary">⚡ 验证</button>
+            <button id="btn-account-edit" type="button" class="btn btn-sm btn-secondary">编辑</button>
+            <button id="btn-account-delete" type="button" class="btn btn-sm btn-danger-outline">删除</button>
+            <button id="browser-start" type="button" class="btn btn-sm btn-secondary" style="display:none">打开登录窗口</button>
+            <button id="session-verify" type="button" class="btn btn-sm btn-secondary" style="display:none">在线验证</button>
+            <button id="session-revoke" type="button" class="btn btn-sm btn-danger-outline" style="display:none">停用登录态</button>
           </div>
         </div>
 
-        <!-- 6-Grid Metadata Tiles (1:1 with AetherSwap) -->
+        <!-- 6-Grid Metadata Tiles (1:1 with AetherSwap + Wallet Balance) -->
         <div class="detail-meta-grid">
           <div class="meta-tile">
-            <span class="meta-label">STEAM 备注名</span>
-            <strong class="meta-val" id="meta-label">—</strong>
+            <span class="meta-label">STEAM 用户名</span>
+            <strong class="meta-val" id="meta-username">—</strong>
           </div>
           <div class="meta-tile">
-            <span class="meta-label">STEAM ID (64位)</span>
+            <span class="meta-label">STEAM ID</span>
             <strong class="meta-val" id="meta-steam-id">—</strong>
           </div>
           <div class="meta-tile">
-            <span class="meta-label">登录态有效性</span>
+            <span class="meta-label">显示名</span>
+            <strong class="meta-val" id="meta-label">—</strong>
+          </div>
+          <div class="meta-tile">
+            <span class="meta-label">头像与状态</span>
             <strong class="meta-val" id="meta-session-status">—</strong>
           </div>
           <div class="meta-tile">
-            <span class="meta-label">登录平台</span>
-            <strong class="meta-val" id="meta-platform">Steam 官方社区</strong>
+            <span class="meta-label">结算币种 / 余额</span>
+            <strong class="meta-val" id="meta-currency">—</strong>
           </div>
           <div class="meta-tile">
-            <span class="meta-label">网络代理</span>
-            <strong class="meta-val" id="meta-proxy">本地直连</strong>
-          </div>
-          <div class="meta-tile">
-            <span class="meta-label">最后核验证据</span>
-            <strong class="meta-val" id="meta-checked-at">—</strong>
+            <span class="meta-label">地区 / 核验时间</span>
+            <strong class="meta-val" id="meta-region">—</strong>
+            <span id="meta-checked-at" style="display:none">—</span>
           </div>
         </div>
 
@@ -515,13 +549,13 @@
         <div class="login-hub-card">
           <div class="login-hub-tabs" role="tablist">
             <button type="button" class="login-hub-tab-btn active" data-tab="pwd" role="tab" aria-selected="true">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Steam 密码登录 (Guard 2FA)
-            </button>
-            <button type="button" class="login-hub-tab-btn" data-tab="browser" role="tab" aria-selected="false">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>独立浏览器登录
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Steam 账号密码直登 (推荐 · 自动免密重登)
             </button>
             <button type="button" class="login-hub-tab-btn" data-tab="cookie" role="tab" aria-selected="false">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>高级：导入 Cookie
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>导入 Steam / BUFF Cookie
+            </button>
+            <button type="button" class="login-hub-tab-btn" data-tab="browser" role="tab" aria-selected="false">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>备用：浏览器窗口捕获
             </button>
           </div>
 
@@ -531,24 +565,25 @@
               <div class="password-notice-banner">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" aria-hidden="true" style="margin-top:2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 <div>
-                  <strong>本机 Steam Guard 协同：</strong>遇到两步验证时，将自动调用当前账号已绑定的 <code>shared_secret</code> 计算 2FA 令牌，无需手动输码。密码仅当次核验，绝不落盘。
+                  <strong>原生协议直登（无需启动任何浏览器）：</strong>首次输入密码后自动加密存入本机 Windows 凭据管理器；后续点击上方「<strong>⚡ 验证</strong>」即可一键免密重登。已绑定 <code>shared_secret</code> 时自动秒过 2FA，未绑定时支持手机 App 点确认或输入 5 位令牌码。
                 </div>
               </div>
               <div class="password-form-grid">
                 <label>
-                  Steam 登录账户名
-                  <input name="username" id="steam-login-username" required maxlength="128" placeholder="例如 woodchuck_love_asthma" autocomplete="username">
+                  Steam 登录用户名
+                  <input name="username" id="steam-login-username" maxlength="128" placeholder="例如 woodchuck_love_asthma" autocomplete="username">
                 </label>
                 <label>
-                  Steam 账户密码
-                  <input name="password" id="steam-login-password" type="password" required maxlength="245" placeholder="仅在当次握手认证时使用" autocomplete="current-password">
+                  Steam 账户密码 <span class="hint" id="saved-pwd-badge">（若已保存可留空直接点验证）</span>
+                  <input name="password" id="steam-login-password" type="password" maxlength="245" placeholder="首次登录或修改密码时填写，自动本机加密记住" autocomplete="current-password">
                 </label>
               </div>
               <div class="password-action-bar">
                 <button type="submit" id="btn-steam-pwd-login" class="btn btn-sm btn-primary">
                   <span>⚡</span> 验证并登录 Steam
                 </button>
-                <span class="hint" role="status" id="steam-password-status">真实 Steam 账号与 Cookie 交换仍待验收。</span>
+                <input name="guard_code" id="steam-login-guard-code" maxlength="10" placeholder="选填: 5位令牌码(未绑密钥时)" style="width:185px;padding:6px 10px;font-size:12px;border-radius:6px;border:1px solid var(--border)">
+                <span class="hint" role="status" id="steam-password-status">支持一键免密验证与自动获取头像/币种。</span>
               </div>
             </form>
           </div>
@@ -556,11 +591,11 @@
           <!-- Tab 2: Standalone Browser Capture -->
           <div class="login-hub-panel" id="tab-panel-browser" role="tabpanel">
             <div class="browser-flow-bar" id="browser-flow-bar">
-              <span class="browser-flow-msg" id="browser-feedback">点击下方「打开独立登录窗」拉起独立安全浏览器窗口，在官方页面完成登录后系统将自动捕获凭据。</span>
+              <span class="browser-flow-msg" id="browser-feedback">仅用于 BUFF 网页扫码登录或触发特殊验证码时的备用通道（已开启持久化目录，关闭窗口不丢登录态）。</span>
               <div class="browser-flow-btns">
-                <button id="browser-start-hub" type="button" class="btn btn-sm btn-secondary">打开独立登录窗</button>
-                <button id="browser-finish" type="button" class="btn btn-sm btn-primary" disabled>完成登录验证</button>
-                <button id="browser-cancel" type="button" class="btn btn-sm btn-secondary" disabled>取消登录</button>
+                <button id="browser-start-hub" type="button" class="btn btn-sm btn-secondary">打开持久登录窗</button>
+                <button id="browser-finish" type="button" class="btn btn-sm btn-primary" disabled>完成捕获</button>
+                <button id="browser-cancel" type="button" class="btn btn-sm btn-secondary" disabled>取消</button>
               </div>
             </div>
           </div>
@@ -580,7 +615,7 @@
                 </label>
               </div>
               <label>Cookie 字符串
-                <input name="cookies" type="password" required autocomplete="off" placeholder="粘贴 sessionid=...; steamLoginSecure=...">
+                <input name="cookies" type="password" required autocomplete="off" placeholder="粘贴 session=... 或 steamLoginSecure=...">
               </label>
               <div class="drawer-actions">
                 <button type="submit" class="btn btn-sm btn-primary">保存导入 Cookie</button>
@@ -588,30 +623,42 @@
             </form>
           </div>
         </div>
-        <p class="security-tip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>安全保证：凭据仅安全保存在本机 Windows 凭据管理器，不上传任何云端。</p>
+        <p class="security-tip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>安全提示：若你选择保存密码，仅加密存储在本机 Windows 凭据管理器中用于自动重登，绝不上传任何云端。</p>
         <p id="account-feedback" role="status" aria-live="polite" class="action-feedback"></p>
         <div id="session-list" style="display:none"></div>
       </div>
     </div>
   </div>
 
-  <!-- Add Account Modal Overlay -->
+  <!-- Add / Edit Account Modal Overlay -->
   <div id="account-modal-overlay" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-head">
-        <h3>添加新 Steam 账户</h3>
+        <h3 id="account-modal-title">添加 Steam 账号</h3>
         <button type="button" id="btn-close-account-modal" class="modal-close" aria-label="关闭">×</button>
       </div>
       <form id="account-form" autocomplete="off">
-        <label>账户备注名
-          <input name="label" required maxlength="80" placeholder="例如：虐你—如呼吸 / CS2主号" autocomplete="off">
+        <input type="hidden" name="edit_id" id="account-form-edit-id" value="">
+        <label>Steam 用户名 (用于原生协议自动登录)
+          <input name="username" id="modal-input-username" maxlength="128" placeholder="例如：woodchuck_love_asthma" autocomplete="off">
         </label>
-        <label>Steam ID (17位纯数字)
-          <input name="steam_id" required pattern="[0-9]{17}" inputmode="numeric" placeholder="76561198..." autocomplete="off">
+        <label>Steam 密码 (加密保存在本机，后续免输重登)
+          <input name="password" id="modal-input-password" type="password" maxlength="245" placeholder="填写后点击验证即可全自动获取 Cookie 与头像" autocomplete="new-password">
         </label>
+        <label>Steam Guard 密钥 shared_secret (选填，自动算 2FA 验证码)
+          <input name="shared_secret" id="modal-input-shared-secret" maxlength="64" placeholder="Base64 格式密钥，如留空可在手机 App 确认登录" autocomplete="off">
+        </label>
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <label>显示名 / 备注 (选填)
+            <input name="label" id="modal-input-label" maxlength="80" placeholder="留空则自动使用昵称" autocomplete="off">
+          </label>
+          <label>Steam ID (17位，选填)
+            <input name="steam_id" id="modal-input-steamid" pattern="[0-9]{17}" inputmode="numeric" placeholder="留空则登录后自动获取" autocomplete="off">
+          </label>
+        </div>
         <div class="modal-actions">
           <button type="button" id="btn-cancel-account-modal" class="btn btn-secondary">取消</button>
-          <button type="submit" class="btn btn-primary">确认添加</button>
+          <button type="submit" id="btn-submit-account-modal" class="btn btn-primary">保存并立即验证</button>
         </div>
       </form>
     </div>
@@ -681,9 +728,10 @@
           <select id="ledger-account" class="compact-select"></select>
         </div>
         <button id="btn-holdings-multiselect" class="btn btn-sm btn-secondary" type="button">多选</button>
-        <div id="holdings-batch-actions" class="batch-actions-wrap" style="display:none;">
-          <button disabled title="真实批量挂牌尚未实现" id="btn-holdings-batch-sell" class="btn btn-sm btn-primary" type="button">批量挂牌</button>
-          <button disabled title="台账为追加式记录，不支持批量删除" id="btn-holdings-batch-del" class="btn btn-sm btn-danger-outline" type="button">批量删除</button>
+        <div id="holdings-batch-actions" class="batch-actions-wrap" style="display:flex;gap:6px;">
+          <button id="btn-holdings-auto-receive" class="btn btn-sm btn-secondary" type="button" title="自动匹配最新 Steam 库存快照并绑定待收货饰品的 AssetID">🔄 自动收货匹配库存</button>
+          <button id="btn-holdings-batch-sell" class="btn btn-sm btn-primary" type="button" title="按 Steam 壁垒/断层价批量挂牌选中或持有饰品">⚡ 一键壁垒上架</button>
+          <button id="btn-holdings-sync-sold" class="btn btn-sm btn-secondary" type="button" title="将选中或已挂牌饰品按 Steam 净得结算入账">✓ 结算已售</button>
         </div>
         <button id="ledger-refresh" class="btn btn-sm btn-secondary" type="button" title="刷新台账与持仓">刷新</button>
       </div>
@@ -821,7 +869,24 @@
   </details>
 </section>
 <section class="page" data-page="sales" id="page-sales" hidden>
-<div class="notice">出售研究只给条件与证据，不调用挂牌、确认、撤单或成交接口。采购与状态凭据仍需真实平台核验。</div>
+<section class="card" id="live-steam-market-card" style="margin-bottom:18px;">
+  <div class="section-title">
+    <h2>Steam 社区市场实时在售监控 &amp; 一键撤单 / 令牌确认</h2>
+    <span>LIVE STEAM MARKET</span>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:10px 0;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="hint">直连当前选中账户的 Steam 社区市场 <code>market/mylistings</code>，查看在售与待令牌确认饰品：</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="sale-live-refresh" type="button" class="btn btn-sm btn-secondary">↻ 刷新 Steam 在售列表</button>
+      <button id="sale-live-confirm-all" type="button" class="btn btn-sm btn-primary">⚡ 一键免手机确认待确认挂单</button>
+    </div>
+  </div>
+  <p id="sale-live-feedback" role="status" class="hint" style="margin:6px 0;">点击「↻ 刷新 Steam 在售列表」即可实时读取当前账户在 Steam 市场的挂单与待确认列表。</p>
+  <div id="sale-live-listings-box" style="margin-top:8px;"></div>
+</section>
+<div class="notice">下方为离线量化出售研究：对批次成本与历史证据做策略验算。上方可直接管理真实 Steam 在售挂单。</div>
 <section class="card"><div class="section-title"><h2>持仓出售研究</h2><span>SELL / POLICY &amp; COST</span></div><label>出售研究账户<select id="sale-account"></select></label><button id="sale-refresh" type="button" class="secondary">刷新出售证据列表</button>
 <form id="sale-form"><label>采购批次<select id="sale-lot" required></select></label><label>批次资产<select id="sale-asset" required></select></label><label>当前库存观察<select id="sale-inventory" required></select></label><label>已有购入研究（需v2压力净卖出证据）<select id="sale-evaluation" required></select></label><label>库存观察有效期 / 秒<input id="sale-age" type="number" min="1" max="300" value="90" required></label>
 <label>出售模式<select id="sale-mode"><option value="immediate">立即研究挂牌</option><option value="trend_wait">上升趋势等待</option><option value="profit_protect">收益保护</option><option value="pause">暂停出售</option></select></label>
@@ -1087,26 +1152,36 @@
           </div>
         </div>
 
-        <div class="token-action-row">
+        <div class="token-action-row" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
           <button id="guard-copy" type="button" class="btn btn-primary btn-sm" disabled>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制验证码
           </button>
+          <button id="guard-check-confs" type="button" class="btn btn-secondary btn-sm" title="查询当前账号待确认的 Steam 市场挂牌或交易报价">
+            🔍 查询待确认项
+          </button>
+          <button id="guard-accept-confs" type="button" class="btn btn-primary btn-sm" title="使用 identity_secret 免手机一键批准所有待确认的市场挂牌与交易">
+            ⚡ 一键确认全部挂牌/交易
+          </button>
         </div>
 
-        <p class="token-security-tip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>您的账号受到 Steam Guard 本机双因子认证保护</p>
+        <p class="token-security-tip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>您的账号受到 Steam Guard 本机双因子认证与免手机自动确认保护</p>
         <p id="guard-status" class="guard-meta-status"></p>
         <p id="guard-feedback" role="status" class="guard-feedback-text"></p>
+        <div id="guard-conf-list" style="margin-top:8px;text-align:left;max-height:150px;overflow-y:auto;font-size:12px;"></div>
         <progress id="guard-progress" max="30" value="0" style="display:none"></progress>
       </div>
 
-      <!-- Collapsible Drawer for shared_secret (No Scrolling!) -->
+      <!-- Collapsible Drawer for shared_secret / identity_secret / maFile -->
       <details class="guard-secret-drawer">
-        <summary><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>本机 shared_secret 密钥设置（初次绑定与停用）</summary>
+        <summary><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>本机令牌密钥设置（支持 shared_secret / identity_secret / 一键粘贴 .maFile）</summary>
         <div class="secret-drawer-body">
-          <p class="secret-hint">密钥仅保存在本机 Windows 凭据管理器，不会写入数据库或上传网络。</p>
+          <p class="secret-hint">密钥仅加密保存在本机 Windows 凭据管理器。可直接把整个 <code>.maFile</code> JSON 粘贴到任意输入框自动识别提取！</p>
           <form id="guard-form" autocomplete="off" class="compact-secret-form">
+            <div class="secret-input-row" style="margin-bottom:6px;">
+              <input id="guard-secret" type="password" placeholder="shared_secret (登录算码密钥，或直接粘贴整个 .maFile JSON)" autocomplete="off" maxlength="16384">
+            </div>
             <div class="secret-input-row">
-              <input id="guard-secret" type="password" placeholder="粘贴 shared_secret (标准 Base64 编码)" autocomplete="off" required maxlength="128">
+              <input id="guard-identity-secret" type="password" placeholder="identity_secret (选填：用于市场挂牌与交易免手机自动确认)" autocomplete="off" maxlength="256">
               <button id="guard-save" type="submit" class="btn btn-sm btn-primary">保存密钥</button>
               <button id="guard-remove" type="button" class="btn btn-sm btn-danger-outline">停用密钥</button>
             </div>
@@ -1218,5 +1293,5 @@
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/catalog.js?v=20261102_avatar_inv" type="module"></script><script src="/steam-guard.js?v=20261102_avatar_inv" type="module"></script><script src="/proxy.js?v=20261102_avatar_inv" type="module"></script><script src="/shell.js?v=20261102_avatar_inv" type="module"></script><script src="/app.js?v=20261102_avatar_inv" type="module"></script><script src="/accounts.js?v=20261102_avatar_inv" type="module"></script><script src="/inventory.js?v=20261102_avatar_inv" type="module"></script><script src="/strategies.js?v=20261102_avatar_inv" type="module"></script><script src="/preflight.js?v=20261102_avatar_inv" type="module"></script><script src="/ledger.js?v=20261102_avatar_inv" type="module"></script><script src="/checkout.js?v=20261102_avatar_inv" type="module"></script><script src="/buff-orders.js?v=20261102_avatar_inv" type="module"></script><script src="/sale-research.js?v=20261102_avatar_inv" type="module"></script><script src="/settings.js?v=20261104_modern" type="module"></script><script src="/debug.js?v=20261104_modern" type="module"></script>
+<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261109_phase4" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261109_phase4" type="module"></script>
 </body></html>

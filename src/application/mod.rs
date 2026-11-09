@@ -12,7 +12,7 @@ pub mod holding_research;
 pub mod inventory;
 pub mod ledger;
 pub mod orderbook;
-mod planning;
+pub mod planning;
 pub mod ports;
 pub mod preflight;
 pub mod replanning;
@@ -88,7 +88,13 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
         }
         Ok(reports)
     }
-    pub async fn scan(&self, id: String) -> Result<ScanReport, AppError> {
+    pub async fn scan(&self, id: String) -> Result<ScanReport, AppError>
+    where
+        R: ports::AccountRepository
+            + ports::InventoryRepository
+            + ports::LedgerRepository
+            + ports::OrderBookRepository,
+    {
         let jobs = self.jobs.lock().await;
         let mut report = self
             .store
@@ -100,9 +106,17 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
             report.stop_reason = "persistence_error".into();
             report.error = Some("任务已退出但结果未成功保存；请检查服务日志".into());
         }
+        drop(jobs);
+        let _ = self.enrich_scan_report(&mut report).await;
         Ok(report)
     }
-    pub async fn start(self: &Arc<Self>, request: ScanRequest) -> Result<ScanReport, AppError> {
+    pub async fn start(self: &Arc<Self>, request: ScanRequest) -> Result<ScanReport, AppError>
+    where
+        R: ports::AccountRepository
+            + ports::InventoryRepository
+            + ports::LedgerRepository
+            + ports::OrderBookRepository,
+    {
         request.validate().map_err(AppError::Invalid)?;
         let mut jobs = self.jobs.lock().await;
         if !jobs.is_empty() {
@@ -116,7 +130,8 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
         let app = self.clone();
         tokio::spawn(async move {
             let id = pending.id.clone();
-            let finished = scanner::scan(&app.source, pending, &flag).await;
+            let mut finished = scanner::scan(&app.source, pending, &flag).await;
+            let _ = app.enrich_scan_report(&mut finished).await;
             if let Err(err) = app.store.save(finished).await {
                 eprintln!("Failed to persist scan {id}: {err}");
             }

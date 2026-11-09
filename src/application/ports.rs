@@ -17,6 +17,23 @@ pub trait GuardSecretStore: Send + Sync {
         secret: crate::domain::steam_guard::GuardSecret,
     ) -> impl Future<Output = anyhow::Result<()>> + Send;
     fn remove_guard_secret(&self, key: String) -> impl Future<Output = anyhow::Result<()>> + Send;
+    fn identity_secret(
+        &self,
+        _key: String,
+    ) -> impl Future<Output = anyhow::Result<Option<(String, Option<String>)>>> + Send {
+        async { Ok(None) }
+    }
+    fn put_identity_secret(
+        &self,
+        _key: String,
+        _identity_secret: String,
+        _device_id: Option<String>,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send {
+        async { Ok(()) }
+    }
+    fn remove_identity_secret(&self, _key: String) -> impl Future<Output = anyhow::Result<()>> + Send {
+        async { Ok(()) }
+    }
 }
 
 pub trait FxProvider: Send + Sync {
@@ -250,6 +267,27 @@ pub trait AccountRepository: Send + Sync {
         at: u64,
         blocked: bool,
     ) -> impl Future<Output = anyhow::Result<()>> + Send;
+
+    fn update_account(&self, account: Account) -> impl Future<Output = anyhow::Result<()>> + Send {
+        async move { self.add_account(account).await }
+    }
+    fn delete_account(&self, _id: String) -> impl Future<Output = anyhow::Result<bool>> + Send {
+        async { Ok(false) }
+    }
+    fn account_profile(
+        &self,
+        _id: String,
+    ) -> impl Future<Output = anyhow::Result<Option<crate::domain::accounts::AccountProfile>>> + Send
+    {
+        async { Ok(None) }
+    }
+    fn save_account_profile(
+        &self,
+        _id: String,
+        _profile: crate::domain::accounts::AccountProfile,
+    ) -> impl Future<Output = anyhow::Result<()>> + Send {
+        async { Ok(()) }
+    }
 }
 pub trait CredentialStore: Send + Sync {
     fn put(

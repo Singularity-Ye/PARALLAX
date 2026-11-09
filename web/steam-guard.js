@@ -1,7 +1,7 @@
 import {parallax} from './lib/api.js';
 
 const el = id => document.getElementById(`guard-${id}`);
-let busy = false, ticket = 0, configured = false, expires = 0, currentCode = '';
+let busy = false, ticket = 0, configured = false, identityConfigured = false, expires = 0, currentCode = '';
 let copyTimer = null;
 const CIRCUMFERENCE = 2 * Math.PI * 110; // ~691.15
 
@@ -30,19 +30,25 @@ function clear() {
 }
 
 function ready() {
+  const hasAcc = Boolean(el('account')?.value);
   if (el('refresh')) el('refresh').disabled = busy;
-  if (el('generate')) el('generate').style.pointerEvents = (busy || !configured || !el('account')?.value) ? 'none' : 'auto';
-  if (el('save')) el('save').disabled = busy || !el('account')?.value;
-  if (el('remove')) el('remove').disabled = busy || !configured;
+  if (el('generate')) el('generate').style.pointerEvents = (busy || !configured || !hasAcc) ? 'none' : 'auto';
+  if (el('save')) el('save').disabled = busy || !hasAcc;
+  if (el('remove')) el('remove').disabled = busy || (!configured && !identityConfigured);
   if (el('account')) el('account').disabled = busy;
   if (el('secret')) el('secret').disabled = busy;
+  if (el('identity-secret')) el('identity-secret').disabled = busy;
   if (el('copy')) el('copy').disabled = busy || !currentCode || !expires;
+  if (el('check-confs')) el('check-confs').disabled = busy || !hasAcc;
+  if (el('accept-confs')) el('accept-confs').disabled = busy || !hasAcc;
 }
 
 async function status() {
   const current = ++ticket, account = el('account')?.value;
   clear();
   configured = false;
+  identityConfigured = false;
+  if (el('conf-list')) el('conf-list').replaceChildren();
   ready();
   if (!account) {
     if (el('status')) el('status').textContent = '请先选择一个账户。';
@@ -51,9 +57,12 @@ async function status() {
   try {
     const value = await parallax.guardStatus(account);
     if (current !== ticket) return;
-    configured = value.configured;
+    configured = Boolean(value.configured);
+    identityConfigured = Boolean(value.identity_configured);
     if (el('status')) {
-      el('status').textContent = `Steam ID: ${value.steam_id} · ${configured ? '已配置本地密钥' : '尚未配置本地密钥'} · 点击圆盘即可刷新`;
+      const ssTag = configured ? '✓ 已绑定 shared_secret (登录算码)' : '未绑 shared_secret';
+      const idTag = identityConfigured ? '✓ 已绑定 identity_secret (免手机自动确认)' : '未绑 identity_secret';
+      el('status').textContent = `Steam ID: ${value.steam_id} · ${ssTag} · ${idTag}`;
     }
     if (el('remaining')) {
       el('remaining').textContent = configured ? '点击圆盘生成验证码' : '请先在下方抽屉配置密钥';
@@ -88,6 +97,7 @@ async function refresh() {
 if (el('account')) {
   el('account').onchange = () => {
     if (el('secret')) el('secret').value = '';
+    if (el('identity-secret')) el('identity-secret').value = '';
     status();
   };
 }
@@ -101,14 +111,93 @@ if (el('form')) {
     ready();
     clear();
     const account = el('account')?.value;
+    const rawSecret = (el('secret')?.value || '').trim();
+    const rawIdentity = (el('identity-secret')?.value || '').trim();
+    const payload = {};
+    if (rawSecret.startsWith('{') && rawSecret.endsWith('}')) {
+      payload.mafile_json = rawSecret;
+    } else if (rawSecret) {
+      payload.shared_secret = rawSecret;
+    }
+    if (rawIdentity.startsWith('{') && rawIdentity.endsWith('}')) {
+      payload.mafile_json = rawIdentity;
+    } else if (rawIdentity) {
+      payload.identity_secret = rawIdentity;
+    }
     try {
-      await parallax.saveGuard(account, el('secret').value.trim());
+      await parallax.saveGuard(account, payload);
       if (el('secret')) el('secret').value = '';
-      configured = true;
-      if (el('feedback')) el('feedback').textContent = '已保存到本机 Windows 凭据管理器！';
+      if (el('identity-secret')) el('identity-secret').value = '';
+      if (el('feedback')) el('feedback').textContent = '✓ 密钥已加密保存到本机 Windows 凭据管理器！';
       await status();
     } catch (e) {
       if (el('feedback')) el('feedback').textContent = `保存失败：${e.message}`;
+    } finally {
+      busy = false;
+      ready();
+    }
+  };
+}
+
+function renderConfirmations(items) {
+  const box = el('conf-list');
+  if (!box) return;
+  box.replaceChildren();
+  if (!items || items.length === 0) return;
+  for (const c of items) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border:1px solid var(--border-card,#e2e8f0);border-radius:6px;margin-bottom:4px;background:#f8fafc;';
+    const left = document.createElement('span');
+    left.textContent = `${c.headline || '待确认项'} · ${c.summary || c.type_name || ''}`;
+    const tag = document.createElement('span');
+    tag.style.cssText = 'font-size:11px;color:#2563eb;font-weight:600;';
+    tag.textContent = `#${c.id}`;
+    row.append(left, tag);
+    box.append(row);
+  }
+}
+
+if (el('check-confs')) {
+  el('check-confs').onclick = async () => {
+    const account = el('account')?.value;
+    if (busy || !account) return;
+    busy = true;
+    ready();
+    if (el('feedback')) el('feedback').textContent = '正在向 Steam 查询待确认的市场挂牌与交易报价...';
+    try {
+      const res = await parallax.guardConfirmations(account);
+      renderConfirmations(res.items || []);
+      if (el('feedback')) {
+        el('feedback').textContent = res.count > 0
+          ? `查询到 ${res.count} 项待确认操作，点击「⚡ 一键确认全部挂牌/交易」即可免手机批准。`
+          : '✓ 当前账号没有待确认的市场挂牌或交易报价。';
+      }
+    } catch (e) {
+      if (el('feedback')) el('feedback').textContent = `查询待确认列表未通过：${e.message}`;
+    } finally {
+      busy = false;
+      ready();
+    }
+  };
+}
+
+if (el('accept-confs')) {
+  el('accept-confs').onclick = async () => {
+    const account = el('account')?.value;
+    if (busy || !account) return;
+    busy = true;
+    ready();
+    if (el('feedback')) el('feedback').textContent = '正在调用 Steam mobileconf 一键批准全部待确认项...';
+    try {
+      const res = await parallax.confirmGuardAll(account);
+      if (el('conf-list')) el('conf-list').replaceChildren();
+      if (el('feedback')) {
+        el('feedback').textContent = res.confirmed > 0
+          ? `⚡ 已成功免手机批准 ${res.confirmed} 项 Steam 市场挂牌 / 交易确认！`
+          : '✓ 当前无需确认的操作（0 项待确认）。';
+      }
+    } catch (e) {
+      if (el('feedback')) el('feedback').textContent = `一键确认未通过：${e.message}`;
     } finally {
       busy = false;
       ready();
@@ -127,7 +216,7 @@ async function generateCode() {
     expires = value.valid_until;
     currentCode = value.code;
     if (el('code')) el('code').textContent = value.code;
-    if (el('feedback')) el('feedback').textContent = '验证码已依据本机时钟生成，请尽快在 Steam 登录窗口输入。';
+    if (el('feedback')) el('feedback').textContent = '验证码已生成，请尽快使用。';
     if (el('copy')) el('copy').disabled = false;
     tick();
   } catch (e) {
@@ -169,6 +258,7 @@ if (el('remove')) {
     try {
       await parallax.removeGuard(el('account').value);
       configured = false;
+      identityConfigured = false;
       if (el('feedback')) el('feedback').textContent = '已停用并移除本机保存的令牌密钥。';
       await status();
     } catch (e) {
@@ -208,6 +298,7 @@ window.addEventListener('parallax:pagechange', ({detail}) => {
   if (detail.id !== 'steam-guard') {
     clear();
     if (el('secret')) el('secret').value = '';
+    if (el('identity-secret')) el('identity-secret').value = '';
   }
 });
 

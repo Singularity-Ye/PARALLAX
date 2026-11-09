@@ -406,6 +406,8 @@ async fn inventory_history_binds_account_and_observed_market_item_before_platfor
             reported_marketable: true,
             reported_tradable: false,
             restriction_note_present: true,
+            icon_url: None,
+            cooldown_until: None,
         }],
     };
     repo.insert_inventory(snapshot.clone()).await.unwrap();

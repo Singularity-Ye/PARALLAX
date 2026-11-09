@@ -192,7 +192,6 @@ pub fn apply(
             if inv.id != *inventory_snapshot_id
                 || inv.account_id != lot.account_id
                 || inv.observed_at > at
-                || inv.observed_at < lot.request.purchased_at
                 || asset_ids.is_empty()
                 || asset_ids.len() > lot.pending_units() as usize
             {

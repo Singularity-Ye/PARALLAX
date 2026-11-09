@@ -7,6 +7,8 @@ impl<
     S: MarketSource + 'static,
     R: Repository
         + AccountRepository
+        + InventoryRepository
+        + LedgerRepository
         + OrderBookRepository
         + BuffQuoteRepository
         + StrategyRepository

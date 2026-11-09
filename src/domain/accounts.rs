@@ -23,6 +23,30 @@ pub struct Account {
     pub created_at: u64,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct AccountProfile {
+    #[serde(default)]
+    pub username: String,
+    #[serde(default)]
+    pub display_name: String,
+    #[serde(default)]
+    pub avatar_url: String,
+    #[serde(default)]
+    pub currency_code: String,
+    #[serde(default)]
+    pub region_code: String,
+    #[serde(default)]
+    pub wallet_balance_display: String,
+    #[serde(default)]
+    pub wallet_balance_raw: Option<i64>,
+    #[serde(default)]
+    pub wallet_currency_id: Option<u32>,
+    #[serde(default)]
+    pub has_saved_password: bool,
+    #[serde(default)]
+    pub updated_at: Option<u64>,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionStatus {
@@ -93,6 +117,15 @@ impl Credentials {
             .filter_map(|s| s.trim().split_once('='))
             .find(|(k, _)| *k == name)
             .map(|(_, v)| v)
+    }
+    pub fn extract_steam_id(&self) -> Option<String> {
+        let value = self.cookie("steamLoginSecure")?;
+        let id = value.split(['%', '|']).next().unwrap_or_default().trim();
+        if id.len() == 17 && id.bytes().all(|b| b.is_ascii_digit()) {
+            Some(id.to_owned())
+        } else {
+            None
+        }
     }
 }
 

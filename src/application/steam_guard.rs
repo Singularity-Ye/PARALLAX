@@ -37,24 +37,77 @@ impl<R: AccountRepository, V: GuardSecretStore> SteamGuard<R, V> {
     pub async fn status(&self, id: &str) -> Result<GuardStatus, AppError> {
         let _gate = self.gate.lock().await;
         let (key, steam_id) = self.binding(id).await?;
-        let configured = self.vault.guard_secret(key).await?.is_some();
+        let configured = self.vault.guard_secret(key.clone()).await?.is_some();
+        let identity = self.vault.identity_secret(key).await?;
+        let identity_configured = identity.is_some();
+        let device_id = identity
+            .and_then(|(_, d)| d)
+            .or_else(|| Some(GuardSecret::default_device_id(&steam_id)));
         Ok(GuardStatus {
             steam_id,
             configured,
-            scope: "login_code_only",
-            automatic_login_available: false,
+            identity_configured,
+            device_id,
+            scope: if identity_configured {
+                "login_and_mobileconf"
+            } else {
+                "login_code_only"
+            },
+            automatic_login_available: configured,
         })
     }
     pub async fn import(&self, id: &str, raw: &str) -> Result<GuardStatus, AppError> {
-        let secret = GuardSecret::parse(raw).map_err(AppError::Invalid)?;
+        self.import_full(id, Some(raw), None, None).await
+    }
+    pub async fn import_full(
+        &self,
+        id: &str,
+        shared_secret: Option<&str>,
+        identity_secret: Option<&str>,
+        device_id: Option<&str>,
+    ) -> Result<GuardStatus, AppError> {
         {
             let _gate = self.gate.lock().await;
-            let (key, _) = self.binding(id).await?;
-            self.vault.put_guard_secret(key, secret).await?;
+            let (key, steam_id) = self.binding(id).await?;
+            if let Some(raw) = shared_secret.map(str::trim).filter(|s| !s.is_empty()) {
+                let secret = GuardSecret::parse(raw).map_err(AppError::Invalid)?;
+                self.vault.put_guard_secret(key.clone(), secret).await?;
+            }
+            if let Some(id_sec) = identity_secret.map(str::trim).filter(|s| !s.is_empty()) {
+                let _ = GuardSecret::signature(id_sec, "conf", 1_700_000_000)
+                    .map_err(AppError::Invalid)?;
+                let dev = device_id
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_owned)
+                    .or_else(|| Some(GuardSecret::default_device_id(&steam_id)));
+                self.vault
+                    .put_identity_secret(key, id_sec.to_owned(), dev)
+                    .await?;
+            }
         }
         self.status(id).await
     }
+    pub async fn identity_credentials(
+        &self,
+        id: &str,
+    ) -> Result<(String, String, String), AppError> {
+        let _gate = self.gate.lock().await;
+        let (key, steam_id) = self.binding(id).await?;
+        let (identity_secret, dev) = self
+            .vault
+            .identity_secret(key)
+            .await?
+            .ok_or(AppError::Missing(
+                "此账户尚未配置 identity_secret（可在 Steam 令牌页导入 maFile 或粘贴 identity_secret）",
+            ))?;
+        let device_id = dev.unwrap_or_else(|| GuardSecret::default_device_id(&steam_id));
+        Ok((steam_id, identity_secret, device_id))
+    }
     pub async fn code(&self, id: &str) -> Result<GuardCode, AppError> {
+        self.code_at(id, now()).await
+    }
+    pub async fn code_at(&self, id: &str, at: u64) -> Result<GuardCode, AppError> {
         let _gate = self.gate.lock().await;
         let (key, _) = self.binding(id).await?;
         let secret = self
@@ -62,12 +115,13 @@ impl<R: AccountRepository, V: GuardSecretStore> SteamGuard<R, V> {
             .guard_secret(key)
             .await?
             .ok_or(AppError::Missing("此账户尚未配置Steam Guard shared_secret"))?;
-        Ok(secret.code(now()))
+        Ok(secret.code(at))
     }
     pub async fn remove(&self, id: &str) -> Result<(), AppError> {
         let _gate = self.gate.lock().await;
         let (key, _) = self.binding(id).await?;
-        self.vault.remove_guard_secret(key).await?;
+        self.vault.remove_guard_secret(key.clone()).await?;
+        let _ = self.vault.remove_identity_secret(key).await;
         Ok(())
     }
 }
