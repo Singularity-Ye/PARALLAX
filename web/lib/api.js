@@ -142,4 +142,9 @@ export const parallax = {
   notifySettings: () => request('/api/settings/notify'),
   saveNotifySettings: (value) => request('/api/settings/notify', {method:'PUT', body:JSON.stringify(value)}),
   testNotify: () => post('/api/settings/notify/test', {}),
+  popularDeals: () => request('/api/steam-deals/popular'),
+  compareDeals: (appid) => request(`/api/steam-deals/compare?appid=${encodeURIComponent(appid)}`),
+  accountFriends: (account) => request(`/api/accounts/${encodeURIComponent(account)}/friends`),
+  gameEditions: (appid) => request(`/api/gift/editions?appid=${encodeURIComponent(appid)}`),
+  checkGift: (value) => post('/api/gift/check', value),
 };

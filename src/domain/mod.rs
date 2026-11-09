@@ -42,3 +42,6 @@ pub mod ledger_view;
 
 pub mod notify;
 pub mod workers;
+
+pub mod deals;
+pub mod gift;

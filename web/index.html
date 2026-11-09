@@ -1376,8 +1376,188 @@
     <div id="proxy-save-feedback" class="action-feedback" style="margin-top:10px;"></div>
   </section>
 </section></section>
+<!-- Page: Steam Deals (16 Regions Real-time Price Comparison) -->
+<section class="page" data-page="steam-deals" id="page-steam-deals" hidden>
+  <div class="panel-toolbar">
+    <div class="toolbar-title">
+      <h2>Steam 16 区折扣与骨折价探测器</h2>
+      <span class="hint">实时汇率折算 · 16 国低价区性价比排行 · 拒绝盲爬杜绝封控 · 数据源 /api/steam-deals</span>
+    </div>
+    <div class="toolbar-actions" style="display:flex;gap:8px;align-items:center;">
+      <input type="number" id="deals-appid-input" placeholder="输入游戏 AppID (如 2358720)" class="form-input" style="width:200px;">
+      <button id="btn-deals-compare" type="button" class="btn btn-primary btn-sm">
+        <span>⚡</span> 16 区实时比价
+      </button>
+    </div>
+  </div>
+
+  <div id="deals-status-msg" class="action-feedback" style="margin-bottom:12px;">从下方热门游戏选择或输入 AppID 开始比价</div>
+
+  <!-- Popular Games Grid -->
+  <section class="card" style="margin-bottom:20px;">
+    <div class="section-title">
+      <h3>热门常青折扣推荐</h3>
+      <span>POPULAR DISCOUNT TITLES · 点击直达</span>
+    </div>
+    <div id="deals-popular-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:14px;margin-top:12px;">
+      <!-- Populated by JS -->
+    </div>
+  </section>
+
+  <!-- Comparison Result Card -->
+  <section class="card" id="deals-overview-card" style="display:none;margin-bottom:20px;flex-direction:row;gap:20px;align-items:center;">
+    <img id="deals-cover-img" src="" alt="封面" style="width:240px;border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+    <div style="flex:1;">
+      <h2 id="deals-game-title" style="margin:0 0 10px 0;font-size:20px;color:var(--ink);">游戏名称</h2>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+          <span class="route-desc-hint" style="display:block;">基准国区价</span>
+          <span id="deals-cn-price" style="font-size:18px;font-weight:700;color:var(--ink);">—</span>
+        </div>
+        <div>
+          <span class="route-desc-hint" style="display:block;">全网最低价区</span>
+          <span id="deals-lowest-region" style="font-size:18px;font-weight:700;color:#16a34a;">—</span>
+        </div>
+        <div>
+          <span class="route-desc-hint" style="display:block;">最低折算人民币</span>
+          <span id="deals-lowest-price" style="font-size:18px;font-weight:700;color:#16a34a;">—</span>
+        </div>
+      </div>
+      <span id="deals-savings-badge" class="badge ok" style="display:none;font-size:12px;padding:4px 8px;">立省 —</span>
+    </div>
+  </section>
+
+  <!-- 16-Region Price Comparison Table -->
+  <div class="scan-table-card">
+    <table class="scan-table">
+      <thead>
+        <tr>
+          <th>区域与法币</th>
+          <th>官方当地现价</th>
+          <th>现时折扣</th>
+          <th>折合人民币 (CNY)</th>
+          <th>对比国区差价</th>
+          <th>性价比指数</th>
+          <th style="text-align:right">状态</th>
+        </tr>
+      </thead>
+      <tbody id="deals-regions-tbody">
+        <tr class="empty-row"><td colspan="7" class="empty-cell">请输入 AppID 或点击上方热门游戏卡片查看 16 区价格对比</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Page: Steam Gift (10% Cross-Region Price Risk Checker) -->
+<section class="page" data-page="gift" id="page-gift" hidden>
+  <div class="panel-toolbar">
+    <div class="toolbar-title">
+      <h2>Steam 好友赠礼与 10% 跨区价差风控测算</h2>
+      <span class="hint">受赠方原价折算比对 · Valve 10% 拒单红线预警 · 安全合规送礼指导 · 数据源 /api/gift</span>
+    </div>
+    <div class="toolbar-actions">
+      <button id="btn-check-gift" type="button" class="btn btn-primary btn-sm">
+        <span>🛡️</span> 启动 10% 赠礼风控核验
+      </button>
+    </div>
+  </div>
+
+  <div id="gift-risk-feedback" class="action-feedback" style="margin-bottom:12px;">配置赠送账号、好友与游戏版本后开始测算</div>
+
+  <!-- Form Setup Grid -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+    <!-- Left: Account & Friends -->
+    <section class="card">
+      <div class="section-title">
+        <h3>赠送方与受赠好友</h3>
+        <span>SENDER & RECIPIENT</span>
+      </div>
+      <label class="inv-label" style="display:block;margin-top:10px;">选择赠送账号：</label>
+      <select id="gift-sender-account" class="compact-select" style="width:100%;margin-bottom:14px;"></select>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label class="inv-label">快速选择受赠好友：</label>
+        <span id="gift-friends-status" class="route-desc-hint"></span>
+      </div>
+      <div id="gift-friends-container" style="display:grid;grid-template-columns:1fr;gap:8px;max-height:220px;overflow-y:auto;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:14px;">
+        <!-- Friends cards -->
+      </div>
+
+      <label class="inv-label" style="display:block;margin-bottom:4px;">受赠方 SteamID64（或点击上方好友自动填入）：</label>
+      <input type="text" id="gift-recipient-steamid" placeholder="76561198..." class="form-input" style="width:100%;box-sizing:border-box;">
+
+      <label class="inv-label" style="display:block;margin-top:10px;margin-bottom:4px;">受赠好友所在国家/区域：</label>
+      <select id="gift-recipient-region" class="compact-select" style="width:100%;">
+        <option value="CN">中国大陆 (CN)</option>
+        <option value="RU">俄罗斯 (RU)</option>
+        <option value="UA">乌克兰 (UA)</option>
+        <option value="KZ">哈萨克斯坦 (KZ)</option>
+        <option value="US">美国 (US)</option>
+        <option value="HK">中国香港 (HK)</option>
+        <option value="JP">日本 (JP)</option>
+        <option value="TR">土耳其 (TR)</option>
+        <option value="AR">阿根廷 (AR)</option>
+      </select>
+    </section>
+
+    <!-- Right: Game & Editions -->
+    <section class="card">
+      <div class="section-title">
+        <h3>目标游戏与版本</h3>
+        <span>TARGET APP & EDITIONS</span>
+      </div>
+      <label class="inv-label" style="display:block;margin-top:10px;margin-bottom:4px;">输入游戏 AppID：</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="number" id="gift-appid-input" placeholder="输入游戏 AppID (如 2358720)" class="form-input" style="flex:1;">
+        <button id="btn-detect-editions" type="button" class="btn btn-secondary btn-sm">
+          <span>🔍</span> 探测版本
+        </button>
+      </div>
+      <div id="gift-edition-status" class="route-desc-hint" style="margin-bottom:14px;"></div>
+
+      <label class="inv-label" style="display:block;margin-bottom:4px;">选择购买版本 (SubID / BundleID)：</label>
+      <select id="gift-edition-select" class="compact-select" style="width:100%;margin-bottom:14px;">
+        <option value="">请先输入 AppID 并点击「探测版本」</option>
+      </select>
+
+      <div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:#166534;line-height:1.6;">
+        <strong>🛡️ 纯净安全承诺：</strong><br>
+        本工具仅调用官方行情接口执行跨区 10% 价差规则测算，绝不模拟伪造 Protobuf 报文或执行无头扣款，从根本上杜绝账号被 Valve 标记代购或钱包冻结的风险！
+      </div>
+    </section>
+  </div>
+
+  <!-- Risk Verdict Card -->
+  <section class="card" id="gift-risk-card" style="display:none;margin-bottom:20px;">
+    <div class="section-title">
+      <h3>跨区赠礼合规裁定</h3>
+      <span id="gift-verdict-badge" class="badge ok">合规放行</span>
+    </div>
+    <div id="gift-verdict-msg" style="font-size:14px;color:var(--ink);margin:12px 0;line-height:1.6;font-weight:600;"></div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;padding:12px;background:#f8fafc;border-radius:6px;margin-bottom:14px;">
+      <div>
+        <span class="route-desc-hint" style="display:block;">赠送方实际扣费估算</span>
+        <span id="gift-sender-cny" style="font-size:16px;font-weight:700;color:var(--ink);">—</span>
+      </div>
+      <div>
+        <span class="route-desc-hint" style="display:block;">受赠方当地原价估算</span>
+        <span id="gift-recipient-cny" style="font-size:16px;font-weight:700;color:var(--ink);">—</span>
+      </div>
+      <div>
+        <span class="route-desc-hint" style="display:block;">折算价差比例</span>
+        <span id="gift-diff-pct" style="font-size:16px;font-weight:700;">—</span>
+      </div>
+    </div>
+    <div class="actions">
+      <a id="gift-store-link" href="#" target="_blank" class="btn btn-primary btn-sm">
+        <span>↗</span> 前往 Steam 官方购买送礼
+      </a>
+    </div>
+  </section>
+</section>
+
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261109_phase4" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261109_phase4" type="module"></script>
+<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261109_phase4" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261109_phase4" type="module"></script><script src="/steam-deals.js?v=20261109_phase5" type="module"></script><script src="/gift.js?v=20261109_phase5" type="module"></script>
 </body></html>

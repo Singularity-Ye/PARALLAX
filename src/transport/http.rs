@@ -100,6 +100,8 @@ pub fn router(state: AppState) -> Router {
         .route("/proxy.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/proxy.js")) }))
         .route("/settings.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/settings.js")) }))
         .route("/debug.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/debug.js")) }))
+        .route("/steam-deals.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/steam-deals.js")) }))
+        .route("/gift.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/gift.js")) }))
         .route("/index.html", get(|| async { static_response("text/html; charset=utf-8", include_str!("../../web/index.html")) }))
         .route("/lib/pages.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/pages.js")) }))
         .route("/accounts.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/accounts.js")) }))
