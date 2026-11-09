@@ -8,6 +8,19 @@ impl Currency {
     pub fn cny() -> Self {
         Self("CNY".into())
     }
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+impl std::fmt::Display for Currency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+impl AsRef<str> for Currency {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
 }
 impl TryFrom<String> for Currency {
     type Error = String;

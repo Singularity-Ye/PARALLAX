@@ -128,12 +128,117 @@ async function saveSettings() {
   }
 }
 
+
+let currentNotifyConfig = {
+  enabled: false,
+  pushplus_token: '',
+  notify_on_sold: true,
+  notify_on_auth_expired: true,
+  notify_on_large_price_drop: false,
+  price_drop_threshold_pct: 20.0
+};
+
+async function loadNotifySettings() {
+  try {
+    const res = await parallax.notifySettings();
+    if (res) {
+      currentNotifyConfig = res;
+      renderNotifySettings();
+    }
+  } catch (err) {
+    console.warn('Failed to load notify settings:', err);
+  }
+}
+
+function renderNotifySettings() {
+  const chk = el('notify-enabled');
+  if (chk) chk.checked = Boolean(currentNotifyConfig.enabled);
+
+  const tokenInput = el('notify-token');
+  if (tokenInput) {
+    tokenInput.value = currentNotifyConfig.pushplus_token || '';
+  }
+
+  const chkSold = el('notify-on-sold');
+  if (chkSold) chkSold.checked = Boolean(currentNotifyConfig.notify_on_sold);
+
+  const chkAuth = el('notify-on-auth-expired');
+  if (chkAuth) chkAuth.checked = Boolean(currentNotifyConfig.notify_on_auth_expired);
+
+  const chkDrop = el('notify-on-price-drop');
+  if (chkDrop) chkDrop.checked = Boolean(currentNotifyConfig.notify_on_large_price_drop);
+}
+
+async function saveNotifySettings() {
+  const btn = el('btn-save-notify');
+  const feedback = el('notify-save-feedback');
+  if (btn) btn.disabled = true;
+  if (feedback) feedback.textContent = '正在保存微信通知设置…';
+
+  try {
+    const chk = el('notify-enabled');
+    const tokenInput = el('notify-token');
+    const chkSold = el('notify-on-sold');
+    const chkAuth = el('notify-on-auth-expired');
+    const chkDrop = el('notify-on-price-drop');
+
+    const payload = {
+      enabled: chk ? chk.checked : false,
+      pushplus_token: tokenInput ? tokenInput.value.trim() : '',
+      notify_on_sold: chkSold ? chkSold.checked : true,
+      notify_on_auth_expired: chkAuth ? chkAuth.checked : true,
+      notify_on_large_price_drop: chkDrop ? chkDrop.checked : false,
+      price_drop_threshold_pct: 20.0
+    };
+
+    const res = await parallax.saveNotifySettings(payload);
+    if (res) {
+      currentNotifyConfig = res;
+      renderNotifySettings();
+    }
+    if (feedback) feedback.textContent = '✅ 微信推送通知配置已成功保存并立即生效！';
+  } catch (err) {
+    if (feedback) feedback.textContent = `❌ 保存失败：${err.message}`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function testNotify() {
+  const btn = el('btn-test-notify');
+  const feedback = el('notify-save-feedback');
+  if (btn) btn.disabled = true;
+  if (feedback) feedback.textContent = '正在发送 PushPlus 微信测试通知…';
+
+  try {
+    const res = await parallax.testNotify();
+    if (res && res.success) {
+      if (feedback) feedback.textContent = `✅ ${res.message || '测试通知已成功投递！请检查微信客户端通知。'}`;
+    } else {
+      if (feedback) feedback.textContent = `⚠️ 发送反馈：${res ? res.message : '未明确'}`;
+    }
+  } catch (err) {
+    if (feedback) feedback.textContent = `❌ 测试发送失败：${err.message}`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function initSettings() {
   const btnSave = el('btn-save-settings');
   if (btnSave) btnSave.onclick = () => saveSettings();
 
+  const btnSaveNotify = el('btn-save-notify');
+  if (btnSaveNotify) btnSaveNotify.onclick = () => saveNotifySettings();
+
+  const btnTestNotify = el('btn-test-notify');
+  if (btnTestNotify) btnTestNotify.onclick = () => testNotify();
+
   window.addEventListener('parallax:pagechange', event => {
-    if (event.detail.id === 'settings') loadSettings();
+    if (event.detail.id === 'settings') {
+      loadSettings();
+      loadNotifySettings();
+    }
   });
   window.addEventListener('parallax:network-settings-updated', event => {
     if (event.detail) {
@@ -142,8 +247,12 @@ function initSettings() {
     }
   });
 
-  if (location.hash === '#settings') loadSettings();
+  if (location.hash === '#settings') {
+    loadSettings();
+    loadNotifySettings();
+  }
 }
 
 initSettings();
 loadSettings().catch(console.error);
+loadNotifySettings().catch(console.error);

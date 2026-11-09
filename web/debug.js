@@ -205,6 +205,137 @@ function exportScansJson() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+
+let allWorkers = [];
+let isWorkersFetching = false;
+
+async function loadWorkers() {
+  const tbody = el('workers-tbody');
+  const btn = el('btn-refresh-workers');
+  if (isWorkersFetching) return;
+  isWorkersFetching = true;
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await parallax.workers();
+    allWorkers = Array.isArray(res?.workers) ? res.workers : [];
+    renderWorkersTable();
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="8" class="empty-cell" style="color:#dc2626;">拉取调度状态失败：${err.message}</td></tr>`;
+    }
+  } finally {
+    isWorkersFetching = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+function formatDurationSecs(secs) {
+  if (secs >= 3600) return `${Math.round(secs / 3600)} 小时`;
+  if (secs >= 60) return `${Math.round(secs / 60)} 分钟`;
+  return `${secs} 秒`;
+}
+
+function formatRelativeTime(ts) {
+  if (!ts) return '尚未运行';
+  const now = Math.floor(Date.now() / 1000);
+  const diff = now - ts;
+  if (diff < 0) return `${Math.abs(diff)} 秒后`;
+  if (diff < 60) return `${diff} 秒前`;
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
+  return new Date(ts * 1000).toLocaleTimeString();
+}
+
+function renderWorkersTable() {
+  const tbody = el('workers-tbody');
+  if (!tbody) return;
+  tbody.replaceChildren();
+
+  if (allWorkers.length === 0) {
+    const tr = node('tr');
+    tr.className = 'empty-row';
+    const td = node('td', '后台调度器未注册任何任务');
+    td.colSpan = 8;
+    td.className = 'empty-cell';
+    tr.append(td);
+    tbody.append(tr);
+    return;
+  }
+
+  allWorkers.forEach(w => {
+    const tr = node('tr');
+
+    // 1. Task Name & Desc
+    const tdName = node('td');
+    const title = node('div', w.display_name || w.name);
+    title.style.fontWeight = '600';
+    title.style.color = '#0f172a';
+    const sub = node('div', w.description || w.name);
+    sub.className = 'route-desc-hint';
+    tdName.append(title, sub);
+
+    // 2. Interval
+    const tdInterval = node('td', formatDurationSecs(w.interval_secs));
+    tdInterval.style.whiteSpace = 'nowrap';
+    tdInterval.style.fontSize = '12px';
+
+    // 3. State
+    const tdState = node('td');
+    const isRunning = w.state === 'running';
+    const stBadge = node('span', isRunning ? '⚡ 运行中' : '空闲 (就绪)');
+    stBadge.className = `badge ${isRunning ? 'warn' : 'ok'}`;
+    tdState.append(stBadge);
+
+    // 4. Last run
+    const tdLast = node('td', formatRelativeTime(w.last_run_at));
+    tdLast.style.fontSize = '12px';
+
+    // 5. Next run
+    const tdNext = node('td', formatRelativeTime(w.next_run_at));
+    tdNext.style.fontSize = '12px';
+
+    // 6. Counts (Success / Fail)
+    const tdCounts = node('td');
+    const okBadge = node('span', `${w.success_count} 成功`);
+    okBadge.className = 'badge ok';
+    okBadge.style.marginRight = '4px';
+    const failBadge = node('span', `${w.failure_count} 失败`);
+    failBadge.className = `badge ${w.failure_count > 0 ? 'fail' : 'muted'}`;
+    tdCounts.append(okBadge, failBadge);
+
+    // 7. Message
+    const tdMsg = node('td', w.last_message || '—');
+    tdMsg.style.fontSize = '11px';
+    tdMsg.style.maxWidth = '260px';
+    tdMsg.style.wordBreak = 'break-word';
+
+    // 8. Action: Trigger Now
+    const tdAct = node('td');
+    tdAct.style.textAlign = 'right';
+    const btnTrig = node('button', '立即执行 ⚡');
+    btnTrig.className = 'btn btn-sm btn-secondary';
+    btnTrig.style.padding = '2px 8px';
+    btnTrig.style.fontSize = '11px';
+    btnTrig.onclick = async () => {
+      btnTrig.disabled = true;
+      btnTrig.textContent = '下发中…';
+      try {
+        await parallax.triggerWorker(w.name);
+        btnTrig.textContent = '已触发';
+        setTimeout(() => loadWorkers(), 1000);
+      } catch (e) {
+        alert(`触发失败: ${e.message}`);
+        btnTrig.textContent = '立即执行 ⚡';
+        btnTrig.disabled = false;
+      }
+    };
+    tdAct.append(btnTrig);
+
+    tr.append(tdName, tdInterval, tdState, tdLast, tdNext, tdCounts, tdMsg, tdAct);
+    tbody.append(tr);
+  });
+}
+
 function initDebug() {
   const filterSelect = el('scan-log-filter');
   if (filterSelect) {
@@ -228,15 +359,25 @@ function initDebug() {
   const btnRefresh = el('scan-log-refresh');
   if (btnRefresh) btnRefresh.onclick = () => loadScans();
 
+  const btnRefreshWorkers = el('btn-refresh-workers');
+  if (btnRefreshWorkers) btnRefreshWorkers.onclick = () => loadWorkers();
+
   const btnExport = el('scan-log-export');
   if (btnExport) btnExport.onclick = () => exportScansJson();
 
   window.addEventListener('parallax:pagechange', event => {
-    if (event.detail.id === 'debug') loadScans();
+    if (event.detail.id === 'debug') {
+      loadScans();
+      loadWorkers();
+    }
   });
 
-  if (location.hash === '#debug') loadScans();
+  if (location.hash === '#debug') {
+    loadScans();
+    loadWorkers();
+  }
 }
 
 initDebug();
 loadScans().catch(console.error);
+loadWorkers().catch(console.error);

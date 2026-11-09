@@ -18,6 +18,7 @@ mod buff_read;
 
 pub mod steam_catalog;
 pub mod steam_market;
+pub mod notify;
 
 #[cfg(windows)]
 pub mod steam_password;

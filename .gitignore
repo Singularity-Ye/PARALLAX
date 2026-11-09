@@ -14,3 +14,5 @@
 *.key
 *.p12
 *.pfx
+
+scratch/

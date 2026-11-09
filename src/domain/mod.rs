@@ -39,3 +39,6 @@ pub mod watch_comparison;
 pub mod catalog;
 
 pub mod ledger_view;
+
+pub mod notify;
+pub mod workers;

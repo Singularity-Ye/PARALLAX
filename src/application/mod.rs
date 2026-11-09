@@ -5,12 +5,14 @@ pub mod accounts;
 pub mod browser_login;
 pub mod buff_orders;
 pub mod buff_quotes;
+pub mod catalog;
 pub mod checkout;
 pub mod fx;
 pub mod history;
 pub mod holding_research;
 pub mod inventory;
 pub mod ledger;
+pub mod notify;
 pub mod orderbook;
 pub mod planning;
 pub mod ports;
@@ -20,6 +22,8 @@ pub mod sale_research;
 pub mod scanner;
 pub mod steam_guard;
 pub mod strategy;
+pub mod watchlist;
+pub mod workers;
 
 use crate::domain::{
     planning::PlanPreview,
@@ -46,11 +50,27 @@ pub enum AppError {
     Buff(ports::BuffReadError),
     SteamRead(ports::SteamReadError),
 }
+
 impl From<anyhow::Error> for AppError {
     fn from(value: anyhow::Error) -> Self {
         Self::Storage(value)
     }
 }
+
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Fx(s) | Self::Invalid(s) => write!(f, "{s}"),
+            Self::Missing(s) | Self::Conflict(s) => write!(f, "{s}"),
+            Self::Storage(e) => write!(f, "{e}"),
+            Self::Market(e) => write!(f, "{e:?}"),
+            Self::Buff(e) => write!(f, "{e:?}"),
+            Self::SteamRead(e) => write!(f, "{}", e.message()),
+        }
+    }
+}
+
+impl std::error::Error for AppError {}
 
 pub struct Application<S, R> {
     fx: Option<Arc<dyn fx::FxResolver>>,
@@ -58,6 +78,7 @@ pub struct Application<S, R> {
     store: R,
     jobs: Mutex<HashMap<String, Arc<AtomicBool>>>,
 }
+
 impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
     pub fn new(source: S, store: R) -> Arc<Self> {
         Arc::new(Self {
@@ -157,7 +178,3 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
             .ok_or(AppError::Missing("计划记录不存在"))
     }
 }
-
-pub mod watchlist;
-
-pub mod catalog;

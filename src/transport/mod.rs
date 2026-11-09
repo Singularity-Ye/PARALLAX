@@ -18,3 +18,5 @@ pub mod strategy;
 pub mod watchlist;
 
 pub mod catalog;
+
+pub mod workers;

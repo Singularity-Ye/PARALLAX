@@ -137,4 +137,9 @@ export const parallax = {
   plan: id => request(`/api/plans/${encodeURIComponent(id)}`),
   createPlan: value => post('/api/plans', value),
   createAutoPlan: value => post('/api/plans/auto', value),
+  workers: () => request('/api/workers'),
+  triggerWorker: (name) => post(`/api/workers/${encodeURIComponent(name)}/trigger`, {}),
+  notifySettings: () => request('/api/settings/notify'),
+  saveNotifySettings: (value) => request('/api/settings/notify', {method:'PUT', body:JSON.stringify(value)}),
+  testNotify: () => post('/api/settings/notify/test', {}),
 };
