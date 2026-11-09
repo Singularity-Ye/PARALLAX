@@ -338,12 +338,9 @@ dom('btn-holdings-batch-sell')?.addEventListener('click', async () => {
     let autoConfirmedCount = 0;
     let liveSkippedReason = '';
     const nowSec = Math.floor(Date.now() / 1000);
-    // Wall prices are CNY cents. Steam `sellitem` expects the wallet's own currency,
-    // so real listing is only safe when the account settles in CNY (mirrors AetherSwap's fail-closed rule).
-    let walletCurrency = '';
-    try { walletCurrency = ((await parallax.accountProfile(account)).currency_code || '').toUpperCase(); } catch {}
-    const liveAllowed = walletCurrency === 'CNY';
-    if (!liveAllowed) liveSkippedReason = walletCurrency ? `账户结算币种为 ${walletCurrency}，壁垒价为人民币口径，为防跨币种误卖未直连 Steam 上架` : '无法确认账户结算币种，为防误卖未直连 Steam 上架';
+    // Wall prices are CNY cents; the backend re-reads the live wallet currency and converts
+    // with the validated FX snapshot, refusing to list when either is unknown.
+    const liveAllowed = true;
     for (const lot of lots) {
       let rev = lot.revision;
       for (const a of (lot.assets || [])) {
@@ -355,7 +352,7 @@ dom('btn-holdings-batch-sell')?.addEventListener('click', async () => {
         if (liveAllowed) try {
           const sellRes = await parallax.steamMarketSell(account, {
             asset_id: a.asset.asset_id,
-            buyer_pays_minor: unitGross
+            buyer_pays_cny_cents: unitGross
           });
           if (sellRes && sellRes.success) {
             liveCount++;

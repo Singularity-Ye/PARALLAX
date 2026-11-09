@@ -47,6 +47,7 @@ pub struct SellItemResponse {
     pub auto_confirmed: usize,
     pub buyer_pays_minor: i64,
     pub seller_receives_minor: i64,
+    pub currency_code: String,
     pub message: String,
 }
 
@@ -463,6 +464,7 @@ pub async fn sell_item_on_market(
         auto_confirmed,
         buyer_pays_minor,
         seller_receives_minor,
+        currency_code: currency_code.to_owned(),
         message: if auto_confirmed > 0 {
             format!("已上架并自动完成 Steam 令牌确认 ({auto_confirmed} 项)")
         } else if requires_confirmation {

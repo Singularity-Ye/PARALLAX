@@ -66,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
     let catalog = parallax::application::catalog::Catalog::new(
         parallax::adapters::steam_catalog::SteamCatalog::new()?,
     );
+    let live_fx: std::sync::Arc<dyn parallax::application::fx::FxResolver> = fx.clone();
     let state = Application::with_fx(Provider::new()?, store, fx);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
@@ -88,6 +89,7 @@ async fn main() -> anyhow::Result<()> {
             .merge(parallax::transport::steam_guard::live_market_router(
                 auth.clone(),
                 guard.clone(),
+                Some(live_fx),
             ))
             .merge(parallax::transport::accounts::router(auth))
             .merge(parallax::transport::steam_guard::router(guard))

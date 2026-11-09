@@ -157,12 +157,14 @@ async fn remove<R: AccountRepository, V: GuardSecretStore>(
 struct LiveMarketState<R, C, SV, GV> {
     accounts: Arc<Accounts<R, C, SV>>,
     guard: Arc<SteamGuard<R, GV>>,
+    fx: Option<Arc<dyn crate::application::fx::FxResolver>>,
 }
 impl<R, C, SV, GV> Clone for LiveMarketState<R, C, SV, GV> {
     fn clone(&self) -> Self {
         Self {
             accounts: self.accounts.clone(),
             guard: self.guard.clone(),
+            fx: self.fx.clone(),
         }
     }
 }
@@ -174,11 +176,15 @@ struct ConfirmRequest {
 }
 
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct SellItemRequest {
     asset_id: String,
-    buyer_pays_minor: i64,
+    /// Buyer-pays price already expressed in the wallet's own minor units.
     #[serde(default)]
-    currency_code: Option<String>,
+    buyer_pays_minor: Option<i64>,
+    /// Buyer-pays price in CNY cents (strategy basis); converted to the live wallet currency server-side.
+    #[serde(default)]
+    buyer_pays_cny_cents: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -189,6 +195,7 @@ struct DelistItemRequest {
 pub fn live_market_router<R, C, SV, GV>(
     accounts: Arc<Accounts<R, C, SV>>,
     guard: Arc<SteamGuard<R, GV>>,
+    fx: Option<Arc<dyn crate::application::fx::FxResolver>>,
 ) -> Router
 where
     R: AccountRepository + 'static,
@@ -196,7 +203,7 @@ where
     SV: SessionVerifier + 'static,
     GV: GuardSecretStore + 'static,
 {
-    let state = LiveMarketState { accounts, guard };
+    let state = LiveMarketState { accounts, guard, fx };
     Router::new()
         .route(
             "/api/accounts/{id}/steam-guard/confirmations",
@@ -329,33 +336,82 @@ where
     GV: GuardSecretStore,
 {
     let req = input(body)?;
+    let bad = |msg: String| (StatusCode::BAD_REQUEST, Json(json!({"error": msg})));
     let (account, cred) = st.accounts.steam_credentials(&id).await.map_err(app_error)?;
-    let prof = st.accounts.profile_meta(&id).await.unwrap_or_default();
-    let currency = req
-        .currency_code
-        .as_deref()
-        .filter(|s| !s.is_empty())
-        .unwrap_or(if prof.currency_code.is_empty() {
-            "CNY"
-        } else {
-            &prof.currency_code
-        });
+
+    // Settlement currency: re-read the live wallet right before listing (the cache may be stale
+    // after a region change), fall back to the cached profile, and refuse if neither is known.
+    let cached = st.accounts.profile_meta(&id).await.unwrap_or_default().currency_code;
+    #[cfg(windows)]
+    let live = crate::adapters::steam_password::fetch_profile_and_wallet(
+        &account.steam_id,
+        Some(&cred.cookies),
+    )
+    .await
+    .currency_code;
+    #[cfg(not(windows))]
+    let live = String::new();
+    let currency = if !live.is_empty() { live } else { cached }.to_uppercase();
+    if currency.is_empty() {
+        return Err(bad("无法确认 Steam 钱包结算币种，已拒绝上架以防跨币种误卖；请先在账号页点击验证刷新钱包信息".into()));
+    }
+
+    let (buyer_pays_minor, fx_note) = match (req.buyer_pays_minor, req.buyer_pays_cny_cents) {
+        (Some(native), None) => (native, None),
+        (None, Some(cny)) if currency == "CNY" => (cny, None),
+        (None, Some(cny)) => {
+            let fx = st
+                .fx
+                .as_ref()
+                .ok_or_else(|| bad("服务未配置汇率源，无法把人民币壁垒价换算为钱包币种".into()))?;
+            let snap = fx.rates().await.map_err(app_error)?;
+            let rate = |code: &str| snap.rates.get(code).map(|r| (r.units_per_cny_1e8, r.date.clone()));
+            let (units, date) = rate(&currency).ok_or_else(|| {
+                bad(format!("汇率快照不含钱包币种 {currency}，已拒绝上架以防误卖"))
+            })?;
+            // Round to nearest minor unit; all supported currencies use hundredths.
+            let scale = crate::domain::fx::SCALE as u128;
+            let native = ((cny as u128) * (units as u128) + scale / 2) / scale;
+            (
+                native as i64,
+                Some(format!(
+                    "CNY {:.2} → {currency} {:.2}（{} 日参考汇率）",
+                    cny as f64 / 100.0,
+                    native as f64 / 100.0,
+                    date
+                )),
+            )
+        }
+        _ => {
+            return Err(bad(
+                "buyer_pays_minor（钱包币种）与 buyer_pays_cny_cents（人民币）需且只需填写一个".into(),
+            ));
+        }
+    };
+    if !(3..=100_000_000).contains(&buyer_pays_minor) {
+        return Err(bad(format!("换算后的挂牌价 {buyer_pays_minor} 超出合理范围，已拒绝上架")));
+    }
+
     let identity = st
         .guard
         .identity_credentials(&id)
         .await
         .ok()
         .map(|(_, id_sec, dev)| (id_sec, dev));
-    let res = crate::adapters::steam_market::sell_item_on_market(
+    let mut res = crate::adapters::steam_market::sell_item_on_market(
         &account.steam_id,
         &cred.cookies,
         &req.asset_id,
-        req.buyer_pays_minor,
-        currency,
+        buyer_pays_minor,
+        &currency,
         identity,
     )
     .await
     .map_err(|e| (StatusCode::BAD_GATEWAY, Json(json!({"error": e.to_string()}))))?;
+    res.currency_code = currency;
+    if let Some(note) = fx_note {
+        res.message = format!("{} · {note}", res.message);
+    }
     Ok(Json(res))
 }
 
