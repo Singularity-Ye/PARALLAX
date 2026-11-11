@@ -132,7 +132,7 @@ function renderAccountDetail(acc, session) {
     const pwdBadge = el('saved-pwd-badge');
     if (pwdBadge) {
       pwdBadge.textContent = prof.has_saved_password
-        ? '（✅ 已加密记住密码，留空可直接点验证免密登录）'
+        ? '（已保存密码，留空可直接点验证免密登录）'
         : '（首次登录请填写密码，将自动本机加密保存）';
     }
   });
@@ -346,23 +346,23 @@ el('account-form').onsubmit = e => {
     // If username & password were provided, immediately run automatic Steam login & profile sync!
     if (targetId && username && password) {
       if (el('steam-password-status')) {
-        el('steam-password-status').textContent = '⏳ 正在通过 Steam 原生协议自动登录并同步头像与钱包币种…';
+        el('steam-password-status').textContent = '正在通过 Steam 原生协议自动登录并同步头像与钱包币种…';
       }
       try {
         const res = await parallax.steamPasswordLogin(targetId, username, password);
         window.dispatchEvent(new Event('parallax:account-created'));
         await loadAccounts(targetId, true);
         if (el('steam-password-status')) {
-          el('steam-password-status').textContent = `✅ ${res.message}`;
+          el('steam-password-status').textContent = `${res.message}`;
         }
-        return `✅ 账号已保存并完成登录：${res.message}`;
+        return `账号已保存并完成登录：${res.message}`;
       } catch (loginErr) {
         window.dispatchEvent(new Event('parallax:account-created'));
         await loadAccounts(targetId, true);
         if (el('steam-password-status')) {
-          el('steam-password-status').textContent = `⚠️ 账号已保存，自动登录待确认：${loginErr.message}`;
+          el('steam-password-status').textContent = `账号已保存，自动登录待确认：${loginErr.message}`;
         }
-        return `⚠️ 账号已保存，但自动登录未完成：${loginErr.message}`;
+        return `账号已保存，但自动登录未完成：${loginErr.message}`;
       }
     }
 
@@ -383,7 +383,7 @@ if (el('btn-account-quick-verify')) {
     const guardCode = (el('steam-login-guard-code')?.value || '').trim();
     if (el('steam-login-password')) el('steam-login-password').value = '';
 
-    if (status) status.textContent = '⏳ 正在核验会话或执行免密自动登录…';
+    if (status) status.textContent = '正在核验会话或执行免密自动登录…';
 
     // 1. If user typed a password or has saved password, try password/auto-relogin or session verify
     try {
@@ -391,16 +391,16 @@ if (el('btn-account-quick-verify')) {
       if (pwd || prof?.has_saved_password) {
         const res = await parallax.steamPasswordLogin(curId, uname, pwd, guardCode ? { guard_code: guardCode } : {});
         await loadAccounts(curId, true);
-        if (status) status.textContent = `✅ ${res.message}`;
-        return `✅ ${res.message}`;
+        if (status) status.textContent = `${res.message}`;
+        return `${res.message}`;
       }
       const res = await parallax.verifySession(curId, 'steam');
       await loadAccounts(curId, true);
-      if (status) status.textContent = `✅ ${res.message}`;
-      return `✅ ${res.message}`;
+      if (status) status.textContent = `${res.message}`;
+      return `${res.message}`;
     } catch (err) {
       // Fallback: if verifySession failed and saved password exists, try steamPasswordLogin
-      if (status) status.textContent = `❌ ${err.message}`;
+      if (status) status.textContent = `失败：${err.message}`;
       throw err;
     }
   });
@@ -544,7 +544,7 @@ if (passwordForm) {
     if (submit) {
       submit.disabled = true;
       submit.dataset.originalText = submit.innerHTML;
-      submit.innerHTML = '<span>⏳</span> 正在登录并同步 Steam 资料…';
+      submit.innerHTML = '正在登录并同步 Steam 资料…';
     }
     if (status) status.textContent = '正在通过 Steam 原生协议握手并校验 Guard 令牌（如使用手机确认请在 App 中点击批准）…';
 
@@ -555,14 +555,14 @@ if (passwordForm) {
         password,
         guardCode ? { guard_code: guardCode } : {}
       );
-      if (status) status.textContent = `✅ ${result.message || '登录成功，登录态与个人资料已更新'}`;
+      if (status) status.textContent = `${result.message || '登录成功，登录态与个人资料已更新'}`;
       await loadAccounts(id, true);
     } catch (error) {
-      if (status) status.textContent = `❌ ${error.message || '网络或密码错误'}`;
+      if (status) status.textContent = `失败：${error.message || '网络或密码错误'}`;
     } finally {
       if (submit) {
         submit.disabled = false;
-        submit.innerHTML = submit.dataset.originalText || '<span>⚡</span> 验证并登录 Steam';
+        submit.innerHTML = submit.dataset.originalText || '验证并登录 Steam';
       }
     }
   };

@@ -118,11 +118,11 @@ async function saveSettings() {
 
     if (feedback) {
       feedback.textContent = isPendingRestart
-        ? '✅ 网络出口策略已成功保存！配置将在本地 38480 实例重启后生效。'
-        : '✅ 网络出口策略已成功保存！';
+        ? '网络出口策略已成功保存！配置将在本地 38480 实例重启后生效。'
+        : '网络出口策略已成功保存！';
     }
   } catch (err) {
-    if (feedback) feedback.textContent = `❌ 保存失败：${err.message}`;
+    if (feedback) feedback.textContent = `保存失败：${err.message}`;
   } finally {
     if (btnSave) btnSave.disabled = false;
   }
@@ -196,9 +196,9 @@ async function saveNotifySettings() {
       currentNotifyConfig = res;
       renderNotifySettings();
     }
-    if (feedback) feedback.textContent = '✅ 微信推送通知配置已成功保存并立即生效！';
+    if (feedback) feedback.textContent = '微信推送通知配置已成功保存并立即生效！';
   } catch (err) {
-    if (feedback) feedback.textContent = `❌ 保存失败：${err.message}`;
+    if (feedback) feedback.textContent = `保存失败：${err.message}`;
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -213,12 +213,12 @@ async function testNotify() {
   try {
     const res = await parallax.testNotify();
     if (res && res.success) {
-      if (feedback) feedback.textContent = `✅ ${res.message || '测试通知已成功投递！请检查微信客户端通知。'}`;
+      if (feedback) feedback.textContent = `${res.message || '测试通知已成功投递！请检查微信客户端通知。'}`;
     } else {
-      if (feedback) feedback.textContent = `⚠️ 发送反馈：${res ? res.message : '未明确'}`;
+      if (feedback) feedback.textContent = `发送反馈：${res ? res.message : '未明确'}`;
     }
   } catch (err) {
-    if (feedback) feedback.textContent = `❌ 测试发送失败：${err.message}`;
+    if (feedback) feedback.textContent = `测试发送失败：${err.message}`;
   } finally {
     if (btn) btn.disabled = false;
   }

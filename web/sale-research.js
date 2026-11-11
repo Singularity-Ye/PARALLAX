@@ -41,7 +41,7 @@ function renderLiveListings(snap){
     const tr=document.createElement('tr');
     const tdStatus=document.createElement('td');
     tdStatus.innerHTML=item.need_confirmation
-      ?'<span class="badge warn">⏳ 待令牌确认</span>'
+      ?'<span class="badge warn">待令牌确认</span>'
       :'<span class="badge ok">● 在售中</span>';
     const tdName=document.createElement('td');
     tdName.textContent=item.item_name||item.market_hash_name;
@@ -67,7 +67,7 @@ function renderLiveListings(snap){
         btn.textContent='撤单中...';
         try{
           await parallax.steamMarketDelist(account,item.listing_id);
-          if(el('live-feedback'))el('live-feedback').textContent=`✓ 已成功从 Steam 市场撤回挂单 #${item.listing_id} (${item.item_name})！`;
+          if(el('live-feedback'))el('live-feedback').textContent=`已成功从 Steam 市场撤回挂单 #${item.listing_id} (${item.item_name})！`;
           await refreshLiveListings();
         }catch(err){
           btn.disabled=false;
@@ -92,7 +92,7 @@ async function refreshLiveListings(){
     const snap=await parallax.steamMarketListings(account);
     renderLiveListings(snap);
     if(el('live-feedback')){
-      el('live-feedback').textContent=`✓ 已同步 Steam 实时挂单：在售 ${(snap.active||[]).length} 件 · 待令牌确认 ${(snap.to_confirm||[]).length} 件（更新于 ${new Date(snap.observed_at*1000).toLocaleTimeString()}）`;
+      el('live-feedback').textContent=`已同步 Steam 实时挂单：在售 ${(snap.active||[]).length} 件 · 待令牌确认 ${(snap.to_confirm||[]).length} 件（更新于 ${new Date(snap.observed_at*1000).toLocaleTimeString()}）`;
     }
   }catch(e){
     if(el('live-feedback'))el('live-feedback').textContent=`读取 Steam 在售列表提示：${e.message}`;
@@ -116,7 +116,7 @@ if(el('live-confirm-all')){
       const res=await parallax.confirmGuardAll(account);
       if(el('live-feedback')){
         el('live-feedback').textContent=res.confirmed>0
-          ?`⚡ 已成功免手机批准 ${res.confirmed} 项待确认市场挂牌！正在刷新在售列表...`
+          ?`已成功免手机批准 ${res.confirmed} 项待确认市场挂牌！正在刷新在售列表...`
           :'当前没有待确认的市场挂牌（0 项）。';
       }
       await refreshLiveListings();

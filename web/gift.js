@@ -53,7 +53,7 @@ async function loadFriendsForCurrentAccount() {
     if (statusEl) statusEl.textContent = `共载入 ${currentFriends.length} 位 Steam 好友`;
     renderFriendsList();
   } catch (err) {
-    if (statusEl) statusEl.textContent = `⚠️ 读取好友失败：${err.message}`;
+    if (statusEl) statusEl.textContent = `读取好友失败：${err.message}`;
   }
 }
 
@@ -115,7 +115,7 @@ async function detectEditions() {
   const appid = Number(appidInput?.value || 0);
 
   if (!appid || appid <= 0) {
-    if (statusEl) statusEl.textContent = '⚠️ 请先输入目标游戏的 Steam AppID';
+    if (statusEl) statusEl.textContent = '请先输入目标游戏的 Steam AppID';
     return;
   }
 
@@ -125,7 +125,7 @@ async function detectEditions() {
   try {
     const res = await parallax.gameEditions(appid);
     currentEditions = res?.editions || [];
-    if (statusEl) statusEl.textContent = `✓ 已探测到 ${res.title} 的 ${currentEditions.length} 个售卖版本`;
+    if (statusEl) statusEl.textContent = `已探测到 ${res.title} 的 ${currentEditions.length} 个售卖版本`;
 
     currentEditions.forEach(ed => {
       const opt = node('option', `${ed.name} · ${ed.price} (SubID: ${ed.id})`);
@@ -133,7 +133,7 @@ async function detectEditions() {
       editionSelect.append(opt);
     });
   } catch (err) {
-    if (statusEl) statusEl.textContent = `❌ 探测版本失败：${err.message}`;
+    if (statusEl) statusEl.textContent = `探测版本失败：${err.message}`;
   }
 }
 
@@ -150,7 +150,7 @@ async function checkGiftRisk() {
   const recipientRegion = el('gift-recipient-region')?.value || 'CN';
 
   if (!senderAccount || !appid || !editionId) {
-    if (feedback) feedback.textContent = '⚠️ 请完整选择赠送账号、输入游戏 AppID 并选择购买版本';
+    if (feedback) feedback.textContent = '请完整选择赠送账号、输入游戏 AppID 并选择购买版本';
     return;
   }
 
@@ -169,9 +169,9 @@ async function checkGiftRisk() {
 
     const res = await parallax.checkGift(payload);
     renderRiskVerdict(res);
-    if (feedback) feedback.textContent = '✓ 测算完成！请查看下方安全风控裁定。';
+    if (feedback) feedback.textContent = '测算完成！请查看下方安全风控裁定。';
   } catch (err) {
-    if (feedback) feedback.textContent = `❌ 测算失败：${err.message}`;
+    if (feedback) feedback.textContent = `测算失败：${err.message}`;
   } finally {
     isChecking = false;
     if (btn) btn.disabled = false;
@@ -191,10 +191,10 @@ function renderRiskVerdict(v) {
   const storeLink = el('gift-store-link');
 
   if (v.verdict === 'PASS' || v.verdict === 'SAME_REGION') {
-    verdictBadge.textContent = '✓ 跨区合规安全';
+    verdictBadge.textContent = '跨区合规放行';
     verdictBadge.className = 'badge ok';
   } else if (v.verdict === 'REJECT_RISK') {
-    verdictBadge.textContent = '⚠️ 触碰 10% 拒单红线';
+    verdictBadge.textContent = '触发 10% 拒单红线';
     verdictBadge.className = 'badge fail';
   } else {
     verdictBadge.textContent = '未知 / 需客户端复核';

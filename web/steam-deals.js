@@ -62,21 +62,21 @@ async function triggerCompare(appid) {
   const targetId = appid || Number(appidInput?.value || 0);
 
   if (!targetId || targetId <= 0) {
-    if (statusEl) statusEl.textContent = '⚠️ 请先输入有效的 Steam AppID 或点击推荐游戏';
+    if (statusEl) statusEl.textContent = '请先输入有效的 Steam AppID 或点击推荐游戏';
     return;
   }
 
   isComparing = true;
   if (btn) btn.disabled = true;
-  if (statusEl) statusEl.textContent = `⚡ 正在并发探测 AppID ${targetId} 的 16 区官方报价与汇率换算…`;
+  if (statusEl) statusEl.textContent = `正在并发探测 AppID ${targetId} 的 16 区官方报价与汇率换算…`;
 
   try {
     const res = await parallax.compareDeals(targetId);
     currentComparison = res;
     renderComparison();
-    if (statusEl) statusEl.textContent = `✓ 已完成 ${res.title} 的 16 区价格全景比对！`;
+    if (statusEl) statusEl.textContent = `已完成 ${res.title} 的 16 区价格全景比对！`;
   } catch (err) {
-    if (statusEl) statusEl.textContent = `❌ 比价失败：${err.message}`;
+    if (statusEl) statusEl.textContent = `比价失败：${err.message}`;
   } finally {
     isComparing = false;
     if (btn) btn.disabled = false;
@@ -207,7 +207,7 @@ function renderComparison() {
     const tdStatus = node('td');
     tdStatus.style.textAlign = 'right';
     if (c.lowest_region === r.region_name && r.region_code !== 'cn') {
-      const star = node('span', '★ 最低价区');
+      const star = node('span', '最低价区');
       star.className = 'badge warn';
       tdStatus.append(star);
     } else if (r.region_code === 'cn') {

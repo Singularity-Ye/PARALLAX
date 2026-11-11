@@ -317,7 +317,7 @@ dom('btn-holdings-auto-receive')?.addEventListener('click', async () => {
     }
     await loadLists();
     el('feedback').textContent = boundCount > 0
-      ? `✓ 自动收货对账完成：成功将 ${boundCount} 件库存真实 AssetID 绑定至采购台账！`
+      ? `自动收货对账完成：成功将 ${boundCount} 件库存真实 AssetID 绑定至采购台账！`
       : '当前待收货批次暂无同名未绑定的库存单件资产（或已全部绑定）。';
   } catch (e) {
     el('feedback').textContent = `自动收货匹配失败：${e.message}`;
@@ -382,9 +382,9 @@ dom('btn-holdings-batch-sell')?.addEventListener('click', async () => {
       const liveHint = liveCount > 0
         ? `（其中 ${liveCount} 件已直连 Steam 社区市场真实上架${autoConfirmedCount > 0 ? `，自动令牌确认 ${autoConfirmedCount} 项` : ''}）`
         : `（仅登记壁垒挂牌台账${liveSkippedReason ? '：' + liveSkippedReason : ''}）`;
-      el('feedback').textContent = `⚡ 已按 Steam 智能壁垒价完成 ${listedCount} 件持有资产挂牌${liveHint}！`;
+      el('feedback').textContent = `已按 Steam 智能壁垒价完成 ${listedCount} 件持有资产挂牌${liveHint}！`;
     } else {
-      el('feedback').textContent = '没有找到处于「持有（已绑定 AssetID）」状态的资产；请先点击「🔄 自动收货匹配库存」或在下方抽屉绑定资产。';
+      el('feedback').textContent = '没有找到处于「持有（已绑定 AssetID）」状态的资产；请先点击「自动收货匹配库存」或在下方抽屉绑定资产。';
     }
   } catch (e) {
     el('feedback').textContent = `批量壁垒上架未完成：${e.message}`;
@@ -429,8 +429,8 @@ dom('btn-holdings-sync-sold')?.addEventListener('click', async () => {
     }
     await loadLists();
     el('feedback').textContent = soldCount > 0
-      ? `✓ 已完成 ${soldCount} 件已挂牌饰品的 Steam 税后净钱包结算！实际折算比与变现盈亏已更新。`
-      : '当前没有处于「已挂牌」状态的饰品可供结算；请先对持有饰品执行「⚡ 一键壁垒上架」。';
+      ? `已完成 ${soldCount} 件已挂牌饰品的 Steam 税后净钱包结算！实际折算比与变现盈亏已更新。`
+      : '当前没有处于「已挂牌」状态的饰品可供结算；请先对持有饰品执行「一键壁垒上架」。';
   } catch (e) {
     el('feedback').textContent = `成交结算同步未完成：${e.message}`;
   } finally {

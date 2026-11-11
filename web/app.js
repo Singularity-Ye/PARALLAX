@@ -201,7 +201,7 @@ function renderPlan(plan) {
     commitBar.style.cssText = 'margin:14px 0;padding:12px 14px;border-radius:8px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;';
     const tip = node('span', `共规划 ${plan.lines.length} 个品类（合计 ${money(plan.cash_total_cents)}）。采购完成后可一键批量写入「持有饰品」台账并自动追踪收货与挂牌：`);
     tip.style.cssText = 'font-size:12px;color:var(--text-secondary);';
-    const commitBtn = node('button', '📦 一键按此计划建仓入账 →');
+    const commitBtn = node('button', '一键按此计划建仓入账 →');
     commitBtn.type = 'button';
     commitBtn.className = 'btn btn-sm btn-primary';
     commitBtn.style.cssText = 'background:#16a34a;border-color:#22c55e;white-space:nowrap;';
@@ -223,7 +223,7 @@ function renderPlan(plan) {
           });
         }
         window.dispatchEvent(new CustomEvent('parallax:ledger-changed', {detail: {account: targetAcc}}));
-        planFeedback(`✓ 已将本计划 ${plan.lines.length} 个采购批次一键写入「持有饰品」台账！`);
+        planFeedback(`已将本计划 ${plan.lines.length} 个采购批次一键写入「持有饰品」台账！`);
         location.hash = 'purchases';
       } catch (e) {
         planFeedback(`建仓入账失败：${e.message}`, true);
@@ -284,7 +284,7 @@ async function runAutoPlan(budgetYuan, maxUnits = 50, maxPositions = 8) {
     planFeedback('正在结合当前账户真实库存、在途台账与 5% 日量安全限购上限自动配平...');
     const plan = await parallax.createAutoPlan(payload);
     renderPlan(plan);
-    planFeedback(`⚡ 智能建仓配平完成！共分配 ${plan.lines.length} 种商品，合计消耗 ¥${(plan.cash_total_cents / 100).toFixed(2)}，预计 Steam 税后到账 ¥${(plan.estimated_wallet_total_cents / 100).toFixed(2)}。`);
+    planFeedback(`智能建仓配平完成！共分配 ${plan.lines.length} 种商品，合计消耗 ¥${(plan.cash_total_cents / 100).toFixed(2)}，预计 Steam 税后到账 ¥${(plan.estimated_wallet_total_cents / 100).toFixed(2)}。`);
     await planHistory();
     location.hash = 'planning';
   } catch (e) {

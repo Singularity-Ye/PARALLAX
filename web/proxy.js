@@ -139,10 +139,10 @@ function renderActiveRuntime() {
           resultBox.textContent = '正在探测中…';
           try {
             const probeRes = await parallax.probeProxy(target);
-            resultBox.textContent = `✅ 连通耗时 ${probeRes.latency_ms}ms · IP/出口: ${probeRes.message || 'OK'}`;
+            resultBox.textContent = `连通耗时 ${probeRes.latency_ms}ms · IP/出口: ${probeRes.message || 'OK'}`;
             resultBox.style.color = '#16a34a';
           } catch (e) {
-            resultBox.textContent = `❌ 探测失败: ${e.message}`;
+            resultBox.textContent = `探测失败: ${e.message}`;
             resultBox.style.color = '#dc2626';
           } finally {
             probeBtn.disabled = false;
@@ -351,13 +351,13 @@ async function saveAllConfig() {
     renderSavedNodesTable();
     if (feedback) {
       feedback.textContent = pendingRestart
-        ? '✅ 配置已成功保存！由于 Rust 进程固定网络出口，请重启本地 38480 实例以加载新代理。'
-        : '✅ 网络配置已成功保存！';
+        ? '配置已成功保存！由于 Rust 进程固定网络出口，请重启本地 38480 实例以加载新代理。'
+        : '网络配置已成功保存！';
     }
     // Notify settings page if open
     window.dispatchEvent(new CustomEvent('parallax:network-settings-updated', { detail: savedConfig }));
   } catch (err) {
-    if (feedback) feedback.textContent = `❌ 保存失败：${err.message}`;
+    if (feedback) feedback.textContent = `保存失败：${err.message}`;
   } finally {
     if (btnSave) btnSave.disabled = false;
   }
@@ -409,9 +409,9 @@ function initImportJson() {
         routes: newRoutes
       };
       renderAll();
-      if (feedback) feedback.textContent = '✅ 已从 JSON 成功读取网络配置草稿，点击「保存配置并写入」提交。';
+      if (feedback) feedback.textContent = '已从 JSON 成功读取网络配置草稿，点击「保存配置并写入」提交。';
     } catch (e) {
-      if (feedback) feedback.textContent = `❌ 导入失败：${e.message}`;
+      if (feedback) feedback.textContent = `导入失败：${e.message}`;
     } finally {
       fileInput.value = '';
     }

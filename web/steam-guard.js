@@ -60,8 +60,8 @@ async function status() {
     configured = Boolean(value.configured);
     identityConfigured = Boolean(value.identity_configured);
     if (el('status')) {
-      const ssTag = configured ? '✓ 已绑定 shared_secret (登录算码)' : '未绑 shared_secret';
-      const idTag = identityConfigured ? '✓ 已绑定 identity_secret (免手机自动确认)' : '未绑 identity_secret';
+      const ssTag = configured ? '已绑定 shared_secret (登录算码)' : '未绑 shared_secret';
+      const idTag = identityConfigured ? '已绑定 identity_secret (免手机自动确认)' : '未绑 identity_secret';
       el('status').textContent = `Steam ID: ${value.steam_id} · ${ssTag} · ${idTag}`;
     }
     if (el('remaining')) {
@@ -128,7 +128,7 @@ if (el('form')) {
       await parallax.saveGuard(account, payload);
       if (el('secret')) el('secret').value = '';
       if (el('identity-secret')) el('identity-secret').value = '';
-      if (el('feedback')) el('feedback').textContent = '✓ 密钥已加密保存到本机 Windows 凭据管理器！';
+      if (el('feedback')) el('feedback').textContent = '密钥已加密保存到本机 Windows 凭据管理器！';
       await status();
     } catch (e) {
       if (el('feedback')) el('feedback').textContent = `保存失败：${e.message}`;
@@ -169,8 +169,8 @@ if (el('check-confs')) {
       renderConfirmations(res.items || []);
       if (el('feedback')) {
         el('feedback').textContent = res.count > 0
-          ? `查询到 ${res.count} 项待确认操作，点击「⚡ 一键确认全部挂牌/交易」即可免手机批准。`
-          : '✓ 当前账号没有待确认的市场挂牌或交易报价。';
+          ? `查询到 ${res.count} 项待确认操作，点击「一键确认全部挂牌/交易」即可免手机批准。`
+          : '当前账号没有待确认的市场挂牌或交易报价。';
       }
     } catch (e) {
       if (el('feedback')) el('feedback').textContent = `查询待确认列表未通过：${e.message}`;
@@ -193,8 +193,8 @@ if (el('accept-confs')) {
       if (el('conf-list')) el('conf-list').replaceChildren();
       if (el('feedback')) {
         el('feedback').textContent = res.confirmed > 0
-          ? `⚡ 已成功免手机批准 ${res.confirmed} 项 Steam 市场挂牌 / 交易确认！`
-          : '✓ 当前无需确认的操作（0 项待确认）。';
+          ? `已成功免手机批准 ${res.confirmed} 项 Steam 市场挂牌 / 交易确认！`
+          : '当前无需确认的操作（0 项待确认）。';
       }
     } catch (e) {
       if (el('feedback')) el('feedback').textContent = `一键确认未通过：${e.message}`;

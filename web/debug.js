@@ -47,7 +47,7 @@ async function loadScans() {
     }
   } catch (err) {
     if (statusEl) {
-      statusEl.textContent = `❌ 读取失败：${err.message}`;
+      statusEl.textContent = `读取失败：${err.message}`;
     }
     const tbody = el('scan-log-tbody');
     if (tbody) {
@@ -282,7 +282,7 @@ function renderWorkersTable() {
     // 3. State
     const tdState = node('td');
     const isRunning = w.state === 'running';
-    const stBadge = node('span', isRunning ? '⚡ 运行中' : '空闲 (就绪)');
+    const stBadge = node('span', isRunning ? '运行中' : '空闲 (就绪)');
     stBadge.className = `badge ${isRunning ? 'warn' : 'ok'}`;
     tdState.append(stBadge);
 
@@ -312,7 +312,7 @@ function renderWorkersTable() {
     // 8. Action: Trigger Now
     const tdAct = node('td');
     tdAct.style.textAlign = 'right';
-    const btnTrig = node('button', '立即执行 ⚡');
+    const btnTrig = node('button', '立即执行');
     btnTrig.className = 'btn btn-sm btn-secondary';
     btnTrig.style.padding = '2px 8px';
     btnTrig.style.fontSize = '11px';
@@ -325,7 +325,7 @@ function renderWorkersTable() {
         setTimeout(() => loadWorkers(), 1000);
       } catch (e) {
         alert(`触发失败: ${e.message}`);
-        btnTrig.textContent = '立即执行 ⚡';
+        btnTrig.textContent = '立即执行';
         btnTrig.disabled = false;
       }
     };

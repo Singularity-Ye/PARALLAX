@@ -305,7 +305,7 @@
           <div style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding-left:10px;border-left:1px solid var(--border-subtle,rgba(255,255,255,0.12));">
             <span style="font-size:12px;color:var(--text-secondary);">预算 ¥</span>
             <input id="workspace-auto-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:76px;height:28px;padding:2px 6px;" title="智能建仓现金预算（元）">
-            <button id="workspace-auto-plan-btn" type="button" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border-color:#38bdf8;font-weight:600;">⚡ 一键智能建仓配平</button>
+            <button id="workspace-auto-plan-btn" type="button" class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border-color:#38bdf8;font-weight:600;">智能建仓配平</button>
           </div>
         </div>
       </div>
@@ -337,14 +337,14 @@
 <section class="card" id="planning"><div class="section-title"><h2>交易预算计划与智能配平</h2><span>02 / SMART PLAN</span></div>
 <div style="margin-bottom:16px;padding:14px 16px;border-radius:10px;background:linear-gradient(135deg,rgba(14,165,233,0.12),rgba(37,99,235,0.06));border:1px solid rgba(56,189,248,0.28);display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
   <div>
-    <strong style="font-size:14px;color:#38bdf8;display:block;margin-bottom:4px;">⚡ 全自动智能建仓配平（AetherSwap 同源算法）</strong>
+    <strong style="font-size:14px;color:#38bdf8;display:block;margin-bottom:4px;">全自动智能建仓配平（AetherSwap 同源算法）</strong>
     <span style="font-size:12px;color:var(--text-secondary);">无需手动复制快照 ID 或手填库存！自动读取当前账户真实 Steam 库存 + 在途采购台账，结合 5% 日量上限与 &lt;¥5.00 低价折半保护一键生成最优采购清单。</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
     <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">预算(元)<input id="auto-plan-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:90px;"></label>
     <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">单品上限<input id="auto-plan-max-units" type="number" min="1" max="100" value="50" class="compact-input" style="width:64px;"></label>
     <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">最大品类<input id="auto-plan-max-pos" type="number" min="1" max="50" value="8" class="compact-input" style="width:60px;"></label>
-    <button id="auto-plan-submit" type="button" class="btn btn-primary" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border-color:#38bdf8;font-weight:600;">⚡ 一键智能配平</button>
+    <button id="auto-plan-submit" type="button" class="btn btn-primary" style="background:linear-gradient(135deg,#0ea5e9,#2563eb);border-color:#38bdf8;font-weight:600;">启动自动配平</button>
   </div>
 </div>
 <p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>
@@ -389,7 +389,7 @@
             </select>
           </div>
           <details class="inv-advanced-picker" style="font-size:11px;color:var(--muted);cursor:pointer;">
-            <summary style="font-weight:600;padding:2px 6px;">分页设置 ⚙</summary>
+            <summary style="font-weight:600;padding:2px 6px;">分页设置</summary>
             <div style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">
               <span>每区页数:</span>
               <input id="inventory-pages" type="number" min="1" max="10" value="4" class="compact-input inv-page-input" style="width:48px;">
@@ -436,7 +436,7 @@
               <th style="width:74px;text-align:center;">可出售</th>
               <th style="width:74px;text-align:center;">可交易</th>
               <th style="width:145px;">解禁时间 (冷却期)</th>
-              <th style="width:115px;">我的买入价 ✎</th>
+              <th style="width:115px;">我的买入价</th>
               <th style="width:165px;">各时段交易价 (现/7日/30日)</th>
               <th style="width:120px;">折扣率 / 税后盈亏</th>
               <th style="width:125px;text-align:center;">链接 / 询价</th>
@@ -465,7 +465,7 @@
     </div>
     <div class="toolbar-actions">
       <div class="search-pill">
-        <span class="search-icon" aria-hidden="true">🔍</span>
+        
         <input id="accounts-search" type="text" placeholder="搜索用户名 / Steam ID" autocomplete="off" />
       </div>
       <button id="btn-show-add-account" class="btn btn-primary btn-sm" type="button">
@@ -477,7 +477,7 @@
   <div class="guide-callout" id="accounts-guide-callout">
     <div class="guide-steps">
       <div class="guide-step"><span class="step-num">1</span> 点击「<strong>+ 添加账号</strong>」填写 Steam 用户名与密码（本机加密记住，无需模拟浏览器）</div>
-      <div class="guide-step"><span class="step-num">2</span> 点击账号卡片上的「<strong>⚡ 验证</strong>」自动登录并同步头像、结算币种与地区</div>
+      <div class="guide-step"><span class="step-num">2</span> 点击账号卡片上的「<strong>验证</strong>」自动登录并同步头像、结算币种与地区</div>
       <div class="guide-step"><span class="step-num">3</span> 前往库存管理或选品工作台开启自动化比价与交易</div>
     </div>
   </div>
@@ -506,7 +506,7 @@
             <div class="detail-sub" id="detail-sub-name">请从左侧列表选择账号查看详情</div>
           </div>
           <div class="detail-actions">
-            <button id="btn-account-quick-verify" type="button" class="btn btn-sm btn-primary">⚡ 验证</button>
+            <button id="btn-account-quick-verify" type="button" class="btn btn-sm btn-primary">验证登录</button>
             <button id="btn-account-edit" type="button" class="btn btn-sm btn-secondary">编辑</button>
             <button id="btn-account-delete" type="button" class="btn btn-sm btn-danger-outline">删除</button>
             <button id="browser-start" type="button" class="btn btn-sm btn-secondary" style="display:none">打开登录窗口</button>
@@ -565,7 +565,7 @@
               <div class="password-notice-banner">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" aria-hidden="true" style="margin-top:2px;flex-shrink:0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 <div>
-                  <strong>原生协议直登（无需启动任何浏览器）：</strong>首次输入密码后自动加密存入本机 Windows 凭据管理器；后续点击上方「<strong>⚡ 验证</strong>」即可一键免密重登。已绑定 <code>shared_secret</code> 时自动秒过 2FA，未绑定时支持手机 App 点确认或输入 5 位令牌码。
+                  <strong>原生协议直登（无需启动任何浏览器）：</strong>首次输入密码后自动加密存入本机 Windows 凭据管理器；后续点击上方「<strong>验证</strong>」即可一键免密重登。已绑定 <code>shared_secret</code> 时自动秒过 2FA，未绑定时支持手机 App 点确认或输入 5 位令牌码。
                 </div>
               </div>
               <div class="password-form-grid">
@@ -580,7 +580,7 @@
               </div>
               <div class="password-action-bar">
                 <button type="submit" id="btn-steam-pwd-login" class="btn btn-sm btn-primary">
-                  <span>⚡</span> 验证并登录 Steam
+                  验证并登录 Steam
                 </button>
                 <input name="guard_code" id="steam-login-guard-code" maxlength="10" placeholder="选填: 5位令牌码(未绑密钥时)" style="width:185px;padding:6px 10px;font-size:12px;border-radius:6px;border:1px solid var(--border)">
                 <span class="hint" role="status" id="steam-password-status">支持一键免密验证与自动获取头像/币种。</span>
@@ -729,9 +729,9 @@
         </div>
         <button id="btn-holdings-multiselect" class="btn btn-sm btn-secondary" type="button">多选</button>
         <div id="holdings-batch-actions" class="batch-actions-wrap" style="display:flex;gap:6px;">
-          <button id="btn-holdings-auto-receive" class="btn btn-sm btn-secondary" type="button" title="自动匹配最新 Steam 库存快照并绑定待收货饰品的 AssetID">🔄 自动收货匹配库存</button>
-          <button id="btn-holdings-batch-sell" class="btn btn-sm btn-primary" type="button" title="按 Steam 壁垒/断层价批量挂牌选中或持有饰品">⚡ 一键壁垒上架</button>
-          <button id="btn-holdings-sync-sold" class="btn btn-sm btn-secondary" type="button" title="将选中或已挂牌饰品按 Steam 净得结算入账">✓ 结算已售</button>
+          <button id="btn-holdings-auto-receive" class="btn btn-sm btn-secondary" type="button" title="自动匹配最新 Steam 库存快照并绑定待收货饰品的 AssetID">自动收货匹配库存</button>
+          <button id="btn-holdings-batch-sell" class="btn btn-sm btn-primary" type="button" title="按 Steam 壁垒/断层价批量挂牌选中或持有饰品">一键壁垒上架</button>
+          <button id="btn-holdings-sync-sold" class="btn btn-sm btn-secondary" type="button" title="将选中或已挂牌饰品按 Steam 净得结算入账">结算已售</button>
         </div>
         <button id="ledger-refresh" class="btn btn-sm btn-secondary" type="button" title="刷新台账与持仓">刷新</button>
       </div>
@@ -879,11 +879,11 @@
       <span class="hint">直连当前选中账户的 Steam 社区市场 <code>market/mylistings</code>，查看在售与待令牌确认饰品：</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button id="sale-live-refresh" type="button" class="btn btn-sm btn-secondary">↻ 刷新 Steam 在售列表</button>
-      <button id="sale-live-confirm-all" type="button" class="btn btn-sm btn-primary">⚡ 一键免手机确认待确认挂单</button>
+      <button id="sale-live-refresh" type="button" class="btn btn-sm btn-secondary">刷新在售列表</button>
+      <button id="sale-live-confirm-all" type="button" class="btn btn-sm btn-primary">一键免手机确认挂单</button>
     </div>
   </div>
-  <p id="sale-live-feedback" role="status" class="hint" style="margin:6px 0;">点击「↻ 刷新 Steam 在售列表」即可实时读取当前账户在 Steam 市场的挂单与待确认列表。</p>
+  <p id="sale-live-feedback" role="status" class="hint" style="margin:6px 0;">点击「刷新在售列表」即可实时读取当前账户在 Steam 市场的挂单与待确认列表。</p>
   <div id="sale-live-listings-box" style="margin-top:8px;"></div>
 </section>
 <div class="notice">下方为离线量化出售研究：对批次成本与历史证据做策略验算。上方可直接管理真实 Steam 在售挂单。</div>
@@ -950,10 +950,10 @@
     </div>
     <div class="toolbar-actions">
       <button id="scan-log-refresh" type="button" class="btn btn-sm btn-secondary">
-        <span>↻</span> 刷新流水
+        刷新流水
       </button>
       <button id="scan-log-export" type="button" class="btn btn-sm btn-secondary" disabled>
-        <span>⤓</span> 导出 JSON
+        导出 JSON
       </button>
     </div>
   </div>
@@ -967,7 +967,7 @@
       </div>
       <div class="toolbar-actions">
         <button id="btn-refresh-workers" type="button" class="btn btn-sm btn-secondary">
-          <span>↻</span> 刷新调度状态
+          刷新调度状态
         </button>
       </div>
     </div>
@@ -1060,7 +1060,7 @@
     </div>
     <div class="toolbar-actions">
       <button id="btn-save-settings" type="button" class="btn btn-primary btn-sm">
-        <span>💾</span> 保存网络策略配置
+        保存网络策略配置
       </button>
     </div>
   </div>
@@ -1068,7 +1068,7 @@
   <!-- Pending Restart Banner in Settings -->
   <div id="settings-restart-banner" class="pending-restart-banner" style="display:none;">
     <div>
-      <strong>⚠️ 网络代理配置已保存（待重启生效）</strong>
+      <strong>网络代理配置已保存（待重启生效）</strong>
       <div class="restart-tip">新配置已写入 proxy.json。本地 38480 实例需重启服务才能加载新代理（Rust 进程网络出口在启动时固定）。</div>
     </div>
     <span class="badge warn">PENDING RESTART</span>
@@ -1145,10 +1145,10 @@
       </div>
       <div class="toolbar-actions">
         <button id="btn-test-notify" type="button" class="btn btn-secondary btn-sm">
-          <span>📨</span> 发送测试通知
+          发送测试通知
         </button>
         <button id="btn-save-notify" type="button" class="btn btn-primary btn-sm">
-          <span>💾</span> 保存通知配置
+          保存通知配置
         </button>
       </div>
     </div>
@@ -1243,10 +1243,10 @@
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>复制验证码
           </button>
           <button id="guard-check-confs" type="button" class="btn btn-secondary btn-sm" title="查询当前账号待确认的 Steam 市场挂牌或交易报价">
-            🔍 查询待确认项
+            查询待确认项
           </button>
           <button id="guard-accept-confs" type="button" class="btn btn-primary btn-sm" title="使用 identity_secret 免手机一键批准所有待确认的市场挂牌与交易">
-            ⚡ 一键确认全部挂牌/交易
+            一键确认全部挂牌/交易
           </button>
         </div>
 
@@ -1286,7 +1286,7 @@
     </div>
     <div class="toolbar-actions">
       <button id="proxy-btn-refresh-active" type="button" class="btn btn-sm btn-secondary">
-        <span>↻</span> 刷新生效状态
+        刷新生效状态
       </button>
       <button id="proxy-btn-toggle-add" type="button" class="btn btn-sm btn-secondary">
         <span>+</span> 添加节点
@@ -1298,7 +1298,7 @@
         <span>⤒</span> 导入配置
       </button>
       <button id="proxy-btn-save-all" type="button" class="btn btn-sm btn-primary">
-        <span>💾</span> 保存配置并写入
+        保存配置并写入
       </button>
     </div>
   </div>
@@ -1306,7 +1306,7 @@
   <!-- Pending Restart Banner in Proxy Page -->
   <div id="proxy-restart-banner" class="pending-restart-banner" style="display:none;">
     <div>
-      <strong>⚠️ 代理配置已保存至本地磁盘（待重启生效）</strong>
+      <strong>代理配置已保存至本地磁盘（待重启生效）</strong>
       <div class="restart-tip">新配置已保存到 proxy.json。本地 38480 实例需重启服务才能切换新节点（新增节点在重启前暂无法探测）。</div>
     </div>
     <span class="badge warn">PENDING RESTART</span>
@@ -1386,7 +1386,7 @@
     <div class="toolbar-actions" style="display:flex;gap:8px;align-items:center;">
       <input type="number" id="deals-appid-input" placeholder="输入游戏 AppID (如 2358720)" class="form-input" style="width:200px;">
       <button id="btn-deals-compare" type="button" class="btn btn-primary btn-sm">
-        <span>⚡</span> 16 区实时比价
+        16 区实时比价
       </button>
     </div>
   </div>
@@ -1457,7 +1457,7 @@
     </div>
     <div class="toolbar-actions">
       <button id="btn-check-gift" type="button" class="btn btn-primary btn-sm">
-        <span>🛡️</span> 启动 10% 赠礼风控核验
+        启动 10% 赠礼风控核验
       </button>
     </div>
   </div>
@@ -1510,7 +1510,7 @@
       <div style="display:flex;gap:8px;margin-bottom:12px;">
         <input type="number" id="gift-appid-input" placeholder="输入游戏 AppID (如 2358720)" class="form-input" style="flex:1;">
         <button id="btn-detect-editions" type="button" class="btn btn-secondary btn-sm">
-          <span>🔍</span> 探测版本
+          探测版本
         </button>
       </div>
       <div id="gift-edition-status" class="route-desc-hint" style="margin-bottom:14px;"></div>
@@ -1521,7 +1521,7 @@
       </select>
 
       <div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:#166534;line-height:1.6;">
-        <strong>🛡️ 纯净安全承诺：</strong><br>
+        <strong>安全承诺：</strong><br>
         本工具仅调用官方行情接口执行跨区 10% 价差规则测算，绝不模拟伪造 Protobuf 报文或执行无头扣款，从根本上杜绝账号被 Valve 标记代购或钱包冻结的风险！
       </div>
     </section>
@@ -1550,7 +1550,7 @@
     </div>
     <div class="actions">
       <a id="gift-store-link" href="#" target="_blank" class="btn btn-primary btn-sm">
-        <span>↗</span> 前往 Steam 官方购买送礼
+        前往 Steam 官方购买送礼
       </a>
     </div>
   </section>
