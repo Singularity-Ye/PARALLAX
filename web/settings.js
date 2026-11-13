@@ -224,6 +224,64 @@ async function testNotify() {
   }
 }
 
+function formatBytes(bytes) {
+  const n = Number(bytes || 0);
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function renderMaintenanceStats(stats) {
+  if (!stats) return;
+  const icons = stats.icons || {};
+  const logs = stats.logs || {};
+  if (el('maint-icon-summary')) {
+    el('maint-icon-summary').textContent = `已缓存 ${icons.cached_files ?? 0} 个 · ${formatBytes(icons.cached_bytes)} / 上限 ${formatBytes(icons.max_bytes)}`;
+  }
+  if (el('maint-icon-sub')) {
+    el('maint-icon-sub').textContent = `已索引饰品图标地址 ${icons.indexed_count ?? 0} 条 · 离线时直接读取本地缓存`;
+  }
+  if (el('maint-log-summary')) {
+    el('maint-log-summary').textContent = `扫描流水 ${logs.scans_total ?? 0} 条（可清理 ${logs.scans_cleanable ?? 0} 条） · 过期快照 ${logs.snapshots_cleanable ?? 0} 条`;
+  }
+  if (el('maint-log-sub')) {
+    const dbTotal = Number(logs.db_bytes || 0) + Number(logs.wal_bytes || 0);
+    el('maint-log-sub').textContent = `数据库主体 ${formatBytes(logs.db_bytes)} + WAL 日志 ${formatBytes(logs.wal_bytes)}（合计 ${formatBytes(dbTotal)}）`;
+  }
+}
+
+async function loadMaintenanceStats() {
+  try {
+    const stats = await parallax.maintenanceStats();
+    renderMaintenanceStats(stats);
+  } catch (err) {
+    if (el('maint-feedback')) {
+      el('maint-feedback').textContent = `统计加载失败：${err.message}`;
+    }
+  }
+}
+
+async function runMaintenanceCleanup({ clear_icons = false, clear_logs = false }) {
+  const btnIds = ['btn-maint-clear-icons', 'btn-maint-clear-logs', 'btn-maint-clear-all', 'btn-maint-refresh'];
+  btnIds.forEach(id => { if (el(id)) el(id).disabled = true; });
+  const feedback = el('maint-feedback');
+  if (feedback) feedback.textContent = '正在清理并整理本地存储…';
+  try {
+    const res = await parallax.cleanupMaintenance({ clear_icons, clear_logs, keep_scans: 1 });
+    if (res?.stats) renderMaintenanceStats(res.stats);
+    const parts = [];
+    if (clear_icons) parts.push(`已清理图标文件 ${res.cleared_icon_files ?? 0} 个（释放 ${formatBytes(res.freed_icon_bytes)}）`);
+    if (clear_logs) parts.push(`已删除过期扫描 ${res.deleted_scans ?? 0} 条、冗余快照 ${res.deleted_snapshots ?? 0} 条（回收库空间 ${formatBytes(res.reclaimed_db_bytes)}）`);
+    if (feedback) feedback.textContent = `${parts.join('；')}。`;
+    window.dispatchEvent(new CustomEvent('parallax:maintenance-cleaned', { detail: res }));
+  } catch (err) {
+    if (feedback) feedback.textContent = `清理失败：${err.message}`;
+  } finally {
+    btnIds.forEach(id => { if (el(id)) el(id).disabled = false; });
+  }
+}
+
 function initSettings() {
   const btnSave = el('btn-save-settings');
   if (btnSave) btnSave.onclick = () => saveSettings();
@@ -234,10 +292,24 @@ function initSettings() {
   const btnTestNotify = el('btn-test-notify');
   if (btnTestNotify) btnTestNotify.onclick = () => testNotify();
 
+  if (el('btn-maint-clear-icons')) {
+    el('btn-maint-clear-icons').onclick = () => runMaintenanceCleanup({ clear_icons: true });
+  }
+  if (el('btn-maint-clear-logs')) {
+    el('btn-maint-clear-logs').onclick = () => runMaintenanceCleanup({ clear_logs: true });
+  }
+  if (el('btn-maint-clear-all')) {
+    el('btn-maint-clear-all').onclick = () => runMaintenanceCleanup({ clear_icons: true, clear_logs: true });
+  }
+  if (el('btn-maint-refresh')) {
+    el('btn-maint-refresh').onclick = () => loadMaintenanceStats();
+  }
+
   window.addEventListener('parallax:pagechange', event => {
     if (event.detail.id === 'settings') {
       loadSettings();
       loadNotifySettings();
+      loadMaintenanceStats();
     }
   });
   window.addEventListener('parallax:network-settings-updated', event => {
@@ -250,9 +322,11 @@ function initSettings() {
   if (location.hash === '#settings') {
     loadSettings();
     loadNotifySettings();
+    loadMaintenanceStats();
   }
 }
 
 initSettings();
 loadSettings().catch(console.error);
 loadNotifySettings().catch(console.error);
+loadMaintenanceStats().catch(() => {});

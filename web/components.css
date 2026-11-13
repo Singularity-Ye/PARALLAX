@@ -3127,3 +3127,85 @@ footer{display:flex;justify-content:space-between;gap:20px;margin-top:34px;paddi
     grid-template-columns: 1fr;
   }
 }
+
+/* ========================================================================== */
+/* Item Icon Thumbnails & Cache / Log Maintenance Card                        */
+/* ========================================================================== */
+.item-cell-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.item-cell-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.item-cell-meta strong {
+  overflow-wrap: anywhere;
+}
+.item-icon-thumb {
+  flex: 0 0 auto;
+  border-radius: 6px;
+  border: 1px solid #d5dacb;
+  background: #f6f8f0;
+  object-fit: contain;
+  display: block;
+}
+.item-icon-sm {
+  width: 34px;
+  height: 26px;
+  padding: 1px;
+}
+.item-icon-md {
+  width: 44px;
+  height: 34px;
+  padding: 2px;
+}
+.catalog-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.maint-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.maint-box {
+  background: #f8f9f3;
+  border: 1px solid #d5dacb;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.maint-box-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.maint-box-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: #262b21;
+}
+.maint-box-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.maint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 720px) {
+  .maint-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

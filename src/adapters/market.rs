@@ -111,6 +111,12 @@ pub fn parse_response(value: &Value) -> Result<Vec<MarketItem>, String> {
                     .unwrap_or(key)
                     .into(),
                 goods_id: buff.and_then(|p| p["linkUrl"].as_str()).and_then(goods_id),
+                icon_url: item
+                    .get("imageUrl")
+                    .and_then(|v| v.as_str())
+                    .map(str::trim)
+                    .filter(|s| s.starts_with("http://") || s.starts_with("https://"))
+                    .map(ToString::to_string),
                 cash_cents: cents(cash),
                 steam_gross_cents: cents(steam_price),
                 volume: numeric(&item["transactionCount"])
@@ -144,6 +150,7 @@ pub fn demo_items() -> Vec<MarketItem> {
             key: format!("demo-{i}"),
             name: name.to_string(),
             goods_id: Some(1000 + i as u64),
+            icon_url: None,
             cash_cents: 500 + i as u64 * 120,
             steam_gross_cents: 900 + i as u64 * 180,
             volume: 300 + i as u64 * 30,
@@ -180,5 +187,26 @@ mod tests {
             Some(123)
         );
         assert_eq!(goods_id("https://evil.test/goods/123"), None);
+    }
+    #[test]
+    fn extracts_steamdt_image_url_when_present() {
+        let rows = parse_response(&json!({
+            "success": true,
+            "data": [{
+                "marketHashName": "AWP | Capillary (Minimal Wear)",
+                "name": "AWP | 毛细血管 (略有磨损)",
+                "imageUrl": "https://img.zbt.com/e/steam/item/730/QVdQIHwgQ2FwaWxsYXJ5IChNaW5pbWFsIFdlYXIp.png",
+                "transactionCount": 120,
+                "platformList": [
+                    {"name": "BUFF", "price": 5.5, "linkUrl": "https://buff.163.com/goods/42"},
+                    {"name": "STEAM", "price": 9.0}
+                ]
+            }]
+        })).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(
+            rows[0].icon_url.as_deref(),
+            Some("https://img.zbt.com/e/steam/item/730/QVdQIHwgQ2FwaWxsYXJ5IChNaW5pbWFsIFdlYXIp.png")
+        );
     }
 }

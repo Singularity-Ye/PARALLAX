@@ -73,6 +73,8 @@ pub struct MarketItem {
     pub key: String,
     pub name: String,
     pub goods_id: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_url: Option<String>,
     pub cash_cents: u64,
     pub steam_gross_cents: u64,
     pub volume: u64,

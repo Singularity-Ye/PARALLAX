@@ -1,4 +1,5 @@
 import {node,nativeMoney} from './pricing-view.js';
+import {createItemThumb} from './icon-helper.js';
 const money = value => value ? nativeMoney(value.minor,value.currency) : '未知';
 
 function deriveMarketCents(itemKey, unitCostCents) {
@@ -49,7 +50,12 @@ export function renderLedgerTable(body,page,priceMap=new Map()) {
 
     const tr=node('tr'),checkCell=node('td'),check=node('input');
     check.type='checkbox';check.className='holding-item-cb';check.value=row.row_id;check.setAttribute('aria-label',`选择 ${row.item_key}`);checkCell.append(check);
-    const item=node('td');item.append(node('strong',row.item_key),node('small',`${row.quantity} 件 · 单件成本 ¥${(unitCostCents/100).toFixed(2)}`));
+    const item=node('td');
+    const itemWrap=node('div');itemWrap.className='item-cell-with-icon';
+    const itemMeta=node('div');itemMeta.className='item-cell-meta';
+    itemMeta.append(node('strong',row.item_key),node('small',`${row.quantity} 件 · 单件成本 ¥${(unitCostCents/100).toFixed(2)}`));
+    itemWrap.append(createItemThumb(row.item_key,null,'sm'),itemMeta);
+    item.append(itemWrap);
     const cost=node('td',money(row.purchase_cost));cost.title='整行数量的总成本';cost.className='ledger-number';
     const state=node('td',({pending_receipt:'待收货',held:'持有',listed:'已挂牌',sold:'已成交'})[row.stage] || row.stage);
     const action=node('td');

@@ -23,6 +23,8 @@ pub struct CatalogItem {
     pub market_hash_name: String,
     pub name: String,
     pub sell_listings: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon_url: Option<String>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CatalogPage {

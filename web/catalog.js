@@ -1,5 +1,6 @@
 import {parallax} from './lib/api.js';
 import {node} from './lib/pricing-view.js';
+import {createItemThumb} from './lib/icon-helper.js';
 const el=id=>document.getElementById(`catalog-${id}`);
 let busy=false,page=null;
 function ready(){el('search').disabled=busy;el('next').disabled=busy||page?.next_start==null;el('query').disabled=busy;}
@@ -12,7 +13,9 @@ async function search(start){
     const content=document.createDocumentFragment();
     for(const item of result.items){
       const card=node('article');card.className='candidate';
-      card.append(node('h3',item.name),node('p',item.market_hash_name),node('p',`在售挂牌数：${item.sell_listings??'未知'}；不是日成交量，也不是可按某价成交的数量。`));
+      const head=node('div');head.className='catalog-card-head';
+      head.append(createItemThumb(item.market_hash_name,item.icon_url,'md'),node('h3',item.name));
+      card.append(head,node('p',item.market_hash_name),node('p',`在售挂牌数：${item.sell_listings??'未知'}；不是日成交量，也不是可按某价成交的数量。`));
       const button=node('button','带入历史研究');button.type='button';button.className='secondary';
       button.onclick=()=>window.dispatchEvent(new CustomEvent('parallax:catalog-history',{detail:{item_key:item.market_hash_name}}));
       card.append(button);content.append(card);

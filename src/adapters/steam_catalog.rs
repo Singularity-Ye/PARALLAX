@@ -74,10 +74,25 @@ fn parse(v: &Value, request: &CatalogRequest) -> Result<CatalogPage, String> {
         {
             return Err("Steam检索商品身份不一致或重复".into());
         }
+        let icon_url = asset["icon_url"]
+            .as_str()
+            .or_else(|| asset["icon_url_large"].as_str())
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|raw| {
+                if raw.starts_with("http://") || raw.starts_with("https://") {
+                    raw.to_string()
+                } else {
+                    format!(
+                        "https://community.fastly.steamstatic.com/economy/image/{raw}/96fx96f"
+                    )
+                }
+            });
         items.push(CatalogItem {
             market_hash_name: key.into(),
             name: row["name"].as_str().unwrap_or(key).into(),
             sell_listings: row["sell_listings"].as_u64(),
+            icon_url,
         });
     }
     let next = request.start + rows.len() as u32;

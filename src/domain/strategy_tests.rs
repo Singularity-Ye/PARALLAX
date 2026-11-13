@@ -22,6 +22,7 @@ pub(crate) fn fixture(
             key: "fixture-item".into(),
             name: "fixture".into(),
             goods_id: Some(1),
+            icon_url: None,
             cash_cents: 600,
             steam_gross_cents: 1000,
             volume: 1000,

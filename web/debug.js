@@ -365,6 +365,21 @@ function initDebug() {
   const btnExport = el('scan-log-export');
   if (btnExport) btnExport.onclick = () => exportScansJson();
 
+  const btnGotoClean = el('btn-debug-goto-clean');
+  if (btnGotoClean) {
+    btnGotoClean.onclick = () => {
+      location.hash = '#settings';
+      setTimeout(() => {
+        const card = document.getElementById('settings-maintenance-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    };
+  }
+
+  window.addEventListener('parallax:maintenance-cleaned', () => {
+    loadScans().catch(() => {});
+  });
+
   window.addEventListener('parallax:pagechange', event => {
     if (event.detail.id === 'debug') {
       loadScans();

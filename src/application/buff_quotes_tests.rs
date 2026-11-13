@@ -103,6 +103,7 @@ async fn fixture() -> (Store, Arc<Auth>, String, ScanReport) {
             key: "fixture (Field-Tested)".into(),
             name: "fixture".into(),
             goods_id: Some(123),
+            icon_url: None,
             cash_cents: 800,
             steam_gross_cents: 1150,
             volume: 300,

@@ -75,6 +75,11 @@ async fn main() -> anyhow::Result<()> {
     ));
     let data_dir = data_path.parent().unwrap_or(&data_path);
     let notify = parallax::application::notify::NotifyService::new(data_dir);
+    let assets = parallax::application::assets::ItemIconCache::new(
+        store.clone(),
+        data_dir,
+        data_path.clone(),
+    )?;
     let workers = parallax::application::workers::BackgroundWorkers::new(
         auth.clone(),
         guard.clone(),
@@ -125,7 +130,8 @@ async fn main() -> anyhow::Result<()> {
             .merge(parallax::transport::checkout::router(checkout))
             .merge(parallax::transport::sale_research::router(sale_research))
             .merge(parallax::transport::orderbook::router(order_books))
-            .merge(parallax::transport::browser_login::router(browser_logins)),
+            .merge(parallax::transport::browser_login::router(browser_logins))
+            .merge(parallax::transport::assets::router(assets)),
     )
     .with_graceful_shutdown(async {
         let _ = tokio::signal::ctrl_c().await;

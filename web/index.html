@@ -1038,6 +1038,9 @@
       <button id="scan-log-export" type="button" class="btn btn-sm btn-secondary" disabled>
         导出 JSON
       </button>
+      <button id="btn-debug-goto-clean" type="button" class="btn btn-sm btn-secondary">
+        清理缓存 / 日志 ↗
+      </button>
     </div>
   </div>
 
@@ -1266,6 +1269,35 @@
       </div>
     </div>
     <div id="notify-save-feedback" class="action-feedback"></div>
+  </section>
+
+  <!-- Section 1.5: Local Cache & Runtime Log Cleanup -->
+  <section class="card" id="settings-maintenance-card">
+    <div class="section-head" style="margin-bottom:12px;">
+      <div>
+        <h3>缓存与运行日志清理</h3>
+        <span class="hint">饰品图标本地缓存上限 100 MB（超出自动按最久未使用淘汰）；清理过期扫描流水与历史市场快照时，严格保留账户凭据、账本台账、策略与关注清单</span>
+      </div>
+    </div>
+    <div class="maint-stats-grid">
+      <div class="maint-box">
+        <span class="maint-box-title">饰品图标离线缓存</span>
+        <strong class="maint-box-val" id="maint-icon-summary">统计加载中…</strong>
+        <span class="maint-box-sub" id="maint-icon-sub">—</span>
+      </div>
+      <div class="maint-box">
+        <span class="maint-box-title">扫描流水与快照占用</span>
+        <strong class="maint-box-val" id="maint-log-summary">统计加载中…</strong>
+        <span class="maint-box-sub" id="maint-log-sub">—</span>
+      </div>
+    </div>
+    <div class="maint-actions">
+      <button id="btn-maint-clear-icons" type="button" class="btn btn-secondary btn-sm">清理图标缓存</button>
+      <button id="btn-maint-clear-logs" type="button" class="btn btn-secondary btn-sm">清理无用运行日志</button>
+      <button id="btn-maint-clear-all" type="button" class="btn btn-primary btn-sm">一键全部清理</button>
+      <button id="btn-maint-refresh" type="button" class="btn btn-secondary btn-sm">刷新统计</button>
+    </div>
+    <div id="maint-feedback" class="action-feedback"></div>
   </section>
 
   <!-- Section 2: Local Runtime Boundaries -->

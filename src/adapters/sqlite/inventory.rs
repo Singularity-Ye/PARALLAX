@@ -3,10 +3,31 @@ use crate::{application::ports::InventoryRepository, domain::inventory::Inventor
 use rusqlite::{OptionalExtension, params};
 impl InventoryRepository for Store {
     async fn insert_inventory(&self, snapshot: InventorySnapshot) -> anyhow::Result<()> {
-        self.account_db(move|db| {
-            db.execute("INSERT INTO inventory_snapshots(id,account_id,observed_at,snapshot) VALUES(?1,?2,?3,?4)",params![snapshot.id,snapshot.account_id,i64::try_from(snapshot.observed_at)?,serde_json::to_string(&snapshot)?])?;
+        self.account_db(move |db| {
+            let tx = db.unchecked_transaction()?;
+            tx.execute(
+                "INSERT INTO inventory_snapshots(id,account_id,observed_at,snapshot) VALUES(?1,?2,?3,?4)",
+                params![
+                    snapshot.id,
+                    snapshot.account_id,
+                    i64::try_from(snapshot.observed_at)?,
+                    serde_json::to_string(&snapshot)?
+                ],
+            )?;
+            let pairs: Vec<(&str, &str)> = snapshot
+                .assets
+                .iter()
+                .filter_map(|a| {
+                    let name = a.market_hash_name.as_deref().map(str::trim).filter(|s| !s.is_empty())?;
+                    let url = a.icon_url.as_deref().map(str::trim).filter(|s| !s.is_empty())?;
+                    Some((name, url))
+                })
+                .collect();
+            super::maintenance::upsert_icons_conn(&tx, &pairs, snapshot.observed_at)?;
+            tx.commit()?;
             Ok(())
-        }).await
+        })
+        .await
     }
     async fn inventory(&self, id: String) -> anyhow::Result<Option<InventorySnapshot>> {
         self.account_db(move |db| {

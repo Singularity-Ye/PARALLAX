@@ -147,4 +147,6 @@ export const parallax = {
   accountFriends: (account) => request(`/api/accounts/${encodeURIComponent(account)}/friends`),
   gameEditions: (appid) => request(`/api/gift/editions?appid=${encodeURIComponent(appid)}`),
   checkGift: (value) => post('/api/gift/check', value),
+  maintenanceStats: () => request('/api/maintenance/stats'),
+  cleanupMaintenance: (value) => post('/api/maintenance/cleanup', value),
 };

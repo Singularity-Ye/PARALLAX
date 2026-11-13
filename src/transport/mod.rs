@@ -20,4 +20,5 @@ pub mod watchlist;
 pub mod catalog;
 
 pub mod workers;
+pub mod assets;
 pub mod deals_and_gift;

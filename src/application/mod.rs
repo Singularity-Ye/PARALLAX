@@ -24,6 +24,7 @@ pub mod steam_guard;
 pub mod strategy;
 pub mod watchlist;
 pub mod workers;
+pub mod assets;
 pub mod deals;
 pub mod gift;
 

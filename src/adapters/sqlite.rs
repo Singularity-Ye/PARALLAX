@@ -19,6 +19,7 @@ mod ledger;
 mod orderbook;
 mod preflight;
 mod sale_research;
+pub mod maintenance;
 mod steam_policy;
 mod strategy;
 
@@ -55,6 +56,8 @@ impl Store {
             CREATE TABLE IF NOT EXISTS purchase_asset_claims (account_id TEXT NOT NULL, asset_id TEXT NOT NULL, lot_id TEXT NOT NULL, PRIMARY KEY(account_id,asset_id));
             CREATE TABLE IF NOT EXISTS purchase_external_claims (account_id TEXT NOT NULL, kind TEXT NOT NULL, reference TEXT NOT NULL, lot_id TEXT NOT NULL, PRIMARY KEY(account_id,kind,reference));
             CREATE TABLE IF NOT EXISTS sale_research (id TEXT PRIMARY KEY, account_id TEXT NOT NULL, created_at INTEGER NOT NULL, snapshot TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS item_icons (item_key TEXT PRIMARY KEY, source_url TEXT NOT NULL, file_name TEXT, content_type TEXT, byte_size INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL, last_used_at INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS idx_item_icons_used ON item_icons(last_used_at, byte_size);
             CREATE TABLE IF NOT EXISTS cash_observations (id TEXT PRIMARY KEY,principal TEXT NOT NULL,account_id TEXT NOT NULL,client_key TEXT NOT NULL,evidence_ref TEXT NOT NULL,observed_at INTEGER NOT NULL,snapshot TEXT NOT NULL,UNIQUE(account_id,client_key),UNIQUE(principal,evidence_ref));
             CREATE TABLE IF NOT EXISTS checkout_intents (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,principal TEXT NOT NULL,client_key TEXT NOT NULL,preflight_id TEXT NOT NULL,state TEXT NOT NULL,reserved_cents INTEGER NOT NULL,snapshot TEXT NOT NULL,UNIQUE(account_id,client_key),UNIQUE(account_id,preflight_id));
             CREATE UNIQUE INDEX IF NOT EXISTS one_active_checkout_per_principal ON checkout_intents(principal) WHERE state='reserved';

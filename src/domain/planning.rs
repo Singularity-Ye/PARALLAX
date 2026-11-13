@@ -674,6 +674,7 @@ mod tests {
                         key: i.to_string(),
                         name: i.to_string(),
                         goods_id: Some(i as u64 + 1),
+                        icon_url: None,
                         cash_cents: cash,
                         steam_gross_cents: 1150,
                         volume: 300,

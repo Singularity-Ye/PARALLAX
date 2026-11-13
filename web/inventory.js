@@ -1,4 +1,5 @@
 import {parallax} from './lib/api.js';
+import {createItemThumb} from './lib/icon-helper.js';
 
 const el = id => document.getElementById(id);
 const account = el('inventory-account');
@@ -322,23 +323,10 @@ async function render(snapshot) {
     const costPrice = costMap.get(itemName) ?? null;
     const refMarketPrice = prices[activePeriod] ?? prices.now ?? null;
 
-    // 1. Thumbnail (Real Steam Inventory icon_url -> Crisp SVG badge)
+    // 1. Thumbnail (Local disk cache + SteamDT/Steam official fallback -> Crisp SVG badge)
     const tdThumb = document.createElement('td');
     tdThumb.className = 'col-thumb';
-    const img = document.createElement('img');
-    img.className = 'inv-item-img';
-    img.alt = itemName;
-    const itemType = known?.type || (itemName.includes('Souvenir') || itemName.includes('Package') ? 'souvenir' : 'case');
-    if (a.icon_url) {
-      img.src = a.icon_url.startsWith('http')
-        ? a.icon_url
-        : `https://community.fastly.steamstatic.com/economy/image/${a.icon_url}/96fx96f`;
-    } else {
-      img.src = getItemSvgPlaceholder(itemType);
-    }
-    img.onerror = () => {
-      img.src = getItemSvgPlaceholder(itemType);
-    };
+    const img = createItemThumb(itemName, a.icon_url, 'md', 'inv-item-img');
     tdThumb.appendChild(img);
     tr.appendChild(tdThumb);
 

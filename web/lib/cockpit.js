@@ -1,6 +1,7 @@
 // Dashboard Executive Portfolio & Quant Cockpit.
 import {parallax} from './api.js';
 import {node} from './pricing-view.js';
+import {createItemThumb} from './icon-helper.js';
 
 const el = id => document.getElementById(id);
 const amount = value => Number.isSafeInteger(value) && value >= 0 ? `¥${(value / 100).toFixed(2)}` : '未知';
@@ -53,9 +54,12 @@ export function renderCockpitScan(report) {
     const passText = c.passed ? `通过 (限 ${d.safe_purchase_limit ?? '—'}件)` : '未通过';
 
     const nameTd = node('td');
+    const nameWrap = node('div');
+    nameWrap.className = 'item-cell-with-icon';
     const nameStrong = node('strong', c.item.name);
     nameStrong.style.color = 'var(--ink)';
-    nameTd.append(nameStrong);
+    nameWrap.append(createItemThumb(c.item.key, c.item.icon_url, 'sm'), nameStrong);
+    nameTd.append(nameWrap);
 
     const steamTd = node('td', c.item.steam_gross_cents > 0 ? amount(c.item.steam_gross_cents) : '未知');
     const buffTd = node('td', c.item.cash_cents > 0 ? amount(c.item.cash_cents) : '未知');
@@ -217,9 +221,12 @@ function renderDashboardHoldings(items) {
     const estNetCents = row.sale_net_wallet?.value?.minor ?? Math.round((costCents / 0.72) * 0.8696);
 
     const nameTd = node('td');
+    const nameWrap = node('div');
+    nameWrap.className = 'item-cell-with-icon';
     const strong = node('strong', row.item_key);
     strong.style.color = 'var(--ink)';
-    nameTd.append(strong);
+    nameWrap.append(createItemThumb(row.item_key, null, 'sm'), strong);
+    nameTd.append(nameWrap);
 
     const qtyTd = node('td', `${qty} 件`);
     const costTd = node('td', amount(costCents));

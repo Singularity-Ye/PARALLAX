@@ -131,6 +131,7 @@ async fn uah_depth_fees_display_budget_and_strategy_retain_original_evidence() {
             key: "UAH fixture".into(),
             name: "UAH fixture".into(),
             goods_id: Some(1),
+            icon_url: None,
             cash_cents: 500,
             steam_gross_cents: 1000,
             volume: 300,
