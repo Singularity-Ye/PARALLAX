@@ -21,7 +21,7 @@
 </aside>
 <button id="nav-backdrop" class="nav-backdrop" aria-label="关闭功能导航" type="button" tabindex="-1" hidden></button>
 <main id="app">
-  <div class="topline"><button id="nav-toggle" class="nav-toggle secondary" aria-label="打开功能导航" aria-controls="sidebar" aria-expanded="false" type="button">☰ 导航</button><span id="page-breadcrumb">工作台 / 仪表盘</span><span class="mode-badge" id="mode-badge">全栈量化工作台 · 守护就绪</span></div>
+  <div class="topline"><button id="nav-toggle" class="nav-toggle secondary" aria-label="打开功能导航" aria-controls="sidebar" aria-expanded="false" type="button">☰ 导航</button><span id="page-breadcrumb">工作台 / 仪表盘</span><span class="mode-badge" id="mode-badge">本地工作台 · 服务就绪</span></div>
   <header class="page-header"><div><span class="eyebrow" id="page-kicker">YOUR MARKET, IN FOCUS</span><h1 id="page-heading" tabindex="-1">仪表盘</h1><p id="page-description" style="display:none"></p></div><span class="folio" aria-hidden="true">P / <span id="page-number">01</span></span></header>
   <section class="page" data-page="dashboard" id="page-dashboard">
     <!-- Layer 1: Executive Command Hero Banner -->
@@ -33,32 +33,32 @@
         </div>
         <div class="hero-account-info">
           <div class="hero-name-row">
-            <strong id="sentinel-acc-name" class="hero-acc-name">正在读取主战账户…</strong>
-            <span id="sentinel-acc-badge" class="status-badge online">主战就绪</span>
+            <strong id="sentinel-acc-name" class="hero-acc-name">正在读取账户…</strong>
+            <span id="sentinel-acc-badge" class="status-badge online">已就绪</span>
             <span id="hero-acc-region" class="hero-region-pill">UA · UAH</span>
           </div>
           <div class="hero-sub-row">
             <span id="sentinel-acc-id">SteamID: —</span>
             <span class="runway-sep">·</span>
-            <span id="dashboard-service">引擎已连接</span>
+            <span id="dashboard-service">本地服务在线</span>
             <span class="runway-sep">·</span>
-            <span id="dashboard-service-note">原生直登 · 免密确认 · 守护巡检已激活</span>
+            <span id="dashboard-service-note">本地直连 · 自动确认 · 定时任务已开启</span>
           </div>
         </div>
       </div>
       <div class="hero-quick-actions">
-        <a href="#workspace" class="btn btn-primary btn-sm">启动选品扫描</a>
-        <a href="#planning" class="btn btn-secondary btn-sm">智能建仓配平</a>
+        <a href="#workspace" class="btn btn-primary btn-sm">选品扫描</a>
+        <a href="#planning" class="btn btn-secondary btn-sm">生成配平计划</a>
         <a href="#purchases" class="btn btn-secondary btn-sm">持仓与上架</a>
         <a href="#steam-guard" class="btn btn-secondary btn-sm">Steam 令牌</a>
       </div>
     </div>
 
-    <!-- Layer 2: 4-Column Executive Portfolio & Quant KPIs -->
+    <!-- Layer 2: 4-Column Executive Portfolio & KPIs -->
     <div class="cockpit-stats-grid">
       <div class="cockpit-stat-card primary">
         <div class="stat-card-top">
-          <span class="stat-kpi-label">在持资产 / 累计投入成本</span>
+          <span class="stat-kpi-label">当前持仓 / 累计成本</span>
           <a href="#purchases" class="stat-card-link">台账 ↗</a>
         </div>
         <div class="stat-kpi-val" id="dashboard-holdings-cost">¥0.00</div>
@@ -70,30 +70,30 @@
 
       <div class="cockpit-stat-card">
         <div class="stat-card-top">
-          <span class="stat-kpi-label">配平计划 / 估算净得钱包</span>
+          <span class="stat-kpi-label">配平计划 / 预计净得钱包</span>
           <a href="#planning" class="stat-card-link">配平 ↗</a>
         </div>
         <div class="stat-kpi-val" id="dashboard-wallet-val">—</div>
         <div class="stat-kpi-sub">
           <span class="status-pill status-pill-cny" id="dashboard-plan-ratio-pill">折算率 —</span>
-          <span id="dashboard-wallet-uah" class="stat-kpi-hint">基于最新配平方案估算</span>
+          <span id="dashboard-wallet-uah" class="stat-kpi-hint">按当前配平计划估算</span>
         </div>
       </div>
 
       <div class="cockpit-stat-card">
         <div class="stat-card-top">
-          <span class="stat-kpi-label">配平计划 / 现金采购预算</span>
+          <span class="stat-kpi-label">配平计划 / 采购预算</span>
           <a href="#planning" class="stat-card-link">调整 ↗</a>
         </div>
         <div class="stat-kpi-val" id="dashboard-budget-val">—</div>
         <div class="stat-kpi-sub">
-          <span class="stat-kpi-hint" id="dashboard-reserved-val">尚未引用预算计划</span>
+          <span class="stat-kpi-hint" id="dashboard-reserved-val">尚未创建配平计划</span>
         </div>
       </div>
 
       <div class="cockpit-stat-card">
         <div class="stat-card-top">
-          <span class="stat-kpi-label">选品雷达 / 深度预筛命中</span>
+          <span class="stat-kpi-label">选品扫描 / 筛选命中</span>
           <a href="#workspace" class="stat-card-link">工作台 ↗</a>
         </div>
         <div class="stat-kpi-val ticker-val" id="dashboard-selection">0 / 0</div>
@@ -105,15 +105,15 @@
       </div>
     </div>
 
-    <!-- Layer 3: Bento Split Grid (Left: Capital & Friction | Right: Automation & Guard Sentinel) -->
+    <!-- Layer 3: Bento Split Grid (Left: Capital & Friction | Right: Background Tasks) -->
     <div class="dashboard-cockpit-grid">
       <div class="dashboard-cockpit-main">
         <!-- Capital & Position Allocation Gauge -->
         <div class="telemetry-card capital-gauge">
           <div class="telemetry-head">
             <div>
-              <span class="telemetry-label">资金水位与仓位分配全景</span>
-              <p class="telemetry-desc" id="dashboard-plan-scope">实时映射当前配平计划的预算动用、在途预留与剩余头寸</p>
+              <span class="telemetry-label">资金与仓位概览</span>
+              <p class="telemetry-desc" id="dashboard-plan-scope">显示当前配平计划的预算占用、预留与可用余额</p>
             </div>
             <span class="telemetry-sub" id="telemetry-total-capital">总额度: ¥100.00</span>
           </div>
@@ -123,8 +123,8 @@
             <div class="alloc-seg alloc-available" id="alloc-bar-avail" style="width: 100%;" title="可用现金余额 100%"></div>
           </div>
           <div class="allocation-legend">
-            <div class="legend-item"><span class="legend-dot dot-hold"></span><span>建仓动用: <strong id="legend-hold-val">¥0.00</strong></span></div>
-            <div class="legend-item"><span class="legend-dot dot-resv"></span><span>待决预留: <strong id="legend-resv-val">¥0.00</strong></span></div>
+            <div class="legend-item"><span class="legend-dot dot-hold"></span><span>计划占用: <strong id="legend-hold-val">¥0.00</strong></span></div>
+            <div class="legend-item"><span class="legend-dot dot-resv"></span><span>预留锁定: <strong id="legend-resv-val">¥0.00</strong></span></div>
             <div class="legend-item"><span class="legend-dot dot-avail"></span><span>剩余可用: <strong id="legend-avail-val">¥100.00</strong></span></div>
           </div>
         </div>
@@ -133,76 +133,75 @@
         <div class="telemetry-card friction-gauge">
           <div class="telemetry-head">
             <div>
-              <span class="telemetry-label">跨市场摩擦系数与量化安全垫</span>
-              <p class="telemetry-desc">内置 Steam 15% 复合税费扣除与日成交量 5% 冲击成本保护</p>
+              <span class="telemetry-label">费率与风控基准</span>
+              <p class="telemetry-desc">默认按 Steam 15% 交易税费与日成交量 5% 上限测算</p>
             </div>
-            <span class="telemetry-sub">AetherSwap 黄金标尺</span>
+            <span class="telemetry-sub">默认测算规则</span>
           </div>
           <div class="friction-grid">
             <div class="friction-item">
-              <span class="friction-name">Steam 市场复合税率</span>
+              <span class="friction-name">Steam 市场税率</span>
               <strong class="friction-val">15.0%</strong>
               <small class="friction-hint">卖家净得乘数 ×0.8695</small>
             </div>
             <div class="friction-item">
-              <span class="friction-name">BUFF 提现摩擦基准</span>
+              <span class="friction-name">BUFF 提现费率</span>
               <strong class="friction-val">1.0%</strong>
-              <small class="friction-hint">现金成本核算底线</small>
+              <small class="friction-hint">现金成本核算基准</small>
             </div>
             <div class="friction-item highlight">
-              <span class="friction-name">目标建仓折算线</span>
+              <span class="friction-name">目标折算率</span>
               <strong class="friction-val">≤ 0.680</strong>
-              <small class="friction-hint">相当于 68 折充值余额</small>
+              <small class="friction-hint">约合 68 折充值余额</small>
             </div>
             <div class="friction-item">
-              <span class="friction-name">单品日深度上限</span>
+              <span class="friction-name">单品日量上限</span>
               <strong class="friction-val">5.0%</strong>
-              <small class="friction-hint">&lt;¥5.00 自动折半防砸盘</small>
+              <small class="friction-hint">低价商品（&lt;¥5）自动折半</small>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Column: Live Automation Workers & Security Sentinel -->
+      <!-- Right Column: Live Background Tasks & Status -->
       <div class="dashboard-sentinel-aside">
         <div class="cockpit-evidence sentinel-sheet">
           <div class="sentinel-header">
             <div style="display:flex;align-items:center;gap:8px;">
-              <span class="sentinel-badge">SENTINEL</span>
-              <h3 class="sentinel-title">守护引擎与风控哨兵</h3>
+              <h3 class="sentinel-title">后台任务与运行状态</h3>
             </div>
-            <a href="#debug" class="stat-card-link">调度中心 ↗</a>
+            <a href="#debug" class="stat-card-link">任务详情 ↗</a>
           </div>
 
           <div class="sentinel-workers-box" id="dashboard-workers-list">
             <div class="sentinel-worker-row">
               <div class="sw-meta">
-                <strong>在售对账与免密确认</strong>
-                <small>每 10 分钟巡检 mylistings 与 Guard</small>
+                <strong>在售核对与令牌确认</strong>
+                <small>每 10 分钟检查挂单与待确认项</small>
               </div>
-              <span class="status-badge online" id="sw-badge-listing">巡检就绪</span>
+              <span class="status-badge online" id="sw-badge-listing">空闲就绪</span>
             </div>
             <div class="sentinel-worker-row">
               <div class="sw-meta">
-                <strong>17 国汇率中枢自动刷新</strong>
-                <small>每 2 小时同步 Steam 多区中间价</small>
+                <strong>多区汇率同步</strong>
+                <small>每 2 小时更新 17 区市场汇率</small>
               </div>
-              <span class="status-badge online" id="sw-badge-fx">巡检就绪</span>
+              <span class="status-badge online" id="sw-badge-fx">空闲就绪</span>
             </div>
             <div class="sentinel-worker-row">
               <div class="sw-meta">
-                <strong>账户画像与钱包余额同步</strong>
-                <small>每 1 小时保活 Cookie 与原币余额</small>
+                <strong>账户与钱包同步</strong>
+                <small>每 1 小时刷新登录态与余额</small>
               </div>
-              <span class="status-badge online" id="sw-badge-account">巡检就绪</span>
+              <span class="status-badge online" id="sw-badge-account">空闲就绪</span>
             </div>
           </div>
 
           <dl class="cockpit-spec sentinel-spec">
-            <div><dt>网络出口策略</dt><dd id="sentinel-route">直连模式 · 原生高速通道</dd></div>
-            <div><dt>仓位联动依据</dt><dd id="sentinel-position">自动关联真实库存与台账</dd></div>
-            <div><dt>流动性风控</dt><dd id="sentinel-risk">日量 5% 约束与低价保护已启用</dd></div>
-            <div><dt>微信推送通知</dt><dd id="sentinel-execution">PushPlus 4h 防轰炸限流就绪</dd></div>
+            <div><dt>网络模式</dt><dd id="sentinel-route">直连网络（遵循系统环境）</dd></div>
+            <div><dt>仓位来源</dt><dd id="sentinel-position">自动关联当前账户库存与台账</dd></div>
+            <div><dt>流动性限制</dt><dd id="sentinel-risk">日成交量 5% 上限与低价保护已开启</dd></div>
+            <div><dt>微信推送</dt><dd id="sentinel-execution">PushPlus 推送（4 小时去重）</dd></div>
           </dl>
         </div>
       </div>
@@ -213,16 +212,16 @@
       <section class="card cockpit-table-card">
         <div class="section-title">
           <div>
-            <h2>黄金候选标的池</h2>
-            <p class="hint">展示最新一轮选品扫描中折算率最优的套利标的</p>
+            <h2>近期候选标的</h2>
+            <p class="hint">显示最近一次扫描中折算率较好的饰品</p>
           </div>
-          <a href="#workspace" class="btn btn-secondary btn-sm">前往选品工作台 ↗</a>
+          <a href="#workspace" class="btn btn-secondary btn-sm">打开选品工作台 ↗</a>
         </div>
         <div id="dashboard-candidates-container" class="cockpit-candidates-table-wrap">
           <div class="table-empty-notice" id="dashboard-empty-candidates">
             <span class="empty-icon">✦</span>
-            <strong>等待捕获套利标的</strong>
-            <p>点击上方「启动选品扫描」，系统将自动分析 BUFF 与 Steam 盘口深度并在此列出高性价比饰品。</p>
+            <strong>暂无扫描结果</strong>
+            <p>点击上方「选品扫描」，系统会对比 BUFF 与 Steam 价格后在此列出候选饰品。</p>
           </div>
           <table class="cockpit-table" id="dashboard-candidates-table" style="display:none">
             <thead>
@@ -244,8 +243,8 @@
       <section class="card cockpit-table-card">
         <div class="section-title">
           <div>
-            <h2>近期持仓与挂牌动态</h2>
-            <p class="hint">实时读取当前主战账户的采购批次、持仓成本与流转阶段</p>
+            <h2>近期持仓与挂牌</h2>
+            <p class="hint">显示当前账户的采购批次、成本与状态</p>
           </div>
           <a href="#purchases" class="btn btn-secondary btn-sm">管理全部持仓 ↗</a>
         </div>
@@ -374,7 +373,7 @@
       <div class="results-toolbar">
         <div class="results-meta-left">
           <div class="section-title" style="margin:0">
-            <h2 style="font-size:15px;margin:0">选品候选与套利价差雷达</h2>
+            <h2 style="font-size:15px;margin:0">选品候选列表</h2>
             <span id="source-label" class="source-tag">等待开始</span>
           </div>
           <span class="results-sep">|</span>
@@ -389,7 +388,7 @@
           <div style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;padding-left:10px;border-left:1px solid var(--border-subtle,rgba(255,255,255,0.12));">
             <span style="font-size:12px;color:var(--text-secondary);">预算 ¥</span>
             <input id="workspace-auto-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:76px;height:28px;padding:2px 6px;" title="智能建仓现金预算（元）">
-            <button id="workspace-auto-plan-btn" type="button" class="btn btn-primary btn-sm">智能建仓配平</button>
+            <button id="workspace-auto-plan-btn" type="button" class="btn btn-primary btn-sm">生成配平计划</button>
           </div>
         </div>
       </div>
@@ -410,7 +409,7 @@
             </tr>
           </thead>
           <tbody id="candidates-tbody">
-            <tr class="empty-row"><td colspan="8" class="empty-cell">市场很大，设定上方参数并点击「开始扫描」捕获套利标的。</td></tr>
+            <tr class="empty-row"><td colspan="8" class="empty-cell">暂无扫描结果，请调整上方参数后点击「开始扫描」。</td></tr>
           </tbody>
         </table>
         <div id="candidates" style="display:none"></div>
@@ -970,7 +969,7 @@
   <p id="sale-live-feedback" role="status" class="hint" style="margin:6px 0;">点击「刷新在售列表」即可实时读取当前账户在 Steam 市场的挂单与待确认列表。</p>
   <div id="sale-live-listings-box" style="margin-top:8px;"></div>
 </section>
-<div class="notice">下方为离线量化出售研究：对批次成本与历史证据做策略验算。上方可直接管理真实 Steam 在售挂单。</div>
+<div class="notice">下方为离线出售测算，用于验证批次成本与历史行情；上方可直接管理 Steam 在售挂单。</div>
 <section class="card"><div class="section-title"><h2>持仓出售研究</h2><span>SELL / POLICY &amp; COST</span></div><label>出售研究账户<select id="sale-account"></select></label><button id="sale-refresh" type="button" class="secondary">刷新出售证据列表</button>
 <form id="sale-form"><label>采购批次<select id="sale-lot" required></select></label><label>批次资产<select id="sale-asset" required></select></label><label>当前库存观察<select id="sale-inventory" required></select></label><label>已有购入研究（需v2压力净卖出证据）<select id="sale-evaluation" required></select></label><label>库存观察有效期 / 秒<input id="sale-age" type="number" min="1" max="300" value="90" required></label>
 <label>出售模式<select id="sale-mode"><option value="immediate">立即研究挂牌</option><option value="trend_wait">上升趋势等待</option><option value="profit_protect">收益保护</option><option value="pause">暂停出售</option></select></label>
@@ -1046,8 +1045,8 @@
   <section class="card" style="margin-bottom:20px;">
     <div class="panel-toolbar" style="margin-bottom:12px;padding:0;">
       <div class="toolbar-title">
-        <h3>后台调度巡检大盘</h3>
-        <span class="hint">守护线程自动巡检 · 10分钟在售对账与免密确认 · 2小时汇率刷新 · 1小时钱包同步 · /api/workers</span>
+        <h3>后台定时任务</h3>
+        <span class="hint">10 分钟在售核对 · 2 小时汇率更新 · 1 小时余额同步 · /api/workers</span>
       </div>
       <div class="toolbar-actions">
         <button id="btn-refresh-workers" type="button" class="btn btn-sm btn-secondary">
@@ -1236,7 +1235,7 @@
         </button>
       </div>
     </div>
-    <p class="hint">通过 PushPlus (pushplus.plus) 将饰品自动结售成交、Steam 登录态失效等核心业务事件实时直推至您的微信。内置 4 小时同类事件防轰炸限流保护。</p>
+    <p class="hint">通过 PushPlus (pushplus.plus) 将饰品自动售出入账、Steam 登录态失效等事件推送至微信，内置 4 小时同类消息去重。</p>
 
     <div style="display:flex;align-items:center;gap:10px;margin:16px 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
       <input type="checkbox" id="notify-enabled" style="width:16px;height:16px;cursor:pointer;">
@@ -1279,7 +1278,7 @@
       <div><dt>服务架构</dt><dd>本机 Rust 高性能异步服务 · 监听 127.0.0.1:38480</dd></div>
       <div><dt>数据与凭据存储</dt><dd>所有账号与凭据严格保存在 Windows 凭据管理器，不上传任何云端</dd></div>
       <div><dt>网络纯净直连</dt><dd>服务端与数据直连，无多余第三方中间件拦截，杜绝云平台异地告警</dd></div>
-      <div><dt>交易与风控</dt><dd>自动交易未接入，当前预算与折算仅供量化研判与选品预览</dd></div>
+      <div><dt>交易与风控</dt><dd>未接入自动下单，当前结果仅作选品参考与预算测算</dd></div>
     </dl>
     <div class="actions" style="margin-top:16px;">
       <a href="#accounts" class="btn btn-sm btn-secondary">账号管理 →</a>

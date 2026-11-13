@@ -109,12 +109,12 @@ window.addEventListener('parallax:scan-selected',({detail:r})=>{
   renderTicker(el('dashboard-selection'), `${r.coverage.accepted} / ${r.coverage.examined}`);
 });
 parallax.health().then(()=>{
-  if(el('dashboard-service')) el('dashboard-service').textContent='量化引擎在线';
-  if(el('dashboard-service-note')) el('dashboard-service-note').textContent='原生直登 · 免密确认 · 守护巡检已激活';
-  if(el('sidebar-status')) el('sidebar-status').textContent='全栈工作台 · 在线';
-  if(el('mode-badge')) el('mode-badge').textContent='全栈量化工作台 · 守护运行中';
+  if(el('dashboard-service')) el('dashboard-service').textContent='本地服务在线';
+  if(el('dashboard-service-note')) el('dashboard-service-note').textContent='本地直连 · 自动确认 · 定时任务已开启';
+  if(el('sidebar-status')) el('sidebar-status').textContent='本地服务 · 在线';
+  if(el('mode-badge')) el('mode-badge').textContent='本地工作台 · 运行中';
   document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.add('online'));
-  if(el('sentinel-execution')) el('sentinel-execution').textContent='PushPlus 4h 防轰炸限流就绪';
+  if(el('sentinel-execution')) el('sentinel-execution').textContent='PushPlus 推送（4 小时去重）';
 }).catch(()=>{
   if(el('dashboard-service')) el('dashboard-service').textContent='连接未确认';
   if(el('dashboard-service-note')) el('dashboard-service-note').textContent='请检查本地 38480 服务后刷新';
@@ -135,7 +135,7 @@ parallax.accounts().then(async accs => {
     const badgeEl = el('sentinel-acc-badge');
     if (nameEl) nameEl.textContent = decodeEntities(cur.label) || '默认账号';
     if (idEl) idEl.textContent = `SteamID: ${cur.steam_id || cur.id}`;
-    if (badgeEl) { badgeEl.textContent = '主战账户'; badgeEl.className = 'status-badge online'; }
+    if (badgeEl) { badgeEl.textContent = '当前账户'; badgeEl.className = 'status-badge online'; }
 
     try {
       const prof = await parallax.accountProfile(cur.id);

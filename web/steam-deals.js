@@ -74,7 +74,7 @@ async function triggerCompare(appid) {
     const res = await parallax.compareDeals(targetId);
     currentComparison = res;
     renderComparison();
-    if (statusEl) statusEl.textContent = `已完成 ${res.title} 的 16 区价格全景比对！`;
+    if (statusEl) statusEl.textContent = `已完成 ${res.title} 的 16 区价格比对`;
   } catch (err) {
     if (statusEl) statusEl.textContent = `比价失败：${err.message}`;
   } finally {

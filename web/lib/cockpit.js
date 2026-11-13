@@ -121,14 +121,14 @@ function renderPlan(plan) {
   if (barHold && valid) barHold.style.width = `${Math.max(0, (planned / budget) * 100)}%`;
 
   if (el('dashboard-plan-scope')) {
-    el('dashboard-plan-scope').textContent = `当前映射计划 #${plan.id.slice(0, 8)} · 生成于 ${new Date(plan.created_at * 1000).toLocaleTimeString()} · 单品上限 ${plan.request.max_units_per_item} 件`;
+    el('dashboard-plan-scope').textContent = `最新配平计划 · 生成于 ${new Date(plan.created_at * 1000).toLocaleTimeString()} · 单品上限 ${plan.request.max_units_per_item} 件`;
   }
 
   const position = plan.request.position_snapshot;
   const isAuto = plan.position_source === 'auto_inventory_and_ledger';
   const positionText = isAuto
-    ? `自动关联真实库存与台账 (${position?.account_id?.slice(0, 8) ?? '默认账户'})`
-    : (position ? `引用手动仓位快照 · 账户 ${position.account_id}` : '标准独立测算模式');
+    ? '自动关联当前账户库存与台账'
+    : (position ? '引用已保存仓位快照' : '独立测算模式');
   if (el('sentinel-position')) el('sentinel-position').textContent = positionText;
 
   const policy = plan.request.liquidity_policy;
@@ -186,7 +186,7 @@ async function refreshPortfolioAndWorkers() {
       const w = workers.find(item => item.name === name);
       const badge = el(id);
       if (!w || !badge) return;
-      badge.textContent = w.running ? '执行中' : (w.run_count > 0 ? `已巡检 ${w.run_count} 次` : '守护就绪');
+      badge.textContent = w.running ? '执行中' : (w.run_count > 0 ? `已运行 ${w.run_count} 次` : '空闲就绪');
       badge.className = 'status-badge online';
     };
     mapBadge('listing_reconciliation', 'sw-badge-listing');
@@ -273,7 +273,7 @@ export function initCockpit() {
 
   parallax.proxyStatus().then(value => {
     if (el('sentinel-route')) {
-      el('sentinel-route').textContent = value.mode === 'explicit_routes' ? '平台独立分流路由已启用' : '纯净直连 · 遵循系统网络环境';
+      el('sentinel-route').textContent = value.mode === 'explicit_routes' ? '已启用平台分流代理' : '直连网络（遵循系统环境）';
     }
   }).catch(() => {});
 

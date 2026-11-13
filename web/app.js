@@ -15,7 +15,7 @@ function render(report) {
   current = report;
   window.dispatchEvent(new CustomEvent('parallax:scan-selected',{detail:report}));
   el('plan-create').disabled = report.status !== 'completed';
-  el('plan-source').textContent = `基于当前扫描 ${report.id.slice(0,8)} · ${report.request.source === 'demo' ? '演示' : 'SteamDT'} · ${statusNames[report.status] || report.status}`;
+  el('plan-source').textContent = `基于当前扫描 · ${report.request.source === 'demo' ? '演示数据' : 'SteamDT'} · ${statusNames[report.status] || report.status}`;
   el('source-label').textContent = report.request.source === 'demo' ? '固定演示数据 · 非真实行情' : 'SteamDT / BUFF 榜单';
   feedback(report.status === 'running' ? '正在扫描来源，结果将在本轮结束后显示。可停止扫描。' : `${reasonNames[report.stop_reason] || report.stop_reason}。${report.error || ''}`, report.status === 'failed');
   const c = report.coverage;
@@ -172,7 +172,7 @@ function renderPlan(plan) {
     ? '仓位来源：已自动关联当前账户真实 Steam 库存与在途采购台账'
     : (plan.position_source==='manual_unverified'?'仓位来源：用户手动填报，未平台核验':'未使用账户仓位快照');
   box.replaceChildren(node('h3', `${source} · 预算预览`),
-    node('p', `扫描 ${plan.request.scan_id.slice(0,8)} · 生成于 ${new Date(plan.created_at*1000).toLocaleString()}`),
+    node('p', `生成于 ${new Date(plan.created_at*1000).toLocaleString()}`),
     node('p', `计划现金 ${money(plan.cash_total_cents)} · 已填报预留 ${money(plan.reserved_cash_cents || 0)} · 剩余预算 ${money(plan.remaining_budget_cents)} · 估算钱包 ${money(plan.estimated_wallet_total_cents)}`),
     node('p', `${plan.wallet_policy?.kind==='parameterized_fees'?'自填费用模型估算':'1.15 比例估算'} · ${posSourceLabel}`,'hint'));
   const policyLimits=plan.request.liquidity_policy;
