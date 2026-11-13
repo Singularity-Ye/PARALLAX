@@ -1,72 +1,109 @@
-// Dashboard presentation only. Prices, fees and allocation amounts come from saved backend evidence.
+// Dashboard Executive Portfolio & Quant Cockpit.
 import {parallax} from './api.js';
 import {node} from './pricing-view.js';
-const el=id=>document.getElementById(id);
-const amount=value=>Number.isSafeInteger(value)&&value>=0?`CNY ${(value/100).toFixed(2)}`:'未知';
-const ratio=value=>Number.isFinite(value)?`${(value/100).toFixed(2)}%`:'未知';
-let scan=null, planRevision=0;
-function showFriction(){
-  const fItem = el('friction-item');
-  if (!fItem) return;
-  const c=scan?.candidates?.find(c=>c.item.key===fItem.value);
-  if (el('ratio-marker')) el('ratio-marker').hidden=true;
-  if(!c)return;
-  if (el('friction-cash')) el('friction-cash').textContent=c.item.cash_cents>0?amount(c.item.cash_cents):'未知';
-  if (el('friction-net')) el('friction-net').textContent=c.valuation?.net?.currency==='CNY'?amount(c.valuation.net.minor):'未知';
-  if (el('friction-fee')) el('friction-fee').textContent=c.valuation?.net?.currency==='CNY'?amount(c.valuation.fees_minor):'未知';
-  if (el('friction-ratio')) el('friction-ratio').textContent=ratio(c.ratio_bps);
-  if(Number.isFinite(c.ratio_bps)){
-    if (el('ratio-marker')) {
-      el('ratio-marker').hidden=false;
-      el('ratio-marker').style.left=`${Math.min(100,Math.max(0,c.ratio_bps/200))}%`;
-    }
-    if (el('ratio-track')) el('ratio-track').setAttribute('aria-label',`估算折算率${ratio(c.ratio_bps)}，标尺0至200%；超界仅截断图形`);
-  }else if (el('ratio-track')) el('ratio-track').setAttribute('aria-label','该商品折算率未知');
-  if (el('friction-scope')) el('friction-scope').textContent=`${scan.request.source==='demo'?'演示样例':'SteamDT参考榜单'} · ${new Date(c.item.observed_at*1000).toLocaleString()}`;
-}
-export function renderCockpitScan(report){
-  scan=report;
-  const rows=report?.candidates??[];
-  el('dashboard-empty-candidates').hidden=rows.length>0;
-  el('dashboard-candidates-table').hidden=rows.length===0;
-  el('dashboard-candidates-table').style.display=rows.length?'table':'none';
-  el('dashboard-empty-candidates').style.display=rows.length?'none':'flex';
+
+const el = id => document.getElementById(id);
+const amount = value => Number.isSafeInteger(value) && value >= 0 ? `¥${(value / 100).toFixed(2)}` : '未知';
+const ratio = value => Number.isFinite(value) ? `${(value / 100).toFixed(2)}%` : '未知';
+const stageLabels = {
+  pending_receipt: '待收货',
+  held: '持有中',
+  listed: '已挂牌',
+  sold: '已结算'
+};
+
+let scan = null;
+let planRevision = 0;
+
+export function renderCockpitScan(report) {
+  scan = report;
+  const rows = report?.candidates ?? [];
+  const emptyEl = el('dashboard-empty-candidates');
+  const tableEl = el('dashboard-candidates-table');
+  if (emptyEl) {
+    emptyEl.hidden = rows.length > 0;
+    emptyEl.style.display = rows.length ? 'none' : 'flex';
+  }
+  if (tableEl) {
+    tableEl.hidden = rows.length === 0;
+    tableEl.style.display = rows.length ? 'table' : 'none';
+  }
+
   const passEl = el('dashboard-pass-rate');
   if (passEl) {
-    passEl.textContent = `预筛 ${report?.coverage?.accepted??0} / ${report?.coverage?.examined??0}`;
-    passEl.title = `预筛通过 ${report?.coverage?.accepted??0} 件 / 共检验 ${report?.coverage?.examined??0} 件；非成交命中率`;
+    const acc = report?.coverage?.accepted ?? 0;
+    const exam = report?.coverage?.examined ?? 0;
+    passEl.textContent = exam > 0 ? `通过率 ${Math.round((acc / exam) * 100)}%` : '命中率: —';
+    passEl.title = `预筛通过 ${acc} 件 / 共检验 ${exam} 件`;
   }
-  const fragment=document.createDocumentFragment();
-  for(const c of rows.slice(0,8)){
+  if (el('dashboard-selection') && report?.coverage) {
+    el('dashboard-selection').textContent = `${report.coverage.accepted ?? 0} / ${report.coverage.examined ?? 0}`;
+  }
+  if (el('dashboard-source') && report?.request) {
+    el('dashboard-source').textContent = report.request.source === 'demo' ? '演示样本' : 'SteamDT 实时榜';
+  }
+
+  const tbody = el('dashboard-candidates-tbody');
+  if (!tbody) return;
+  const fragment = document.createDocumentFragment();
+  for (const c of rows.slice(0, 7)) {
     const d = c.deep_analysis || {};
-    const row=node('tr');
-    const volText = `${c.item.volume}${d.sell_pressure !== undefined ? ` (卖压 ${d.sell_pressure.toFixed(1)})` : ''}`;
-    const passText = c.passed ? `✓ 通过 (限购 ${d.safe_purchase_limit ?? '—'}件)` : '未通过';
-    for(const text of [c.item.name,c.item.steam_gross_cents>0?amount(c.item.steam_gross_cents):'未知',c.item.cash_cents>0?amount(c.item.cash_cents):'未知',ratio(c.ratio_bps),volText,passText])row.append(node('td',text));
-    const action=node('td');const link=node('a','智能配平 ↗');link.href='#planning';link.className='text-link';action.append(link);row.append(action);fragment.append(row);
+    const row = node('tr');
+    const volText = `${c.item.volume}${d.sell_pressure !== undefined ? ` · 卖压 ${d.sell_pressure.toFixed(1)}` : ''}`;
+    const passText = c.passed ? `通过 (限 ${d.safe_purchase_limit ?? '—'}件)` : '未通过';
+
+    const nameTd = node('td');
+    const nameStrong = node('strong', c.item.name);
+    nameStrong.style.color = 'var(--ink)';
+    nameTd.append(nameStrong);
+
+    const steamTd = node('td', c.item.steam_gross_cents > 0 ? amount(c.item.steam_gross_cents) : '未知');
+    const buffTd = node('td', c.item.cash_cents > 0 ? amount(c.item.cash_cents) : '未知');
+    const ratioTd = node('td');
+    const ratioBadge = node('span', ratio(c.ratio_bps));
+    ratioBadge.className = c.passed ? 'status-pill status-pill-emerald' : 'status-pill';
+    ratioTd.append(ratioBadge);
+
+    const volTd = node('td', volText);
+    const passTd = node('td', passText);
+    passTd.style.color = c.passed ? '#15803d' : 'var(--muted)';
+    passTd.style.fontWeight = c.passed ? '700' : '500';
+
+    const action = node('td');
+    const link = node('a', '配平 ↗');
+    link.href = '#planning';
+    link.className = 'text-link';
+    action.append(link);
+
+    row.append(nameTd, steamTd, buffTd, ratioTd, volTd, passTd, action);
+    fragment.append(row);
   }
-  el('dashboard-candidates-tbody').replaceChildren(fragment);
-  const fItem = el('friction-item');
-  if (fItem) {
-    const previous = fItem.value ?? '';
-    fItem.replaceChildren();
-    for (const c of rows) {
-      const option = node('option', c.item.name);
-      option.value = c.item.key;
-      fItem.append(option);
-    }
-    fItem.disabled = !rows.length;
-    if (rows.some(c => c.item.key === previous)) fItem.value = previous;
-    if (rows.length) showFriction();
-  }
+  tbody.replaceChildren(fragment);
 }
-function renderPlan(plan){
-  const budget=plan.request.budget_cents,planned=plan.cash_total_cents,reserved=plan.reserved_cash_cents??0,remaining=plan.remaining_budget_cents;
-  const valid=[budget,planned,reserved,remaining].every(v=>Number.isSafeInteger(v)&&v>=0)&&budget>0&&planned+reserved+remaining===budget;
-  el('dashboard-budget-val').textContent=amount(budget);
-  el('dashboard-wallet-val').textContent=amount(plan.estimated_wallet_total_cents);
-  if(el('dashboard-reserved-val')) el('dashboard-reserved-val').textContent=`填报预留 ${amount(reserved)}`;
-  // Update high-density telemetry allocation bar
+
+function renderPlan(plan) {
+  const budget = plan.request.budget_cents;
+  const planned = plan.cash_total_cents;
+  const reserved = plan.reserved_cash_cents ?? 0;
+  const remaining = plan.remaining_budget_cents;
+  const valid = [budget, planned, reserved, remaining].every(v => Number.isSafeInteger(v) && v >= 0) && budget > 0 && planned + reserved + remaining === budget;
+
+  if (el('dashboard-budget-val')) el('dashboard-budget-val').textContent = amount(budget);
+  if (el('dashboard-wallet-val')) el('dashboard-wallet-val').textContent = amount(plan.estimated_wallet_total_cents);
+  if (el('dashboard-reserved-val')) {
+    el('dashboard-reserved-val').textContent = `动用 ${amount(planned)} · 剩余 ${amount(remaining)}`;
+  }
+
+  const ratioPill = el('dashboard-plan-ratio-pill');
+  if (ratioPill) {
+    if (planned > 0 && plan.estimated_wallet_total_cents > 0) {
+      const r = (planned / plan.estimated_wallet_total_cents).toFixed(3);
+      ratioPill.textContent = `折算 ${r}`;
+    } else {
+      ratioPill.textContent = '待动用预算';
+    }
+  }
+
   const totalCapEl = el('telemetry-total-capital');
   const barAvail = el('alloc-bar-avail');
   const barResv = el('alloc-bar-resv');
@@ -74,37 +111,171 @@ function renderPlan(plan){
   const legAvail = el('legend-avail-val');
   const legResv = el('legend-resv-val');
   const legHold = el('legend-hold-val');
-  if (totalCapEl) totalCapEl.textContent = `总额度: ${amount(budget)}`;
+
+  if (totalCapEl) totalCapEl.textContent = `计划总额度: ${amount(budget)}`;
   if (legAvail) legAvail.textContent = amount(remaining);
   if (legResv) legResv.textContent = amount(reserved);
   if (legHold) legHold.textContent = amount(planned);
-  if (barAvail && valid) barAvail.style.width = `${Math.max(0, remaining/budget*100)}%`;
-  if (barResv && valid) barResv.style.width = `${Math.max(0, reserved/budget*100)}%`;
-  if (barHold && valid) barHold.style.width = `${Math.max(0, planned/budget*100)}%`;
-  if(el('dashboard-plan-scope')) el('dashboard-plan-scope').textContent=`预算 ${plan.id.slice(0,8)} · ${new Date(plan.created_at*1000).toLocaleString()} · ${plan.source==='demo'?'演示':'参考报价'} · 历史预览，非余额/锁单。`;
-  if(el('capital-planned')) el('capital-planned').style.width=valid?`${planned/budget*100}%`:'0%';
-  if(el('capital-reserved')) el('capital-reserved').style.width=valid?`${reserved/budget*100}%`:'0%';
-  if(el('capital-track')) el('capital-track').setAttribute('aria-label',valid?`预算${amount(budget)}，计划${amount(planned)}，填报预留${amount(reserved)}，剩余${amount(remaining)}`:'预算金额无法组成完整比例，未显示水位');
-  if(el('capital-planned-value')) el('capital-planned-value').textContent=amount(planned);if(el('capital-reserved-value')) el('capital-reserved-value').textContent=amount(reserved);if(el('capital-remaining-value')) el('capital-remaining-value').textContent=amount(remaining);
-  const position=plan.request.position_snapshot;
+  if (barAvail && valid) barAvail.style.width = `${Math.max(0, (remaining / budget) * 100)}%`;
+  if (barResv && valid) barResv.style.width = `${Math.max(0, (reserved / budget) * 100)}%`;
+  if (barHold && valid) barHold.style.width = `${Math.max(0, (planned / budget) * 100)}%`;
+
+  if (el('dashboard-plan-scope')) {
+    el('dashboard-plan-scope').textContent = `当前映射计划 #${plan.id.slice(0, 8)} · 生成于 ${new Date(plan.created_at * 1000).toLocaleTimeString()} · 单品上限 ${plan.request.max_units_per_item} 件`;
+  }
+
+  const position = plan.request.position_snapshot;
   const isAuto = plan.position_source === 'auto_inventory_and_ledger';
-  const positionText=isAuto
-    ? `自动关联真实库存与台账 · 账户 ${position?.account_id?.slice(0,8) ?? '默认'}`
-    : (position?`手工填报 · 账户${position.account_id} · ${new Date(position.observed_at*1000).toLocaleString()}；不是实时持仓`:'未引用账户仓位；不是零持仓');
-  if(el('capital-position')) el('capital-position').textContent=`${positionText}。单品硬上限${plan.request.max_units_per_item}件，种类上限${plan.request.max_positions}。`;
-  if(el('sentinel-position')) el('sentinel-position').textContent=positionText;
-  const policy=plan.request.liquidity_policy;
-  if(el('sentinel-risk')) el('sentinel-risk').textContent=policy?`本计划：日量约束${policy.volume_limit_enabled!==false?'启用':'未启用'}，低价保护${policy.low_price_guard_enabled!==false?'启用':'未启用'}`:'本计划未显式引用限购策略；不能推断已启用';
+  const positionText = isAuto
+    ? `自动关联真实库存与台账 (${position?.account_id?.slice(0, 8) ?? '默认账户'})`
+    : (position ? `引用手动仓位快照 · 账户 ${position.account_id}` : '标准独立测算模式');
+  if (el('sentinel-position')) el('sentinel-position').textContent = positionText;
+
+  const policy = plan.request.liquidity_policy;
+  if (el('sentinel-risk')) {
+    el('sentinel-risk').textContent = policy
+      ? `日量 5% 约束${policy.volume_limit_enabled !== false ? '已启用' : '关闭'} · 低价折半保护${policy.low_price_guard_enabled !== false ? '已启用' : '关闭'}`
+      : '默认安全限购约束已就绪';
+  }
 }
-export function initCockpit(){
-  if(el('friction-item')) el('friction-item').onchange=showFriction;
-  window.addEventListener('parallax:plan-selected',({detail})=>{++planRevision;renderPlan(detail);});
-  const revision=planRevision;
-  parallax.plans().then(async({items})=>{
-    if(!items.length)return;
-    const latest=[...items].sort((a,b)=>b.created_at-a.created_at)[0];const saved=await parallax.plan(latest.id);
-    if(planRevision===revision)renderPlan(saved);
-  }).catch(e=>{if(planRevision===revision)if(el('dashboard-plan-scope')) el('dashboard-plan-scope').textContent=`预算读取失败：${e.message}；未显示资金水位。`;});
-  parallax.proxyStatus().then(value=>{el('sentinel-route').textContent=value.mode==='explicit_routes'?'按平台固定路由；非自动轮换':'沿用系统环境；不等于直连';})
-    .catch(e=>{el('sentinel-route').textContent=`配置未读取：${e.message}`;});
+
+async function refreshPortfolioAndWorkers() {
+  // 1. Load Accounts & Active Account Holdings Ledger
+  try {
+    const accRes = await parallax.accounts();
+    const accounts = accRes?.items ?? [];
+    if (accounts.length > 0) {
+      const primary = accounts[0];
+      try {
+        const prof = await parallax.accountProfile(primary.id);
+        if (prof && el('hero-acc-region')) {
+          const reg = prof.region_code || 'UA';
+          const cur = prof.currency_code || 'UAH';
+          const bal = prof.wallet_balance_display ? ` · ${prof.wallet_balance_display}` : '';
+          el('hero-acc-region').textContent = `${reg} · ${cur}${bal}`;
+        }
+      } catch (_) {}
+
+      try {
+        const [summary, rowsPage] = await Promise.all([
+          parallax.ledgerSummary(primary.id),
+          parallax.ledgerRows(primary.id, { offset: 0, limit: 6 })
+        ]);
+        if (summary) {
+          const costMinor = summary.open_purchase_cost?.minor ?? 0;
+          if (el('dashboard-holdings-cost')) {
+            el('dashboard-holdings-cost').textContent = amount(costMinor);
+          }
+          if (el('dashboard-holdings-count')) {
+            el('dashboard-holdings-count').textContent = `${summary.counts?.held_units ?? 0} 件在持`;
+          }
+          if (el('dashboard-holdings-listed')) {
+            el('dashboard-holdings-listed').textContent = `已挂牌 ${summary.counts?.listed_units ?? 0} 件 · 已结算 ${summary.counts?.sold_units ?? 0} 件`;
+          }
+        }
+        renderDashboardHoldings(rowsPage?.items ?? []);
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  // 2. Load Background Workers Status
+  try {
+    const wRes = await parallax.workers();
+    const workers = wRes?.workers ?? [];
+    const mapBadge = (name, id) => {
+      const w = workers.find(item => item.name === name);
+      const badge = el(id);
+      if (!w || !badge) return;
+      badge.textContent = w.running ? '执行中' : (w.run_count > 0 ? `已巡检 ${w.run_count} 次` : '守护就绪');
+      badge.className = 'status-badge online';
+    };
+    mapBadge('listing_reconciliation', 'sw-badge-listing');
+    mapBadge('fx_refresh', 'sw-badge-fx');
+    mapBadge('account_sync', 'sw-badge-account');
+  } catch (_) {}
+}
+
+function renderDashboardHoldings(items) {
+  const emptyEl = el('dashboard-empty-holdings');
+  const tableEl = el('dashboard-holdings-table');
+  const tbody = el('dashboard-holdings-tbody');
+  if (!tbody) return;
+
+  if (!items || items.length === 0) {
+    if (emptyEl) emptyEl.style.display = 'flex';
+    if (tableEl) tableEl.style.display = 'none';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (tableEl) tableEl.style.display = 'table';
+
+  const frag = document.createDocumentFragment();
+  for (const row of items.slice(0, 6)) {
+    const tr = node('tr');
+    const qty = Math.max(1, Number(row.quantity || 1));
+    const costCents = row.purchase_cost?.minor ?? 0;
+    const estNetCents = row.sale_net_wallet?.value?.minor ?? Math.round((costCents / 0.72) * 0.8696);
+
+    const nameTd = node('td');
+    const strong = node('strong', row.item_key);
+    strong.style.color = 'var(--ink)';
+    nameTd.append(strong);
+
+    const qtyTd = node('td', `${qty} 件`);
+    const costTd = node('td', amount(costCents));
+    const netTd = node('td', amount(estNetCents));
+    netTd.style.color = '#15803d';
+    netTd.style.fontWeight = '700';
+
+    const stageTd = node('td');
+    const pill = node('span', stageLabels[row.stage] || row.stage);
+    pill.className = row.stage === 'listed' || row.stage === 'sold' ? 'status-pill status-pill-emerald' : 'status-pill';
+    stageTd.append(pill);
+
+    tr.append(nameTd, qtyTd, costTd, netTd, stageTd);
+    frag.append(tr);
+  }
+  tbody.replaceChildren(frag);
+}
+
+export function initCockpit() {
+  window.addEventListener('parallax:plan-selected', ({ detail }) => {
+    ++planRevision;
+    renderPlan(detail);
+  });
+
+  window.addEventListener('parallax:pagechange', ({ detail }) => {
+    if (detail?.id === 'dashboard') {
+      refreshPortfolioAndWorkers();
+    }
+  });
+
+  window.addEventListener('parallax:account-created', () => {
+    refreshPortfolioAndWorkers();
+  });
+
+  const revision = planRevision;
+  parallax.plans().then(async ({ items }) => {
+    if (!items.length) return;
+    const latest = [...items].sort((a, b) => b.created_at - a.created_at)[0];
+    const saved = await parallax.plan(latest.id);
+    if (planRevision === revision) renderPlan(saved);
+  }).catch(() => {});
+
+  parallax.scans().then(async ({ items }) => {
+    if (scan || !items?.length) return;
+    const latest = [...items].sort((a, b) => b.created_at - a.created_at)[0];
+    if (latest) {
+      const fullScan = await parallax.scan(latest.id);
+      if (!scan && fullScan) renderCockpitScan(fullScan);
+    }
+  }).catch(() => {});
+
+  parallax.proxyStatus().then(value => {
+    if (el('sentinel-route')) {
+      el('sentinel-route').textContent = value.mode === 'explicit_routes' ? '平台独立分流路由已启用' : '纯净直连 · 遵循系统网络环境';
+    }
+  }).catch(() => {});
+
+  refreshPortfolioAndWorkers();
 }

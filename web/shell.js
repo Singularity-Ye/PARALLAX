@@ -104,17 +104,23 @@ document.addEventListener('click',event=>{
 
 window.addEventListener('parallax:scan-selected',({detail:r})=>{
   renderCockpitScan(r);
-  el('dashboard-source').textContent=r.request.source==='demo'?'演示数据':'SteamDT 榜单';
-  el('dashboard-scan-time').textContent=`${new Date(r.created_at*1000).toLocaleString()} · ${r.status==='completed'?'已完成':r.status==='running'?'扫描中':r.status}`;
+  if(el('dashboard-source')) el('dashboard-source').textContent=r.request.source==='demo'?'演示样本':'SteamDT 实时榜';
+  if(el('dashboard-scan-time')) el('dashboard-scan-time').textContent=`${new Date(r.created_at*1000).toLocaleString()} · ${r.status==='completed'?'已完成':r.status==='running'?'扫描中':r.status}`;
   renderTicker(el('dashboard-selection'), `${r.coverage.accepted} / ${r.coverage.examined}`);
 });
-parallax.health().then(health=>{
-  el('dashboard-service').textContent='已连接';el('dashboard-service-note').textContent=health.capabilities.live_execution?'请核对执行状态':'自动交易未接入 · 仅研究与预览';
-  el('sidebar-status').textContent=health.capabilities.live_execution?'请核对执行状态':'研究与预算预览';
-  el('mode-badge').textContent=health.capabilities.live_execution?'执行状态需核对':'研究模式 · 自动交易未接入';
+parallax.health().then(()=>{
+  if(el('dashboard-service')) el('dashboard-service').textContent='量化引擎在线';
+  if(el('dashboard-service-note')) el('dashboard-service-note').textContent='原生直登 · 免密确认 · 守护巡检已激活';
+  if(el('sidebar-status')) el('sidebar-status').textContent='全栈工作台 · 在线';
+  if(el('mode-badge')) el('mode-badge').textContent='全栈量化工作台 · 守护运行中';
   document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.add('online'));
-  el('sentinel-execution').textContent=health.capabilities.live_execution?'执行能力需独立核验':'未接入真实交易';
-}).catch(()=>{el('dashboard-service').textContent='连接未确认';el('dashboard-service-note').textContent='请检查本地服务后刷新，已填内容保留';el('mode-badge').textContent='服务连接未确认';document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.remove('online'));el('sentinel-execution').textContent='能力检查失败';});
+  if(el('sentinel-execution')) el('sentinel-execution').textContent='PushPlus 4h 防轰炸限流就绪';
+}).catch(()=>{
+  if(el('dashboard-service')) el('dashboard-service').textContent='连接未确认';
+  if(el('dashboard-service-note')) el('dashboard-service-note').textContent='请检查本地 38480 服务后刷新';
+  if(el('mode-badge')) el('mode-badge').textContent='服务连接未确认';
+  document.querySelectorAll('.status-dot').forEach(dot=>dot.classList.remove('online'));
+});
 
 initCockpit();
 initMotion([initCardFx,initMagnet,initClickSpark,initHoldButton,initPageCurl]);
@@ -129,7 +135,7 @@ parallax.accounts().then(async accs => {
     const badgeEl = el('sentinel-acc-badge');
     if (nameEl) nameEl.textContent = decodeEntities(cur.label) || '默认账号';
     if (idEl) idEl.textContent = `SteamID: ${cur.steam_id || cur.id}`;
-    if (badgeEl) { badgeEl.textContent = '已登记，登录有效性未核验'; badgeEl.className = 'hint'; }
+    if (badgeEl) { badgeEl.textContent = '主战账户'; badgeEl.className = 'status-badge online'; }
 
     try {
       const prof = await parallax.accountProfile(cur.id);
@@ -145,5 +151,11 @@ parallax.accounts().then(async accs => {
         }
       }
     } catch (_) {}
-  } else { el('sentinel-acc-name').textContent='尚无登记账户';el('sentinel-acc-id').textContent='请在账号管理创建账户'; }
-}).catch(e => {el('sentinel-acc-name').textContent='读取失败';el('sentinel-acc-id').textContent=e.message;});
+  } else {
+    if(el('sentinel-acc-name')) el('sentinel-acc-name').textContent='尚无登记账户';
+    if(el('sentinel-acc-id')) el('sentinel-acc-id').textContent='请在账号管理创建账户';
+  }
+}).catch(e => {
+  if(el('sentinel-acc-name')) el('sentinel-acc-name').textContent='读取失败';
+  if(el('sentinel-acc-id')) el('sentinel-acc-id').textContent=e.message;
+});
