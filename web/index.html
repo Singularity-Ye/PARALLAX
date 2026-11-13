@@ -459,9 +459,9 @@
             <span class="inv-label">库存账户：</span>
             <select id="inventory-account" class="compact-select" required></select>
           </div>
-          <button id="inventory-fetch" type="button" class="btn btn-primary btn-sm" disabled style="color:#ffffff !important;background:#18181b !important;">
+          <button id="inventory-fetch" type="button" class="btn btn-primary btn-sm" disabled>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-right:4px"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-            <span style="color:#ffffff !important;">立即刷新</span>
+            <span>立即刷新</span>
           </button>
           <div class="inv-acc-picker" style="margin-left:6px;">
             <span class="inv-label">计价时段：</span>
@@ -493,7 +493,7 @@
           </div>
           <div class="inv-stat-capsule">
             <span class="capsule-label">税后价值</span>
-            <span class="capsule-val mono" id="inv-net-val" style="color:#16a34a;">¥0.00</span>
+            <span class="capsule-val mono metric-good" id="inv-net-val">¥0.00</span>
           </div>
           <div class="inv-stat-capsule">
             <span class="capsule-label">平均折扣率</span>
@@ -1499,11 +1499,11 @@
         </div>
         <div>
           <span class="route-desc-hint" style="display:block;">全网最低价区</span>
-          <span id="deals-lowest-region" style="font-size:18px;font-weight:700;color:#16a34a;">—</span>
+          <span id="deals-lowest-region" class="metric-good" style="font-size:18px;font-weight:700;">—</span>
         </div>
         <div>
           <span class="route-desc-hint" style="display:block;">最低折算人民币</span>
-          <span id="deals-lowest-price" style="font-size:18px;font-weight:700;color:#16a34a;">—</span>
+          <span id="deals-lowest-price" class="metric-good" style="font-size:18px;font-weight:700;">—</span>
         </div>
       </div>
       <span id="deals-savings-badge" class="badge ok" style="display:none;font-size:12px;padding:4px 8px;">立省 —</span>

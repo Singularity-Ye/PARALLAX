@@ -21,11 +21,10 @@ function formatSignedCny(cents) {
   return `${sign}¥${(Math.abs(cents) / 100).toFixed(2)}`;
 }
 
-function metricCell(metric,format=money,fallbackText=null,fallbackColor=null) {
+function metricCell(metric,format=money,fallbackText=null,fallbackClass=null) {
   const text = metric?.value == null ? (fallbackText ?? '未知') : format(metric.value);
   const td=node('td',text);
-  td.className='ledger-number';
-  if (metric?.value == null && fallbackColor) td.style.color = fallbackColor;
+  td.className = fallbackClass ? `ledger-number ${fallbackClass}` : 'ledger-number';
   td.title=metric?.reason || '实时联动估值';
   return td;
 }
@@ -67,10 +66,10 @@ export function renderLedgerTable(body,page,priceMap=new Map()) {
       metricCell(row.purchase_market_price, money, `¥${((buyGrossUnit * qty)/100).toFixed(2)}`),
       metricCell(row.current_market_price, money, `¥${(liveGrossTotal/100).toFixed(2)}`),
       metricCell(row.sale_net_wallet, money, `¥${(estNetWalletTotal/100).toFixed(2)} (估)`),
-      metricCell(row.actual_discount_bps, v=>`${(v/100).toFixed(2)}%`, discountPct, '#38bdf8'),
-      metricCell(row.cash_profit, money, formatSignedCny(profitCents), profitCents >= 0 ? '#16a34a' : '#dc2626'),
+      metricCell(row.actual_discount_bps, v=>`${(v/100).toFixed(2)}%`, discountPct, 'metric-ink'),
+      metricCell(row.cash_profit, money, formatSignedCny(profitCents), profitCents >= 0 ? 'metric-good' : 'metric-danger'),
       state,
-      metricCell(row.market_change, money, formatSignedCny(marketDiffCents), marketDiffCents >= 0 ? '#16a34a' : '#dc2626'),
+      metricCell(row.market_change, money, formatSignedCny(marketDiffCents), marketDiffCents >= 0 ? 'metric-good' : 'metric-danger'),
       action
     );
     body.append(tr);
@@ -112,8 +111,9 @@ export function renderLedgerSummary(get,summary,page=null,priceMap=new Map()) {
     if (!target) continue;
     target.textContent=text;
     target.className='summary-val';
+    target.style.color = '';
     if (id === 'summary-total-profit' && openCostCents > 0) {
-      target.style.color = estProfitCents >= 0 ? '#16a34a' : '#dc2626';
+      target.classList.add(estProfitCents >= 0 ? 'metric-good' : 'metric-danger');
     }
   }
 }

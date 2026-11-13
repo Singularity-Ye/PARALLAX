@@ -66,8 +66,8 @@ export function renderCockpitScan(report) {
 
     const volTd = node('td', volText);
     const passTd = node('td', passText);
-    passTd.style.color = c.passed ? '#15803d' : 'var(--muted)';
-    passTd.style.fontWeight = c.passed ? '700' : '500';
+    passTd.className = c.passed ? 'metric-good' : 'metric-muted';
+    passTd.style.fontWeight = c.passed ? '650' : '500';
 
     const action = node('td');
     const link = node('a', '配平 ↗');
@@ -224,8 +224,8 @@ function renderDashboardHoldings(items) {
     const qtyTd = node('td', `${qty} 件`);
     const costTd = node('td', amount(costCents));
     const netTd = node('td', amount(estNetCents));
-    netTd.style.color = '#15803d';
-    netTd.style.fontWeight = '700';
+    netTd.className = 'metric-good';
+    netTd.style.fontWeight = '650';
 
     const stageTd = node('td');
     const pill = node('span', stageLabels[row.stage] || row.stage);

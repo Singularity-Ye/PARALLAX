@@ -116,19 +116,19 @@ const KNOWN_ITEMS = {
 function getItemSvgPlaceholder(type = 'case') {
   if (type === 'souvenir' || type === 'package') {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
-      <rect width="38" height="38" rx="8" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
-      <rect x="7" y="10" width="24" height="18" rx="3" fill="#fbbf24" stroke="#b45309" stroke-width="1.5"/>
-      <line x1="19" y1="10" x2="19" y2="28" stroke="#b45309" stroke-width="1.5"/>
-      <line x1="7" y1="19" x2="31" y2="19" stroke="#b45309" stroke-width="1.5"/>
-      <circle cx="19" cy="19" r="3.2" fill="#fffbeb" stroke="#b45309" stroke-width="1.4"/>
+      <rect width="38" height="38" rx="8" fill="#f4f1e6" stroke="#d4cab2" stroke-width="1.5"/>
+      <rect x="7" y="10" width="24" height="18" rx="3" fill="#e8e0ca" stroke="#7d6f52" stroke-width="1.4"/>
+      <line x1="19" y1="10" x2="19" y2="28" stroke="#7d6f52" stroke-width="1.4"/>
+      <line x1="7" y1="19" x2="31" y2="19" stroke="#7d6f52" stroke-width="1.4"/>
+      <circle cx="19" cy="19" r="3" fill="#faf8f2" stroke="#7d6f52" stroke-width="1.3"/>
     </svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="38" height="38" viewBox="0 0 38 38">
-    <rect width="38" height="38" rx="8" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
-    <path d="M19 7L30 13V25L19 31L8 25V13L19 7Z" fill="#e2e8f0" stroke="#334155" stroke-width="1.5"/>
-    <path d="M8 13L19 19L30 13" stroke="#334155" stroke-width="1.5" fill="none"/>
-    <line x1="19" y1="19" x2="19" y2="31" stroke="#334155" stroke-width="1.5"/>
+    <rect width="38" height="38" rx="8" fill="#f2f4ec" stroke="#d1d8c6" stroke-width="1.5"/>
+    <path d="M19 7L30 13V25L19 31L8 25V13L19 7Z" fill="#e5eadc" stroke="#536049" stroke-width="1.4"/>
+    <path d="M8 13L19 19L30 13" stroke="#536049" stroke-width="1.4" fill="none"/>
+    <line x1="19" y1="19" x2="19" y2="31" stroke="#536049" stroke-width="1.4"/>
   </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
@@ -289,15 +289,17 @@ async function render(snapshot) {
     }
   }
   if (el('inv-status-label')) {
+    const statusEl = el('inv-status-label');
+    statusEl.style.color = '';
     if (totalUnits === 0) {
-      el('inv-status-label').textContent = '空仓';
-      el('inv-status-label').style.color = 'var(--muted)';
+      statusEl.textContent = '空仓';
+      statusEl.className = 'capsule-val text-sm metric-muted';
     } else if (cooldownUnits === 0) {
-      el('inv-status-label').textContent = '全量可交易';
-      el('inv-status-label').style.color = '#16a34a';
+      statusEl.textContent = '全量可交易';
+      statusEl.className = 'capsule-val text-sm metric-good';
     } else {
-      el('inv-status-label').textContent = `${cooldownUnits} 件冷却中`;
-      el('inv-status-label').style.color = '#d97706';
+      statusEl.textContent = `${cooldownUnits} 件冷却中`;
+      statusEl.className = 'capsule-val text-sm metric-warn';
     }
   }
 
@@ -362,7 +364,7 @@ async function render(snapshot) {
     const tdMarket = document.createElement('td');
     tdMarket.style.textAlign = 'center';
     const marketPill = document.createElement('span');
-    marketPill.className = a.reported_marketable ? 'status-pill status-pill-success' : 'status-pill status-pill-active';
+    marketPill.className = a.reported_marketable ? 'status-pill status-pill-soft' : 'status-pill status-pill-active';
     marketPill.textContent = a.reported_marketable ? '可出售' : '不可售';
     tdMarket.appendChild(marketPill);
     tr.appendChild(tdMarket);
@@ -372,7 +374,7 @@ async function render(snapshot) {
     tdTrade.style.textAlign = 'center';
     const tradePill = document.createElement('span');
     const transferable = a.context_id === '2' && a.reported_tradable && !a.restriction_note_present;
-    tradePill.className = transferable ? 'status-pill status-pill-success' : 'status-pill status-pill-active';
+    tradePill.className = transferable ? 'status-pill status-pill-soft' : 'status-pill status-pill-active';
     tradePill.textContent = transferable ? '可交易' : '冷却期';
     tdTrade.appendChild(tradePill);
     tr.appendChild(tdTrade);
@@ -408,7 +410,7 @@ async function render(snapshot) {
     if (prices.now !== null || prices.d7 !== null || prices.d30 !== null) {
       const fmt = v => (v !== null && v !== undefined ? `¥${v.toFixed(2)}` : '—');
       tdMarketPrice.innerHTML = `
-        <div class="mono" style="font-size:12px;font-weight:750;color:#0f172a;">
+        <div class="mono metric-ink" style="font-size:12px;font-weight:700;">
           现: ${fmt(prices.now)}
         </div>
         <div class="mono text-muted" style="font-size:10.5px;">
@@ -491,7 +493,7 @@ async function render(snapshot) {
       const btnHold = document.createElement('button');
       btnHold.type = 'button';
       btnHold.className = 'btn btn-primary btn-xs';
-      btnHold.style.cssText = 'margin-left:4px;background:#2563eb;border-color:#3b82f6;color:#fff;';
+      btnHold.style.marginLeft = '4px';
       btnHold.textContent = '入账';
       btnHold.title = '将该库存饰品一键转入「持有饰品」台账并自动绑定真实 AssetID';
       btnHold.onclick = async () => {

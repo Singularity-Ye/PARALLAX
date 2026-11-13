@@ -53,7 +53,8 @@ function renderCandidates() {
         strong.textContent = c.item.name;
         tdName.appendChild(strong);
         const subKey = document.createElement('div');
-        subKey.style.cssText = 'font-size:11px;color:var(--text-muted,#94a3b8);margin-top:2px;';
+        subKey.className = 'cell-tag-sub';
+        subKey.style.marginTop = '2px';
         subKey.textContent = c.item.key;
         tdName.appendChild(subKey);
         tr.appendChild(tdName);
@@ -69,7 +70,7 @@ function renderCandidates() {
         tdSteam.className = 'col-mono';
         const netStr = c.estimated_wallet_cents > 0 ? money(c.estimated_wallet_cents) : '—';
         const grossStr = c.item.steam_gross_cents > 0 ? money(c.item.steam_gross_cents) : '—';
-        tdSteam.innerHTML = `<div>${netStr} <span style="font-size:10px;color:#38bdf8;">净得</span></div><div style="font-size:11px;color:var(--text-muted,#94a3b8);">壁垒 ${grossStr}</div>`;
+        tdSteam.innerHTML = `<div>${netStr} <span class="cell-tag-sub">净得</span></div><div class="cell-tag-sub">壁垒 ${grossStr}</div>`;
         tr.appendChild(tdSteam);
 
         // 4. Ratio
@@ -86,18 +87,18 @@ function renderCandidates() {
         const tdVol = document.createElement('td');
         tdVol.className = 'col-mono';
         const sp = d.sell_pressure !== undefined ? d.sell_pressure.toFixed(2) : '—';
-        const spColor = d.sell_pressure_ok !== false ? '#22c55e' : '#f59e0b';
-        tdVol.innerHTML = `<div>${c.item.volume ?? '—'} <span style="font-size:10px;color:var(--text-muted);">件/日</span></div><div style="font-size:11px;color:${spColor};">卖压比 ${sp}</div>`;
+        const spClass = d.sell_pressure_ok !== false ? 'metric-muted' : 'metric-warn';
+        tdVol.innerHTML = `<div>${c.item.volume ?? '—'} <span class="cell-tag-sub">件/日</span></div><div class="${spClass}" style="font-size:11px;">卖压比 ${sp}</div>`;
         tr.appendChild(tdVol);
 
         // 6. 30D Stability & Trend
         const tdStab = document.createElement('td');
         tdStab.className = 'col-mono';
         const trendLabel = d.trend_status === 'RISING' ? '↗ 上升' : (d.trend_status === 'FALLING' ? '↘ 回落' : '→ 横盘');
-        const trendColor = d.trend_status === 'RISING' ? '#22c55e' : '#38bdf8';
+        const trendClass = d.trend_status === 'RISING' ? 'metric-good' : 'metric-ink';
         const cvStr = d.cv_30d !== undefined ? d.cv_30d.toFixed(3) : '—';
         const pctStr = d.price_percentile !== undefined ? `P${d.price_percentile}` : '—';
-        tdStab.innerHTML = `<div style="color:${trendColor};font-weight:600;font-size:12px;">${trendLabel} · ${pctStr}</div><div style="font-size:11px;color:var(--text-muted,#94a3b8);">CV ${cvStr} · R² ${d.r_squared !== undefined ? d.r_squared.toFixed(2) : '—'}</div>`;
+        tdStab.innerHTML = `<div class="${trendClass}" style="font-weight:600;font-size:12px;">${trendLabel} · ${pctStr}</div><div class="cell-tag-sub">CV ${cvStr} · R² ${d.r_squared !== undefined ? d.r_squared.toFixed(2) : '—'}</div>`;
         tr.appendChild(tdStab);
 
         // 7. Holdings & Safe Purchase Limit
@@ -105,7 +106,7 @@ function renderCandidates() {
         tdLimit.className = 'col-mono';
         const held = d.held_same_units ?? 0;
         const safeLim = d.safe_purchase_limit ?? '—';
-        tdLimit.innerHTML = `<div>限购 <strong style="color:#38bdf8;">${safeLim}</strong> 件</div><div style="font-size:11px;color:${held > 0 ? '#f59e0b' : 'var(--text-muted,#94a3b8)'};">已持仓 ${held} 件</div>`;
+        tdLimit.innerHTML = `<div>限购 <strong class="metric-ink">${safeLim}</strong> 件</div><div class="${held > 0 ? 'metric-warn' : 'metric-muted'}" style="font-size:11px;">已持仓 ${held} 件</div>`;
         tr.appendChild(tdLimit);
 
         // 8. Passed badge & Quick Action
@@ -198,13 +199,14 @@ function renderPlan(plan) {
     box.append(node('p', '本计划未分配商品；请检查报价有效期、预算与预筛条件。'));
   } else {
     const commitBar = node('div');
-    commitBar.style.cssText = 'margin:14px 0;padding:12px 14px;border-radius:8px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);display:flex;align-items:center;justify-content:space-between;gap:12px;';
+    commitBar.className = 'plan-commit-banner';
     const tip = node('span', `共规划 ${plan.lines.length} 个品类（合计 ${money(plan.cash_total_cents)}）。采购完成后可一键批量写入「持有饰品」台账并自动追踪收货与挂牌：`);
-    tip.style.cssText = 'font-size:12px;color:var(--text-secondary);';
+    tip.className = 'metric-ink';
+    tip.style.fontSize = '12px';
     const commitBtn = node('button', '一键按此计划建仓入账 →');
     commitBtn.type = 'button';
     commitBtn.className = 'btn btn-sm btn-primary';
-    commitBtn.style.cssText = 'background:#16a34a;border-color:#22c55e;white-space:nowrap;';
+    commitBtn.style.whiteSpace = 'nowrap';
     commitBtn.onclick = async () => {
       commitBtn.disabled = true;
       try {
