@@ -93,6 +93,8 @@ pub fn router(state: AppState) -> Router {
         .route("/lib/icon-helper.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/icon-helper.js")) }))
         .route("/lib/motion.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/motion.js")) }))
         .route("/lib/cockpit.js", get(|| async { ([(header::CONTENT_TYPE, "text/javascript; charset=utf-8")], include_str!("../../web/lib/cockpit.js")) }))
+        .route("/lib/research-view.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/lib/research-view.js")) }))
+        .route("/analytics.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/analytics.js")) }))
         .route("/catalog.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/catalog.js")) }))
         .route("/", get(|| async { static_response("text/html; charset=utf-8", include_str!("../../web/index.html")) }))
         .route("/app.js", get(|| async { static_response("text/javascript; charset=utf-8", include_str!("../../web/app.js")) }))
