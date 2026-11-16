@@ -146,11 +146,11 @@ function renderConfirmations(items) {
   if (!items || items.length === 0) return;
   for (const c of items) {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border:1px solid var(--border-card,#e2e8f0);border-radius:6px;margin-bottom:4px;background:#f8fafc;';
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 10px;border:1px solid #dce1d3;border-radius:6px;margin-bottom:4px;background:#f6f8f1;';
     const left = document.createElement('span');
     left.textContent = `${c.headline || '待确认项'} · ${c.summary || c.type_name || ''}`;
     const tag = document.createElement('span');
-    tag.style.cssText = 'font-size:11px;color:#2563eb;font-weight:600;';
+    tag.style.cssText = 'font-size:11px;color:#4a5d3b;font-weight:600;';
     tag.textContent = `#${c.id}`;
     row.append(left, tag);
     box.append(row);

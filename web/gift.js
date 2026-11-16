@@ -88,7 +88,7 @@ function renderFriendsList() {
     const name = node('div', f.name);
     name.style.fontSize = '12px';
     name.style.fontWeight = '600';
-    name.style.color = '#0f172a';
+    name.style.color = '#262b21';
     const sid = node('div', f.steamid);
     sid.className = 'route-desc-hint';
     sid.style.fontSize = '10px';
@@ -100,8 +100,12 @@ function renderFriendsList() {
       if (recipientInput) recipientInput.value = f.steamid;
 
       // Highlight selected card
-      Array.from(container.children).forEach(c => c.style.borderColor = '#e2e8f0');
-      item.style.borderColor = '#3b82f6';
+      Array.from(container.children).forEach(c => {
+        c.style.borderColor = '#dce1d3';
+        c.style.background = '';
+      });
+      item.style.borderColor = '#48563c';
+      item.style.background = '#f4f6ed';
     };
 
     container.append(item);

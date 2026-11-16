@@ -418,16 +418,16 @@
   </section>
 <section class="page" data-page="planning" id="page-planning" hidden>
 <section class="card" id="planning"><div class="section-title"><h2>交易预算计划与智能配平</h2><span>02 / SMART PLAN</span></div>
-<div style="margin-bottom:16px;padding:14px 16px;border-radius:10px;background:linear-gradient(135deg,rgba(22,101,52,0.08),rgba(5,150,105,0.04));border:1px solid #cce3d4;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;">
-  <div>
-    <strong style="font-size:14px;color:#14532d;display:block;margin-bottom:4px;">全自动智能建仓配平（AetherSwap 同源算法）</strong>
-    <span style="font-size:12px;color:var(--muted);">无需手动复制快照 ID 或手填库存！自动读取当前账户真实 Steam 库存 + 在途采购台账，结合 5% 日量上限与 &lt;¥5.00 低价折半保护一键生成最优采购清单。</span>
+<div class="plan-auto-banner">
+  <div class="plan-auto-meta">
+    <strong>全自动智能建仓配平（AetherSwap 同源算法）</strong>
+    <span class="hint">无需手动复制快照 ID 或手填库存；自动读取当前账户真实 Steam 库存 + 在途采购台账，结合 5% 日量上限与 &lt;¥5.00 低价折半保护一键生成最优采购清单。</span>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">预算(元)<input id="auto-plan-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:90px;"></label>
-    <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">单品上限<input id="auto-plan-max-units" type="number" min="1" max="100" value="50" class="compact-input" style="width:64px;"></label>
-    <label style="margin:0;font-size:12px;display:flex;align-items:center;gap:4px;">最大品类<input id="auto-plan-max-pos" type="number" min="1" max="50" value="8" class="compact-input" style="width:60px;"></label>
-    <button id="auto-plan-submit" type="button" class="btn btn-primary">启动自动配平</button>
+  <div class="plan-auto-controls">
+    <label>预算(元)<input id="auto-plan-budget" type="number" min="1" max="100000" step="10" value="200" class="compact-input" style="width:88px;"></label>
+    <label>单品上限<input id="auto-plan-max-units" type="number" min="1" max="100" value="50" class="compact-input" style="width:64px;"></label>
+    <label>最大品类<input id="auto-plan-max-pos" type="number" min="1" max="50" value="8" class="compact-input" style="width:60px;"></label>
+    <button id="auto-plan-submit" type="button" class="btn btn-primary btn-sm">启动自动配平</button>
   </div>
 </div>
 <p id="plan-source" class="hint">先完成一次扫描，再基于它生成预算预览。</p>
@@ -1168,7 +1168,7 @@
     </div>
     <p class="hint">配置 Rust 后端对各平台发起的 HTTP/HTTPS 出站代理。系统设置与代理池共用同一份网络配置文件，修改后草稿保持一致。</p>
 
-    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+    <div class="settings-toggle-bar">
       <input type="checkbox" id="setting-network-enabled" style="width:16px;height:16px;cursor:pointer;">
       <label for="setting-network-enabled" style="font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;">
         启用专属网络代理路由 (enabled)
@@ -1240,7 +1240,7 @@
     </div>
     <p class="hint">通过 PushPlus (pushplus.plus) 将饰品自动售出入账、Steam 登录态失效等事件推送至微信，内置 4 小时同类消息去重。</p>
 
-    <div style="display:flex;align-items:center;gap:10px;margin:16px 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;">
+    <div class="settings-toggle-bar">
       <input type="checkbox" id="notify-enabled" style="width:16px;height:16px;cursor:pointer;">
       <label for="notify-enabled" style="font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;">
         开启微信推送通知服务 (enabled)
@@ -1594,7 +1594,7 @@
         <label class="inv-label">快速选择受赠好友：</label>
         <span id="gift-friends-status" class="route-desc-hint"></span>
       </div>
-      <div id="gift-friends-container" style="display:grid;grid-template-columns:1fr;gap:8px;max-height:220px;overflow-y:auto;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:14px;">
+      <div id="gift-friends-container" class="gift-friends-box">
         <!-- Friends cards -->
       </div>
 
@@ -1635,7 +1635,7 @@
         <option value="">请先输入 AppID 并点击「探测版本」</option>
       </select>
 
-      <div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;font-size:12px;color:#166534;line-height:1.6;">
+      <div class="gift-safety-note">
         <strong>安全承诺：</strong><br>
         本工具仅调用官方行情接口执行跨区 10% 价差规则测算，绝不模拟伪造 Protobuf 报文或执行无头扣款，从根本上杜绝账号被 Valve 标记代购或钱包冻结的风险！
       </div>
@@ -1649,7 +1649,7 @@
       <span id="gift-verdict-badge" class="badge ok">合规放行</span>
     </div>
     <div id="gift-verdict-msg" style="font-size:14px;color:var(--ink);margin:12px 0;line-height:1.6;font-weight:600;"></div>
-    <div style="display:flex;gap:24px;flex-wrap:wrap;padding:12px;background:#f8fafc;border-radius:6px;margin-bottom:14px;">
+    <div class="gift-verdict-summary">
       <div>
         <span class="route-desc-hint" style="display:block;">赠送方实际扣费估算</span>
         <span id="gift-sender-cny" style="font-size:16px;font-weight:700;color:var(--ink);">—</span>

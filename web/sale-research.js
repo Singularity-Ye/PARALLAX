@@ -27,7 +27,7 @@ function renderLiveListings(snap){
   const all=[...(snap.to_confirm||[]),...(snap.active||[])];
   if(!all.length){
     const empty=node('div','当前 Steam 社区市场暂无在售或待确认饰品挂单。');
-    empty.style.cssText='padding:12px 14px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;color:#475569;font-size:12.5px;';
+    empty.style.cssText='padding:12px 14px;background:#f6f8f1;border:1px dashed #cbd5be;border-radius:8px;color:#464e3d;font-size:12.5px;';
     box.append(empty);
     return;
   }
@@ -46,7 +46,7 @@ function renderLiveListings(snap){
     const tdName=document.createElement('td');
     tdName.textContent=item.item_name||item.market_hash_name;
     const tdId=document.createElement('td');
-    tdId.style.cssText='font-family:var(--mono);font-size:11.5px;color:#64748b;';
+    tdId.style.cssText='font-family:var(--mono);font-size:11.5px;color:#6b7263;';
     tdId.textContent=`L:${item.listing_id||'-'} / A:${item.asset_id||'-'}`;
     const tdBuyer=document.createElement('td');
     tdBuyer.style.textAlign='right';

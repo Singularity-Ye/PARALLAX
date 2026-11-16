@@ -20,8 +20,8 @@ async function loadPopularGames() {
       card.className = 'route-selector-card';
       card.style.cursor = 'pointer';
       card.style.transition = 'transform 0.15s, border-color 0.15s';
-      card.onmouseenter = () => card.style.borderColor = '#3b82f6';
-      card.onmouseleave = () => card.style.borderColor = '#e2e8f0';
+      card.onmouseenter = () => { card.style.borderColor = '#48563c'; card.style.transform = 'translateY(-1px)'; };
+      card.onmouseleave = () => { card.style.borderColor = '#dce1d3'; card.style.transform = ''; };
 
       const img = node('img');
       img.src = g.cover_image;
@@ -32,7 +32,7 @@ async function loadPopularGames() {
       const title = node('div', g.title);
       title.style.fontWeight = '600';
       title.style.fontSize = '12px';
-      title.style.color = '#0f172a';
+      title.style.color = '#262b21';
       title.style.lineHeight = '1.4';
 
       const tag = node('span', g.tag);
@@ -139,7 +139,7 @@ function renderComparison() {
     const tdReg = node('td');
     const nameDiv = node('div', r.region_name);
     nameDiv.style.fontWeight = '600';
-    nameDiv.style.color = '#0f172a';
+    nameDiv.style.color = '#262b21';
     const codeSpan = node('span', `区码: ${r.region_code.toUpperCase()} · 币种: ${r.currency}`);
     codeSpan.className = 'route-desc-hint';
     tdReg.append(nameDiv, codeSpan);
@@ -156,7 +156,7 @@ function renderComparison() {
       tdDisc.append(b);
     } else {
       tdDisc.textContent = '无折扣';
-      tdDisc.style.color = '#64748b';
+      tdDisc.style.color = '#6b7263';
       tdDisc.style.fontSize = '12px';
     }
 
@@ -165,7 +165,7 @@ function renderComparison() {
     if (r.cny_cents !== null && r.cny_cents !== undefined) {
       tdCny.textContent = `¥${(r.cny_cents / 100).toFixed(2)}`;
       tdCny.style.fontWeight = '700';
-      tdCny.style.color = r.region_code === 'cn' ? '#0f172a' : '#1e293b';
+      tdCny.style.color = '#262b21';
     } else {
       tdCny.textContent = '—';
     }
@@ -174,20 +174,20 @@ function renderComparison() {
     const tdDiff = node('td');
     if (r.region_code === 'cn') {
       tdDiff.textContent = '基准国区';
-      tdDiff.style.color = '#64748b';
+      tdDiff.style.color = '#6b7263';
       tdDiff.style.fontSize = '12px';
     } else if (r.cny_diff_cents !== null && r.cny_diff_cents !== undefined) {
       const diffVal = r.cny_diff_cents / 100;
       if (diffVal > 0) {
         tdDiff.textContent = `省 ¥${diffVal.toFixed(2)}`;
-        tdDiff.style.color = '#16a34a';
+        tdDiff.style.color = '#355e3b';
         tdDiff.style.fontWeight = '600';
       } else if (diffVal < 0) {
         tdDiff.textContent = `贵 ¥${Math.abs(diffVal).toFixed(2)}`;
-        tdDiff.style.color = '#dc2626';
+        tdDiff.style.color = '#a3433d';
       } else {
         tdDiff.textContent = '持平';
-        tdDiff.style.color = '#64748b';
+        tdDiff.style.color = '#6b7263';
       }
     } else {
       tdDiff.textContent = '—';
