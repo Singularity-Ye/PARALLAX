@@ -224,3 +224,61 @@ export function renderPriceHistoryChart(dailyBars, cleanMeanMinor, formatMoney) 
   card.append(svg);
   return card;
 }
+
+const fmtScanTime = ts => {
+  if (!ts) return '未知时间';
+  const d = new Date(ts * 1000);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${mm}/${dd} ${hh}:${mi}`;
+};
+
+export function formatScanOptionLabel(report, blockedPlatformLabel = '平台') {
+  if (!report) return '未选择扫描';
+  const src = report.request?.source === 'demo' ? '演示样本' : 'SteamDT 真实榜单';
+  const dt = fmtScanTime(report.created_at);
+  if (report.request?.source === 'demo') {
+    return `${src} · ${dt}（不可查 ${blockedPlatformLabel}）`;
+  }
+  if (report.status && report.status !== 'completed') {
+    const statusText = { running: '扫描中', failed: '已失败', cancelled: '已停止', interrupted: '已中断' }[report.status] || report.status;
+    return `${src} · ${dt}（${statusText}）`;
+  }
+  return `${src} · ${dt} · 通过 ${report.coverage?.accepted ?? 0} 件`;
+}
+
+export function syncScanSelectOptions(selectEl, scans, currentReport, blockedPlatformLabel, extraTopOption = null) {
+  if (!selectEl) return;
+  const list = Array.isArray(scans) ? [...scans] : [];
+  if (currentReport?.id && !list.some(s => s.id === currentReport.id)) {
+    list.unshift(currentReport);
+  }
+  selectEl.replaceChildren();
+  if (extraTopOption) {
+    const opt = document.createElement('option');
+    opt.value = extraTopOption.value;
+    opt.textContent = extraTopOption.label;
+    selectEl.append(opt);
+  }
+  if (!list.length && !extraTopOption) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = '暂无选品扫描记录';
+    opt.disabled = true;
+    selectEl.append(opt);
+    return;
+  }
+  for (const r of list) {
+    const opt = document.createElement('option');
+    opt.value = r.id;
+    opt.textContent = formatScanOptionLabel(r, blockedPlatformLabel);
+    selectEl.append(opt);
+  }
+  if (extraTopOption) {
+    selectEl.value = extraTopOption.value;
+  } else if (currentReport?.id && [...selectEl.options].some(o => o.value === currentReport.id)) {
+    selectEl.value = currentReport.id;
+  }
+}

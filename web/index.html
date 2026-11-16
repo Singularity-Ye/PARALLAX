@@ -398,14 +398,14 @@
         <table class="candidates-table" id="candidates-table">
           <thead>
             <tr>
-              <th style="width:24%">商品名称</th>
+              <th style="width:23%">商品名称</th>
               <th style="width:9%">BUFF 现货</th>
               <th style="width:10%">Steam 壁垒/净得</th>
               <th style="width:9%">折算比率</th>
               <th style="width:11%">24h 量 &amp; 卖压</th>
               <th style="width:14%">30日稳定性 &amp; 趋势</th>
               <th style="width:11%">在库 &amp; 安全限购</th>
-              <th style="width:12%">综合判定 / 操作</th>
+              <th style="width:13%">综合判定 / 操作</th>
             </tr>
           </thead>
           <tbody id="candidates-tbody">
@@ -842,9 +842,10 @@
       <label class="research-field-sm">报价账户
         <select id="buff-quote-account" class="compact-select" required></select>
       </label>
-      <label class="research-field-sm">扫描 ID
-        <input id="buff-quote-scan" class="compact-input" readonly required>
+      <label class="research-field-lg">来源选品扫描
+        <select id="buff-quote-scan-select" class="compact-select" aria-label="来源选品扫描"></select>
       </label>
+      <input id="buff-quote-scan" type="hidden">
       <label class="research-field-grow">SteamDT 候选饰品
         <select id="buff-quote-item" class="compact-select" required></select>
       </label>
@@ -896,9 +897,10 @@
         <label class="research-field-sm">历史账户
           <select id="price-history-account" class="compact-select" required></select>
         </label>
-        <label class="research-field-sm">来源 ID
-          <input id="price-history-scan" class="compact-input" readonly required>
+        <label class="research-field-lg">关联来源
+          <select id="price-history-scan-select" class="compact-select" aria-label="关联来源"></select>
         </label>
+        <input id="price-history-scan" type="hidden">
         <label class="research-field-grow">研究商品
           <select id="price-history-item" class="compact-select" required></select>
         </label>
@@ -1994,5 +1996,5 @@
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261109_phase4" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261109_phase4" type="module"></script><script src="/steam-deals.js?v=20261109_phase5" type="module"></script><script src="/gift.js?v=20261109_phase5" type="module"></script><script src="/analytics.js?v=20261116_optA" type="module"></script>
+<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261116_scanlink" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261109_phase4" type="module"></script><script src="/steam-deals.js?v=20261109_phase5" type="module"></script><script src="/gift.js?v=20261109_phase5" type="module"></script><script src="/analytics.js?v=20261116_optA" type="module"></script>
 </body></html>

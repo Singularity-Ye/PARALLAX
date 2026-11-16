@@ -1,18 +1,36 @@
 import {parallax} from './lib/api.js';
-import {rNode,renderResearchBanner,renderKpiGrid,renderPriceHistoryChart} from './lib/research-view.js';
+import {rNode,renderResearchBanner,renderKpiGrid,renderPriceHistoryChart,syncScanSelectOptions} from './lib/research-view.js';
 
 const el=id=>document.getElementById(id);
 const account=el('price-history-account');
+const scanSelect=el('price-history-scan-select');
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 let fetching=false;
 let inventoryOrigin=null;
+let activeReport=null;
+let scanList=[];
 
 const manual=()=>el('price-history-origin').value==='manual';
 function readyHistory(){el('price-history-fetch').disabled=fetching||!account.value||!(manual()?el('price-history-manual').value.trim():el('price-history-item').value);}
+function syncSourceDropdown(){
+  const invOpt=inventoryOrigin?{value:'__inventory__',label:`库存快照 · ${inventoryOrigin.item_key}`}:null;
+  syncScanSelectOptions(scanSelect,scanList,activeReport,'Steam 历史',invOpt);
+}
+async function refreshScanOptions(){
+  try{
+    const {items}=await parallax.scans();
+    scanList=items||[];
+    syncSourceDropdown();
+  }catch(_){
+    syncSourceDropdown();
+  }
+}
 function originFields(){
-  el('price-history-manual').disabled=!manual();el('price-history-item').disabled=manual();
+  el('price-history-manual').disabled=!manual();
+  el('price-history-item').disabled=manual();
+  scanSelect.disabled=manual();
   el('price-history-manual').closest('label').hidden=!manual();
-  el('price-history-scan').closest('label').hidden=manual();
+  scanSelect.closest('label').hidden=manual();
   el('price-history-item').closest('label').hidden=manual();
   readyHistory();
 }
@@ -25,14 +43,25 @@ const money=m=>m?`${m.currency} ${(m.minor/100).toFixed(2)}`:'未知';
 export function renderHistoryCandidates(report) {
   if(fetching)return;
   inventoryOrigin=null;
-  const previous=el('price-history-item').value;el('price-history-scan').value=report.id;
+  activeReport=report;
+  const previous=el('price-history-item').value;el('price-history-scan').value=report?.id||'';
+  syncSourceDropdown();
+  if(report?.id&&!scanList.some(s=>s.id===report.id)) refreshScanOptions();
   el('price-history-item').replaceChildren();
-  if(report.status==='completed'&&report.request.source==='steamdt') {
-    for(const {item} of report.candidates){const o=node('option',item.key);o.value=item.key;el('price-history-item').append(o);}
+  if(report?.status==='completed'&&report.request?.source==='steamdt') {
+    for(const {item} of report.candidates){
+      const label=item.name&&item.name!==item.key?`${item.name} · ${item.key}`:item.key;
+      const o=node('option',label);o.value=item.key;el('price-history-item').append(o);
+    }
   }
   if([...el('price-history-item').options].some(o=>o.value===previous))el('price-history-item').value=previous;
   readyHistory();
-  if(report.request.source==='demo')el('price-history-feedback').textContent='演示扫描禁止向 Steam 请求虚构商品的历史；可切换「指定市场名称」直接研究真实 CS2 饰品。';
+  if(report?.request?.source==='demo'){
+    const hasReal=scanList.some(s=>s.request?.source==='steamdt'&&s.status==='completed');
+    el('price-history-feedback').textContent=hasReal
+      ?'当前选品为演示样本（不可查 Steam）；可从左侧「关联来源」切换已有 SteamDT 真实榜单，或点击下方「快捷填入真实商品」。'
+      :'演示扫描禁止向 Steam 请求虚构商品的历史；可切换「指定市场名称」直接研究真实 CS2 饰品。';
+  }
 }
 
 function render(snapshot) {
@@ -41,8 +70,8 @@ function render(snapshot) {
   const originText=snapshot.request.manual_item
     ?'指定市场名称'
     :snapshot.request.inventory_snapshot_id
-      ?`库存快照 ${snapshot.request.inventory_snapshot_id.slice(0,8)}`
-      :`SteamDT 扫描 ${snapshot.request.scan_id.slice(0,8)}`;
+      ?'库存快照'
+      :'SteamDT 选品扫描';
 
   const watchButton=node('button','加入关注列表');
   watchButton.type='button';
@@ -134,8 +163,17 @@ async function loadAccounts() {
 }
 
 account.onchange=()=>{
-  if(inventoryOrigin&&inventoryOrigin.account_id!==account.value){inventoryOrigin=null;el('price-history-scan').value='';el('price-history-item').replaceChildren();el('price-history-fetch').disabled=true;}
+  if(inventoryOrigin&&inventoryOrigin.account_id!==account.value){inventoryOrigin=null;el('price-history-scan').value='';el('price-history-item').replaceChildren();syncSourceDropdown();el('price-history-fetch').disabled=true;}
   readyHistory();el('price-history-result').replaceChildren();history().catch(e=>el('price-history-feedback').textContent=e.message);
+};
+
+scanSelect.onchange=async()=>{
+  const val=scanSelect.value;
+  if(!val||val==='__inventory__')return;
+  try{
+    const report=await parallax.scan(val);
+    renderHistoryCandidates(report);
+  }catch(e){el('price-history-feedback').textContent=`切换关联扫描失败：${e.message}`;}
 };
 
 window.addEventListener('parallax:inventory-history',async({detail})=>{
@@ -143,13 +181,44 @@ window.addEventListener('parallax:inventory-history',async({detail})=>{
   try{
     await loadAccounts();
     if(![...account.options].some(o=>o.value===detail.account_id))throw new Error('库存所属账户已不存在');
-    account.value=detail.account_id;inventoryOrigin=detail;el('price-history-origin').value='bound';originFields();
+    account.value=detail.account_id;inventoryOrigin=detail;el('price-history-origin').value='bound';syncSourceDropdown();originFields();
     el('price-history-scan').value=detail.inventory_snapshot_id;
     const option=node('option',detail.item_key);option.value=detail.item_key;el('price-history-item').replaceChildren(option);
     el('price-history-result').replaceChildren();el('price-history-fetch').disabled=false;
     el('price-history-feedback').textContent='已选择库存快照中的商品；点击读取才请求 Steam，不证明当前仍持有，也不加入采购策略。';
     location.hash='price-history';await history();
   }catch(e){el('inventory-feedback').textContent=`选择历史研究失败：${e.message}`;}
+});
+
+window.addEventListener('parallax:scan-item-history',async({detail})=>{
+  if(fetching)return;
+  const scan=detail?.scan,item=detail?.item;
+  if(!scan||!item?.key)return;
+  el('price-history-origin').value='bound';
+  renderHistoryCandidates(scan);
+  originFields();
+  if(![...el('price-history-item').options].some(o=>o.value===item.key)){
+    const o=node('option',item.name&&item.name!==item.key?`${item.name} · ${item.key}`:item.key);
+    o.value=item.key;el('price-history-item').append(o);
+  }
+  el('price-history-item').value=item.key;
+  readyHistory();
+  el('price-history-result').replaceChildren();
+  let shownCached=false;
+  if(account.value){
+    try{
+      const {items}=await parallax.priceHistories(account.value);
+      const match=(items||[]).find(s=>s.request?.item_key===item.key);
+      if(match){
+        const saved=await parallax.priceHistory(account.value,match.id);
+        render(saved);
+        shownCached=true;
+      }
+    }catch(_){}
+  }
+  el('price-history-feedback').textContent=shownCached
+    ?`已带入「${item.name||item.key}」并展示本地历史走势；点击「读取并保存历史研究」可按当前账户刷新至最新 UTC 日线。`
+    :`已从选品工作台带入「${item.name||item.key}」；点击「读取并保存历史研究」即可直连 Steam 拉取 90 日量价走势。`;
 });
 
 el('price-history-form').onsubmit=async event=>{
@@ -175,6 +244,8 @@ document.querySelectorAll('.history-preset-btn').forEach(btn=>{
 });
 
 originFields();
+refreshScanOptions();
+window.addEventListener('parallax:pagechange',({detail})=>{if(detail?.page==='price-history')refreshScanOptions();});
 window.addEventListener('parallax:account-created',()=>loadAccounts().catch(e=>el('price-history-feedback').textContent=e.message));
 loadAccounts().catch(e=>el('price-history-feedback').textContent=e.message);
 

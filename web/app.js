@@ -116,20 +116,43 @@ function renderCandidates() {
         tdLimit.innerHTML = `<div>限购 <strong class="metric-ink">${safeLim}</strong> 件</div><div class="${held > 0 ? 'metric-warn' : 'metric-muted'}" style="font-size:11px;">已持仓 ${held} 件</div>`;
         tr.appendChild(tdLimit);
 
-        // 8. Passed badge & Quick Action
+        // 8. Passed badge & Quick Actions
         const tdAction = document.createElement('td');
         tdAction.className = 'col-action';
+        const actionStack = document.createElement('div');
+        actionStack.className = 'col-action-stack';
         const badge = document.createElement('span');
         badge.className = c.passed ? 'status-pill status-pill-success' : 'status-pill status-pill-active';
         badge.textContent = c.passed ? '✓ 深度通过' : '未通过';
         badge.title = c.rules.map(r => `${r.passed ? '✓' : '×'} ${r.rule}: ${r.reason}`).join('\n') + (d.summary ? `\n${d.summary}` : '');
-        tdAction.appendChild(badge);
+        actionStack.appendChild(badge);
+
+        const linksRow = document.createElement('div');
+        linksRow.className = 'col-action-links';
         const planLink = document.createElement('a');
         planLink.href = '#planning';
         planLink.className = 'table-action-link';
-        planLink.style.marginLeft = '6px';
         planLink.textContent = '配平 ↗';
-        tdAction.appendChild(planLink);
+        linksRow.appendChild(planLink);
+
+        const isRealSteamdt = current.request.source === 'steamdt';
+        const histBtn = document.createElement('button');
+        histBtn.type = 'button';
+        histBtn.className = `table-action-link${isRealSteamdt ? '' : ' is-muted'}`;
+        histBtn.textContent = '走势 ↗';
+        if (!isRealSteamdt) {
+          histBtn.disabled = true;
+          histBtn.title = '演示数据为虚构饰品；切至「SteamDT 真实榜单」扫描后可一键查看 90 日走势';
+        } else {
+          histBtn.title = `带入「${c.item.name}」查看 Steam 90 日量价走势`;
+          histBtn.onclick = () => {
+            window.dispatchEvent(new CustomEvent('parallax:scan-item-history', { detail: { scan: current, item: c.item } }));
+            location.hash = 'price-history';
+          };
+        }
+        linksRow.appendChild(histBtn);
+        actionStack.appendChild(linksRow);
+        tdAction.appendChild(actionStack);
         tr.appendChild(tdAction);
 
         fragment.appendChild(tr);

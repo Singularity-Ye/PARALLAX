@@ -1,24 +1,51 @@
 import {parallax} from './lib/api.js';
-import {rNode,renderResearchBanner,renderKpiGrid,renderDepthCard} from './lib/research-view.js';
+import {rNode,renderResearchBanner,renderKpiGrid,renderDepthCard,syncScanSelectOptions} from './lib/research-view.js';
 
 const el=id=>document.getElementById(id);
 const account=el('buff-quote-account');
+const scanSelect=el('buff-quote-scan-select');
 let fetching=false;
+let activeReport=null;
+let scanList=[];
 const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
 const money=n=>`¥${(n/100).toFixed(2)}`;
+const accountLabel=()=>account.selectedOptions?.[0]?.textContent||'当前账户';
+
+async function refreshScanOptions(reportOverride=activeReport) {
+  try {
+    const {items}=await parallax.scans();
+    scanList=items||[];
+    syncScanSelectOptions(scanSelect,scanList,reportOverride,'BUFF');
+  } catch(_) {
+    syncScanSelectOptions(scanSelect,scanList,reportOverride,'BUFF');
+  }
+}
 
 export function renderBuffCandidates(report) {
+  activeReport=report;
   const selected=el('buff-quote-item').value;
-  el('buff-quote-scan').value=report.id;
+  el('buff-quote-scan').value=report?.id||'';
+  syncScanSelectOptions(scanSelect,scanList,report,'BUFF');
+  if(report?.id&&!scanList.some(s=>s.id===report.id)) refreshScanOptions(report);
   el('buff-quote-item').replaceChildren();
-  if(report.status==='completed'&&report.request.source==='steamdt') {
+  if(report?.status==='completed'&&report.request?.source==='steamdt') {
     for(const {item} of report.candidates.filter(c=>c.item.goods_id)) {
-      const option=node('option',`${item.key} · goods ${item.goods_id}`);option.value=item.key;el('buff-quote-item').append(option);
+      const label=item.name&&item.name!==item.key?`${item.name} · ${item.key}`:item.key;
+      const option=node('option',label);option.value=item.key;el('buff-quote-item').append(option);
     }
   }
   if([...el('buff-quote-item').options].some(o=>o.value===selected))el('buff-quote-item').value=selected;
   el('buff-quote-fetch').disabled=fetching||!el('buff-quote-item').value;
-  if(report.request.source==='demo')el('buff-quote-feedback').textContent='当前为演示扫描，禁止向 BUFF 请求这些虚构商品。请先在「选品工作台」选择 SteamDT 真实榜单扫描。';
+  if(report?.request?.source==='demo') {
+    const hasReal=scanList.some(s=>s.request?.source==='steamdt'&&s.status==='completed');
+    el('buff-quote-feedback').textContent=hasReal
+      ?'当前选品为演示样本（不可查 BUFF）；可在左侧「来源选品扫描」直接切换已有 SteamDT 真实榜单，或在「选品工作台」执行新扫描。'
+      :'当前为演示扫描，禁止向 BUFF 请求这些虚构商品；请先在「选品工作台」选择 SteamDT 真实榜单扫描。';
+  } else if(report?.request?.source==='steamdt') {
+    el('buff-quote-feedback').textContent=el('buff-quote-item').value
+      ?'已关联 SteamDT 真实候选，请选择饰品后读取并保存首屏现货卖盘。'
+      :'该次 SteamDT 扫描暂无带 BUFF 映射的可用候选。';
+  }
 }
 
 export function readBuffQuoteInputs() {
@@ -42,7 +69,7 @@ function render(quote) {
 
   const banner=renderResearchBanner(
     quote.request.item_key,
-    `账户 ${quote.account_id.slice(0,8)} · 快照 ${quote.id.slice(0,8)} · 抓取于 ${new Date(quote.observed_at*1000).toLocaleString()}`,
+    `${accountLabel()} · 抓取于 ${new Date(quote.observed_at*1000).toLocaleString()}`,
     [use],
   );
   const totalVisible=(quote.page?.levels||[]).reduce((s,l)=>s+Number(l.quantity||0),0);
@@ -93,5 +120,15 @@ el('buff-quote-form').onsubmit=async event=>{
   finally{fetching=false;account.disabled=false;el('buff-quote-fetch').disabled=!el('buff-quote-item').value;}
 };
 
+scanSelect.onchange=async()=>{
+  const id=scanSelect.value;
+  if(!id)return;
+  try{
+    const report=await parallax.scan(id);
+    renderBuffCandidates(report);
+  }catch(e){el('buff-quote-feedback').textContent=`切换来源扫描失败：${e.message}`;}
+};
 window.addEventListener('parallax:account-created',()=>loadAccounts().catch(e=>el('buff-quote-feedback').textContent=e.message));
+window.addEventListener('parallax:pagechange',({detail})=>{if(detail?.page==='buff-research')refreshScanOptions();});
+refreshScanOptions();
 loadAccounts().catch(e=>el('buff-quote-feedback').textContent=e.message);
