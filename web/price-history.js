@@ -45,10 +45,14 @@ export function renderHistoryCandidates(report) {
   inventoryOrigin=null;
   activeReport=report;
   const previous=el('price-history-item').value;el('price-history-scan').value=report?.id||'';
+  if(report?.id){
+    const idx=scanList.findIndex(s=>s.id===report.id);
+    if(idx>=0)scanList[idx]=report;
+    else refreshScanOptions();
+  }
   syncSourceDropdown();
-  if(report?.id&&!scanList.some(s=>s.id===report.id)) refreshScanOptions();
   el('price-history-item').replaceChildren();
-  if(report?.status==='completed'&&report.request?.source==='steamdt') {
+  if(report?.candidates?.length&&report.request?.source==='steamdt') {
     for(const {item} of report.candidates){
       const label=item.name&&item.name!==item.key?`${item.name} · ${item.key}`:item.key;
       const o=node('option',label);o.value=item.key;el('price-history-item').append(o);
@@ -190,10 +194,61 @@ window.addEventListener('parallax:inventory-history',async({detail})=>{
   }catch(e){el('inventory-feedback').textContent=`选择历史研究失败：${e.message}`;}
 });
 
+async function executeFetchPriceHistory(displayLabel) {
+  if(!account.value||fetching)return;
+  const targetKey=manual()?el('price-history-manual').value.trim():el('price-history-item').value;
+  if(!targetKey)return;
+  fetching=true;account.disabled=true;el('price-history-fetch').disabled=true;
+  const titleText=displayLabel||targetKey;
+  el('price-history-feedback').textContent=`正在直连 Steam 读取「${titleText}」的 90 日量价历史（按 UTC 自然日聚合）…`;
+  if(!el('price-history-result').querySelector('.research-item-banner')) {
+    const loadingCard=rNode('div','research-empty-card');
+    loadingCard.append(
+      rNode('strong','',`正在加载「${titleText}」的 90 日价格走势曲线…`),
+      rNode('p','hint','正在通过当前选中 Steam 账户请求官方 pricehistory 接口并计算日均 VWAP、P10 回撤与 IQR 清洗指标。'),
+    );
+    el('price-history-result').replaceChildren(
+      renderResearchBanner(targetKey,'正在同步 Valve 官方历史成交序列…'),
+      loadingCard,
+    );
+  }
+  const id=account.value;
+  try {
+    const useManualFallback=!manual()&&!inventoryOrigin&&activeReport&&activeReport.status!=='completed';
+    const origin=(manual()||useManualFallback)?{manual_item:true}:inventoryOrigin?{inventory_snapshot_id:inventoryOrigin.inventory_snapshot_id}:{scan_id:el('price-history-scan').value};
+    const snapshot=await parallax.fetchPriceHistory(id,{...origin,item_key:targetKey,window_days:Number(el('price-history-days').value),slippage_bps:Number(el('price-history-slippage').value)});
+    if(account.value===id)render(snapshot);
+    el('price-history-feedback').textContent='90 日价格历史走势已生成并保存至本地快照。';
+    try{await history();}catch(e){el('price-history-feedback').textContent=`快照已保存，历史列表刷新失败：${e.message}`;}
+  }catch(e){
+    el('price-history-feedback').textContent=`本次未保存新快照：${e.message}`;
+    if(!el('price-history-result').querySelector('svg.history-svg-chart')) {
+      const errCard=rNode('div','research-empty-card');
+      const retryBtn=node('button','重试读取 90 日走势');
+      retryBtn.type='button';retryBtn.className='btn btn-sm btn-primary';
+      retryBtn.onclick=()=>executeFetchPriceHistory(displayLabel);
+      const actRow=rNode('div','research-banner-actions');
+      actRow.style.justifyContent='center';actRow.style.marginTop='6px';
+      actRow.append(retryBtn);
+      errCard.append(
+        rNode('strong','',`暂未获取到「${titleText}」的实时历史曲线`),
+        rNode('p','hint',`原因：${e.message}（请确认所选账户已在「账号管理」完成 Steam 登录验证，或等待 2 秒节流冷却后重试）。`),
+        actRow,
+      );
+      el('price-history-result').replaceChildren(
+        renderResearchBanner(targetKey,'等待读取或重试'),
+        errCard,
+      );
+    }
+  }
+  finally{fetching=false;account.disabled=false;readyHistory();}
+}
+
 window.addEventListener('parallax:scan-item-history',async({detail})=>{
   if(fetching)return;
   const scan=detail?.scan,item=detail?.item;
   if(!scan||!item?.key)return;
+  if(!account.value){try{await loadAccounts();}catch(_){}}
   el('price-history-origin').value='bound';
   renderHistoryCandidates(scan);
   originFields();
@@ -216,22 +271,16 @@ window.addEventListener('parallax:scan-item-history',async({detail})=>{
       }
     }catch(_){}
   }
-  el('price-history-feedback').textContent=shownCached
-    ?`已带入「${item.name||item.key}」并展示本地历史走势；点击「读取并保存历史研究」可按当前账户刷新至最新 UTC 日线。`
-    :`已从选品工作台带入「${item.name||item.key}」；点击「读取并保存历史研究」即可直连 Steam 拉取 90 日量价走势。`;
+  if(shownCached){
+    el('price-history-feedback').textContent=`已直接展示「${item.name||item.key}」的本地 90 日历史走势；如需拉取最新日线可点击「读取并保存历史研究」。`;
+  } else {
+    await executeFetchPriceHistory(item.name||item.key);
+  }
 });
 
 el('price-history-form').onsubmit=async event=>{
-  event.preventDefault();if(!account.value)return;fetching=true;account.disabled=true;el('price-history-fetch').disabled=true;
-  el('price-history-feedback').textContent='正在读取价格历史，按 UTC 自然日研究；不会创建交易或刷新预算报价。';
-  const id=account.value;
-  try {
-    const origin=manual()?{manual_item:true}:inventoryOrigin?{inventory_snapshot_id:inventoryOrigin.inventory_snapshot_id}:{scan_id:el('price-history-scan').value};
-    const snapshot=await parallax.fetchPriceHistory(id,{...origin,item_key:manual()?el('price-history-manual').value.trim():el('price-history-item').value,window_days:Number(el('price-history-days').value),slippage_bps:Number(el('price-history-slippage').value)});
-    if(account.value===id)render(snapshot);el('price-history-feedback').textContent='研究快照已保存，未加入预算或交易策略。';
-    try{await history();}catch(e){el('price-history-feedback').textContent=`快照已保存，历史列表刷新失败：${e.message}`;}
-  }catch(e){el('price-history-feedback').textContent=`本次未保存新快照：${e.message}；输入及原结果保留。`;}
-  finally{fetching=false;account.disabled=false;readyHistory();}
+  event.preventDefault();
+  await executeFetchPriceHistory();
 };
 
 document.querySelectorAll('.history-preset-btn').forEach(btn=>{

@@ -252,8 +252,10 @@ export function formatScanOptionLabel(report, blockedPlatformLabel = '平台') {
 export function syncScanSelectOptions(selectEl, scans, currentReport, blockedPlatformLabel, extraTopOption = null) {
   if (!selectEl) return;
   const list = Array.isArray(scans) ? [...scans] : [];
-  if (currentReport?.id && !list.some(s => s.id === currentReport.id)) {
-    list.unshift(currentReport);
+  if (currentReport?.id) {
+    const idx = list.findIndex(s => s.id === currentReport.id);
+    if (idx >= 0) list[idx] = currentReport;
+    else list.unshift(currentReport);
   }
   selectEl.replaceChildren();
   if (extraTopOption) {

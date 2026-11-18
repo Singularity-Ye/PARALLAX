@@ -25,8 +25,12 @@ export function renderBuffCandidates(report) {
   activeReport=report;
   const selected=el('buff-quote-item').value;
   el('buff-quote-scan').value=report?.id||'';
+  if(report?.id){
+    const idx=scanList.findIndex(s=>s.id===report.id);
+    if(idx>=0)scanList[idx]=report;
+    else refreshScanOptions(report);
+  }
   syncScanSelectOptions(scanSelect,scanList,report,'BUFF');
-  if(report?.id&&!scanList.some(s=>s.id===report.id)) refreshScanOptions(report);
   el('buff-quote-item').replaceChildren();
   if(report?.status==='completed'&&report.request?.source==='steamdt') {
     for(const {item} of report.candidates.filter(c=>c.item.goods_id)) {

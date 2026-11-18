@@ -41,12 +41,14 @@ pub async fn scan(
         report.coverage.pages_received += 1;
         report.coverage.rows_received += rows.len();
         let empty = rows.is_empty();
+        let mut new_in_page = 0usize;
         // A short page is not proof of exhaustion: request the next page within budget.
         for item in rows {
             if !seen.insert(item.key.clone()) {
                 report.coverage.duplicates += 1;
                 continue;
             }
+            new_in_page += 1;
             report.coverage.unique_received += 1;
             if report.coverage.examined >= report.request.max_items
                 || cancel.load(Ordering::Relaxed)
@@ -67,7 +69,9 @@ pub async fn scan(
             report.stop_reason = "cancelled".into();
             break;
         }
-        if empty {
+        // Stop immediately if a subsequent page returns zero new unique items (100% duplicates),
+        // preventing redundant pagination loops from triggering SteamDT rate limits.
+        if empty || (page > 1 && new_in_page == 0) {
             report.source_exhausted = true;
             report.stop_reason = "source_exhausted".into();
             break;
@@ -169,5 +173,29 @@ mod tests {
         .await;
         assert_eq!(report.status, "cancelled");
         assert_eq!(report.coverage.pages_requested, 0);
+    }
+    struct RepeatsFirstPage;
+    impl MarketSource for RepeatsFirstPage {
+        async fn page(&self, _: &ScanRequest, _: usize) -> Result<Vec<MarketItem>, String> {
+            Ok(crate::adapters::market::demo_items()
+                .into_iter()
+                .take(3)
+                .collect())
+        }
+    }
+    #[tokio::test]
+    async fn stops_early_when_subsequent_page_is_all_duplicates() {
+        let req = ScanRequest {
+            max_pages: 20,
+            page_size: 3,
+            ..ScanRequest::default()
+        };
+        let report = scan(&RepeatsFirstPage, ScanReport::new(req), &AtomicBool::new(false)).await;
+        assert_eq!(report.status, "completed");
+        assert_eq!(report.stop_reason, "source_exhausted");
+        assert!(report.source_exhausted);
+        assert_eq!(report.coverage.pages_received, 2);
+        assert_eq!(report.coverage.examined, 3);
+        assert_eq!(report.coverage.duplicates, 3);
     }
 }
