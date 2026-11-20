@@ -1,5 +1,6 @@
 import { parallax } from './lib/api.js';
 import { node } from './lib/pricing-view.js';
+import { renderScanLogLines } from './lib/research-view.js';
 
 const el = id => document.getElementById(id);
 
@@ -42,6 +43,8 @@ async function loadScans() {
     allScans = Array.isArray(res.items) ? res.items : [];
     renderKPIs();
     renderScansTable();
+    const withLogs = allScans.find(s => Array.isArray(s.logs) && s.logs.length > 0) || allScans[0];
+    if (withLogs) showScanLog(withLogs);
     if (statusEl) {
       statusEl.textContent = `共载入 ${allScans.length} 条扫描任务记录`;
     }
@@ -184,14 +187,35 @@ function renderScansTable() {
     // 7. Action
     const tdAction = node('td');
     tdAction.style.textAlign = 'right';
-    const viewBtn = node('a', '选品台 ↗');
+    const logBtn = node('button', `日志(${(report.logs || []).length})`);
+    logBtn.type = 'button';
+    logBtn.className = 'table-action-link';
+    logBtn.style.marginRight = '6px';
+    logBtn.style.background = 'transparent';
+    logBtn.style.border = 'none';
+    logBtn.style.cursor = 'pointer';
+    logBtn.onclick = () => showScanLog(report);
+    const viewBtn = node('a', '工作台 ↗');
     viewBtn.className = 'table-action-link';
-    viewBtn.href = '#catalog';
-    tdAction.append(viewBtn);
+    viewBtn.href = '#workspace';
+    tdAction.append(logBtn, viewBtn);
 
     tr.append(tdTime, tdId, tdSource, tdStatus, tdReason, tdCoverage, tdAction);
     tbody.append(tr);
   });
+}
+
+function showScanLog(report) {
+  const consoleEl = el('debug-log-console');
+  const metaEl = el('debug-log-meta');
+  if (!consoleEl) return;
+  const src = report?.request?.source === 'demo' ? '演示样本' : 'SteamDT 真实榜单';
+  const dt = report?.created_at ? new Date(report.created_at * 1000).toLocaleString() : '—';
+  const logs = Array.isArray(report?.logs) ? report.logs : [];
+  if (metaEl) {
+    metaEl.textContent = `${src} · ${dt} · 深度复核 ${report.deep_done || 0}/${report.deep_total || 0} · 共 ${logs.length} 条逐件日志`;
+  }
+  renderScanLogLines(consoleEl, logs, '该条早期扫描未记录逐件分析流水；新发起的 SteamDT 扫描将完整记录每件饰品的壁垒与历史曲线核验过程。');
 }
 
 function exportScansJson() {

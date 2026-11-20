@@ -26,6 +26,7 @@ pub mod watchlist;
 pub mod workers;
 pub mod assets;
 pub mod deals;
+pub mod deep_verify;
 pub mod gift;
 
 use crate::domain::{
@@ -77,6 +78,7 @@ impl std::error::Error for AppError {}
 
 pub struct Application<S, R> {
     fx: Option<Arc<dyn fx::FxResolver>>,
+    deep_probe: Option<Arc<dyn deep_verify::DeepProbeProvider>>,
     source: S,
     store: R,
     jobs: Mutex<HashMap<String, Arc<AtomicBool>>>,
@@ -86,6 +88,7 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
     pub fn new(source: S, store: R) -> Arc<Self> {
         Arc::new(Self {
             fx: None,
+            deep_probe: None,
             source,
             store,
             jobs: Mutex::new(HashMap::new()),
@@ -96,6 +99,21 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
             source,
             store,
             fx: Some(fx),
+            deep_probe: None,
+            jobs: Mutex::new(HashMap::new()),
+        })
+    }
+    pub fn with_fx_and_probe(
+        source: S,
+        store: R,
+        fx: Arc<dyn fx::FxResolver>,
+        deep_probe: Arc<dyn deep_verify::DeepProbeProvider>,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            source,
+            store,
+            fx: Some(fx),
+            deep_probe: Some(deep_probe),
             jobs: Mutex::new(HashMap::new()),
         })
     }
@@ -146,7 +164,20 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
         if !jobs.is_empty() {
             return Err(AppError::Conflict("已有扫描进行中，请等待或停止当前扫描"));
         }
-        let report = ScanReport::new(request);
+        let mut report = ScanReport::new(request);
+        let src_label = if report.request.source == crate::domain::selection::SourceKind::Demo {
+            "演示样本 (Demo)"
+        } else {
+            "SteamDT 实时榜单"
+        };
+        let start_msg = format!(
+            "启动选品扫描 · 来源={src_label} · 价格 ¥{:.2}–¥{:.2} · 最低日量 {} · 目标折算 ≤ {:.2}%",
+            report.request.min_price_cents as f64 / 100.0,
+            report.request.max_price_cents as f64 / 100.0,
+            report.request.min_volume,
+            report.request.max_ratio_bps as f64 / 100.0
+        );
+        deep_verify::log(&mut report, "info", None, start_msg);
         self.store.save(report.clone()).await?;
         let flag = Arc::new(AtomicBool::new(false));
         jobs.insert(report.id.clone(), flag.clone());
@@ -155,7 +186,27 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
         tokio::spawn(async move {
             let id = pending.id.clone();
             let mut finished = scanner::scan(&app.source, pending, &flag).await;
+            let stage1_msg = format!(
+                "阶段 1/2 初筛完成：读取 {} 页 / {} 条，去重分析 {} 件，初筛通过 {} 件、淘汰 {} 件。",
+                finished.coverage.pages_received,
+                finished.coverage.rows_received,
+                finished.coverage.examined,
+                finished.coverage.accepted,
+                finished.coverage.rejected
+            );
+            deep_verify::log(&mut finished, "info", None, stage1_msg);
             let _ = app.enrich_scan_report(&mut finished).await;
+            if finished.status == "completed"
+                && finished.request.source == crate::domain::selection::SourceKind::Steamdt
+                && finished.request.deep_verify_limit > 0
+                && let Some(probe) = &app.deep_probe
+            {
+                deep_verify::run_deep_verification(&app.store, probe.as_ref(), &mut finished, &flag)
+                    .await;
+                let _ = app.enrich_scan_report(&mut finished).await;
+            } else {
+                finished.phase = "done".into();
+            }
             if let Err(err) = app.store.save(finished).await {
                 eprintln!("Failed to persist scan {id}: {err}");
             }

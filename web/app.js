@@ -5,6 +5,7 @@ import {renderBuffCandidates,readBuffQuoteInputs} from './buff-quotes.js';
 import {renderHistoryCandidates} from './price-history.js';
 import {renderTicker} from './lib/ticker.js';
 import {createItemThumb} from './lib/icon-helper.js';
+import {renderScanLogLines} from './lib/research-view.js';
 const el = id => document.getElementById(id);
 const money = value => `¥${(value / 100).toFixed(2)}`;
 const reasonNames = {page_budget:'已达到页数预算，仍可能有未读取商品',item_budget:'已达到分析预算',source_exhausted:'当前来源查询已返回空页（不代表全市场）',source_error:'来源请求失败，保留已取得结果',cancelled:'已按要求停止',process_restart:'上次扫描被进程重启中断'};
@@ -18,7 +19,35 @@ function render(report) {
   el('plan-create').disabled = report.status !== 'completed';
   el('plan-source').textContent = `基于当前扫描 · ${report.request.source === 'demo' ? '演示数据' : 'SteamDT'} · ${statusNames[report.status] || report.status}`;
   el('source-label').textContent = report.request.source === 'demo' ? '固定演示数据 · 非真实行情' : 'SteamDT / BUFF 榜单';
-  feedback(report.status === 'running' ? '正在扫描来源，结果将在本轮结束后显示。可停止扫描。' : `${reasonNames[report.stop_reason] || report.stop_reason}。${report.error || ''}`, report.status === 'failed');
+  const runningMsg = report.phase === 'deep_verify'
+    ? `阶段 2/2 逐件深度复核 Steam 盘口与历史曲线 (${report.deep_done || 0}/${report.deep_total || 0})… 可随时停止。`
+    : '阶段 1/2 正在拉取 SteamDT 初筛榜单… 可随时停止。';
+  feedback(report.status === 'running' ? runningMsg : `${reasonNames[report.stop_reason] || report.stop_reason}。${report.error || ''}`, report.status === 'failed');
+  const logDrawer = el('scan-live-log-drawer');
+  const logList = el('scan-live-log-list');
+  const logBadge = el('scan-live-phase-badge');
+  const logCount = el('scan-live-log-count');
+  const logs = Array.isArray(report.logs) ? report.logs : [];
+  if (logList) renderScanLogLines(logList, logs, '启动 SteamDT 扫描后，这里将按件实时播报 Steam 盘口壁垒、卖压与历史波动核验过程。');
+  if (logCount) logCount.textContent = `${logs.length} 条记录`;
+  if (logBadge) {
+    if (report.status === 'running' && report.phase === 'deep_verify') {
+      logBadge.textContent = `深度复核 ${report.deep_done || 0}/${report.deep_total || 0}`;
+      logBadge.className = 'badge warn';
+    } else if (report.status === 'running') {
+      logBadge.textContent = '初筛拉取中';
+      logBadge.className = 'badge warn';
+    } else if (report.status === 'completed') {
+      logBadge.textContent = report.deep_total > 0 ? `已深度核验 ${report.deep_done}/${report.deep_total}` : '已完成';
+      logBadge.className = 'badge ok';
+    } else {
+      logBadge.textContent = statusNames[report.status] || report.status;
+      logBadge.className = 'badge muted';
+    }
+  }
+  if (logDrawer && report.status === 'running' && logs.length > 0 && !logDrawer.dataset.userToggled) {
+    logDrawer.open = true;
+  }
   const c = report.coverage;
   el('metrics').replaceChildren(...[['读取页数',c.pages_received],['收到条目',c.rows_received],['已分析',c.examined],['预筛通过',c.accepted]].map(([label,value]) => {
     const box = node('div',undefined,'metric');
@@ -93,19 +122,32 @@ function renderCandidates() {
         // 5. Volume & Sell Pressure
         const tdVol = document.createElement('td');
         tdVol.className = 'col-mono';
-        const sp = d.sell_pressure !== undefined ? d.sell_pressure.toFixed(2) : '—';
-        const spClass = d.sell_pressure_ok !== false ? 'metric-muted' : 'metric-warn';
-        tdVol.innerHTML = `<div>${c.item.volume ?? '—'} <span class="cell-tag-sub">件/日</span></div><div class="${spClass}" style="font-size:11px;">卖压比 ${sp}</div>`;
+        if (d.ob_verified) {
+          const sp = d.sell_pressure !== undefined ? d.sell_pressure.toFixed(2) : '—';
+          const spClass = d.sell_pressure_ok !== false ? 'metric-good' : 'metric-warn';
+          tdVol.innerHTML = `<div>${c.item.volume ?? '—'} <span class="cell-tag-sub">件/日</span></div><div class="${spClass}" style="font-size:11px;">真实卖压 ${sp}</div>`;
+        } else {
+          tdVol.innerHTML = `<div>${c.item.volume ?? '—'} <span class="cell-tag-sub">件/日</span></div><div class="metric-muted" style="font-size:11px;">卖压待盘口核验</div>`;
+        }
         tr.appendChild(tdVol);
 
-        // 6. 30D Stability & Trend
+        // 6. Stability & Trend (honest: only show real Steam history metrics when verified)
         const tdStab = document.createElement('td');
         tdStab.className = 'col-mono';
-        const trendLabel = d.trend_status === 'RISING' ? '↗ 上升' : (d.trend_status === 'FALLING' ? '↘ 回落' : '→ 横盘');
-        const trendClass = d.trend_status === 'RISING' ? 'metric-good' : 'metric-ink';
-        const cvStr = d.cv_30d !== undefined ? d.cv_30d.toFixed(3) : '—';
-        const pctStr = d.price_percentile !== undefined ? `P${d.price_percentile}` : '—';
-        tdStab.innerHTML = `<div class="${trendClass}" style="font-weight:600;font-size:12px;">${trendLabel} · ${pctStr}</div><div class="cell-tag-sub">CV ${cvStr} · R² ${d.r_squared !== undefined ? d.r_squared.toFixed(2) : '—'}</div>`;
+        if (d.history_verified) {
+          const trendLabel = d.trend_status === 'RISING' ? '↗ 上升' : (d.trend_status === 'FALLING' ? '↘ 回落' : '→ 横盘');
+          const trendClass = d.trend_status === 'RISING' ? 'metric-good' : (d.trend_status === 'FALLING' ? 'metric-warn' : 'metric-ink');
+          const cvStr = d.cv_30d !== undefined ? `${(d.cv_30d * 100).toFixed(2)}%` : '—';
+          const pctStr = d.price_percentile !== undefined ? `P${d.price_percentile}` : '—';
+          const r2Str = d.r_squared !== undefined ? d.r_squared.toFixed(2) : '—';
+          tdStab.innerHTML = `<div class="${trendClass}" style="font-weight:600;font-size:12px;">${trendLabel} · ${pctStr}</div><div class="cell-tag-sub">CV ${cvStr} · R² ${r2Str}</div>`;
+        } else if (d.ob_verified) {
+          tdStab.innerHTML = `<div class="metric-ink" style="font-weight:600;font-size:12px;">盘口壁垒已核验</div><div class="cell-tag-sub">历史曲线待 Steam 会话</div>`;
+        } else if (current.status === 'running' && c.passed) {
+          tdStab.innerHTML = `<div class="metric-muted" style="font-size:12px;">排队深度复核…</div><div class="cell-tag-sub">等待 Steam 盘口与历史</div>`;
+        } else {
+          tdStab.innerHTML = `<div class="metric-muted" style="font-size:12px;">未做历史深验</div><div class="cell-tag-sub">仅 SteamDT 表面初筛</div>`;
+        }
         tr.appendChild(tdStab);
 
         // 7. Holdings & Safe Purchase Limit
@@ -122,8 +164,11 @@ function renderCandidates() {
         const actionStack = document.createElement('div');
         actionStack.className = 'col-action-stack';
         const badge = document.createElement('span');
-        badge.className = c.passed ? 'status-pill status-pill-success' : 'status-pill status-pill-active';
-        badge.textContent = c.passed ? '✓ 深度通过' : '未通过';
+        const badgeLabel = c.passed
+          ? (d.verified ? '✓ 双核验通过' : d.ob_verified ? '✓ 盘口通过' : (current.status === 'running' ? '⏳ 待深度复核' : '✓ 初筛通过'))
+          : ((d.ob_verified || d.history_verified) ? '× 复核淘汰' : '未通过');
+        badge.className = c.passed && !(current.status === 'running' && !d.ob_verified) ? 'status-pill status-pill-success' : 'status-pill status-pill-active';
+        badge.textContent = badgeLabel;
         badge.title = c.rules.map(r => `${r.passed ? '✓' : '×'} ${r.rule}: ${r.reason}`).join('\n') + (d.summary ? `\n${d.summary}` : '');
         actionStack.appendChild(badge);
 
@@ -175,12 +220,32 @@ async function history() {
 el('scan-form').addEventListener('submit',async event=>{
   event.preventDefault();
   const f=new FormData(event.target), n=key=>Number(f.get(key));
-  const request={source:f.get('source'),max_pages:n('max_pages'),page_size:n('page_size'),max_items:n('max_items'),min_price_cents:Math.round(n('min_price')*100),max_price_cents:Math.round(n('max_price')*100),min_volume:n('min_volume'),max_ratio_bps:Math.round(n('max_ratio')*100),exclude_keywords:String(f.get('exclude_keywords')).split(/[,，]/).map(s=>s.trim()).filter(Boolean)};
+  const request={
+    source:f.get('source'),
+    max_pages:n('max_pages'),
+    page_size:n('page_size'),
+    max_items:n('max_items'),
+    min_price_cents:Math.round(n('min_price')*100),
+    max_price_cents:Math.round(n('max_price')*100),
+    min_volume:n('min_volume'),
+    max_ratio_bps:Math.round(n('max_ratio')*100),
+    exclude_keywords:String(f.get('exclude_keywords')).split(/[,，]/).map(s=>s.trim()).filter(Boolean),
+    deep_verify_limit:n('deep_verify_limit'),
+    deep_interval_secs:n('deep_interval_secs'),
+    deep_max_cv_bps:Math.round(n('deep_max_cv_pct')*100),
+    deep_history_days:n('deep_history_days'),
+  };
   request.wallet_policy=readWalletPolicy(f);
+  if(el('scan-live-log-drawer')) { delete el('scan-live-log-drawer').dataset.userToggled; el('scan-live-log-drawer').open = true; }
   busy(true);
   try { const report=await parallax.startScan(request);activeId=report.id;render(report);await history(); }
   catch(e){feedback(e.message,true);busy(Boolean(activeId));}
 });
+if(el('scan-live-log-drawer')) {
+  el('scan-live-log-drawer').addEventListener('toggle', () => {
+    if (!el('scan-live-log-drawer').open) el('scan-live-log-drawer').dataset.userToggled = '1';
+  });
+}
 el('cancel').onclick=async()=>{if(!activeId)return;el('cancel').disabled=true;try{const result=await parallax.cancelScan(activeId);feedback(result.message);}catch(e){feedback(e.message,true);el('cancel').disabled=false;}};
 el('only-passed').onchange=renderCandidates;
 setInterval(async()=>{

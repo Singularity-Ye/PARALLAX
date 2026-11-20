@@ -115,7 +115,10 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
             if let Some(deep) = &mut candidate.deep_analysis {
                 deep.held_same_units = total_held;
                 deep.safe_purchase_limit = safe_limit;
-                if let Some(book_snap) = latest_books.get(&candidate.item.key) {
+                // Only fill sell pressure from a stored real book when phase 2 did not already.
+                if !deep.ob_verified
+                    && let Some(book_snap) = latest_books.get(&candidate.item.key)
+                {
                     let top5_qty: u64 = book_snap
                         .book
                         .asks
@@ -130,23 +133,7 @@ impl<S: MarketSource + 'static, R: Repository + 'static> Application<S, R> {
                         deep.sell_pressure_ok = deep.sell_pressure <= 5.0;
                     }
                 }
-                deep.stability_passed = candidate.passed
-                    && deep.sell_pressure_ok
-                    && deep.cv_30d <= 0.08
-                    && deep.price_percentile <= 88;
-                deep.summary = format!(
-                    "{} · CV {:.3} · 卖压 {:.2} · 分位 P{} · 在库 {}件 · 限购 {}件",
-                    if deep.trend_status == "RISING" {
-                        "上升趋势"
-                    } else {
-                        "横盘稳定"
-                    },
-                    deep.cv_30d,
-                    deep.sell_pressure,
-                    deep.price_percentile,
-                    total_held,
-                    safe_limit
-                );
+                deep.stability_passed = candidate.passed && deep.verified;
             }
         }
         Ok(())

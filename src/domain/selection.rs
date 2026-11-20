@@ -28,6 +28,13 @@ pub struct ScanRequest {
     pub max_ratio_bps: u64,
     pub exclude_keywords: Vec<String>,
     pub wallet_policy: super::money::WalletPolicy,
+    /// Max SteamDT-passed candidates to verify one by one on Steam; 0 disables phase 2.
+    pub deep_verify_limit: usize,
+    /// Seconds between two candidates (Steam pacing).
+    pub deep_interval_secs: u64,
+    pub deep_max_cv_bps: u64,
+    pub deep_min_slope_bps: i64,
+    pub deep_history_days: u32,
 }
 impl Default for ScanRequest {
     fn default() -> Self {
@@ -42,6 +49,11 @@ impl Default for ScanRequest {
             max_ratio_bps: 9000,
             exclude_keywords: vec!["印花".into()],
             wallet_policy: super::money::WalletPolicy::default(),
+            deep_verify_limit: 10,
+            deep_interval_secs: 3,
+            deep_max_cv_bps: 1000,
+            deep_min_slope_bps: -100,
+            deep_history_days: 30,
         }
     }
 }
@@ -63,6 +75,14 @@ impl ScanRequest {
         }
         if self.exclude_keywords.len() > 30 || self.exclude_keywords.iter().any(|s| s.len() > 120) {
             return Err("排除关键词过多或过长".into());
+        }
+        if self.deep_verify_limit > 50
+            || !(2..=30).contains(&self.deep_interval_secs)
+            || !(1..=10_000).contains(&self.deep_max_cv_bps)
+            || !(-10_000..=10_000).contains(&self.deep_min_slope_bps)
+            || !(8..=365).contains(&self.deep_history_days)
+        {
+            return Err("深度复核参数无效：件数 0–50，冷却 2–30 秒，历史 8–365 日".into());
         }
         Ok(())
     }
@@ -87,7 +107,16 @@ pub struct RuleResult {
     pub reason: String,
 }
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq)]
+#[serde(default)]
 pub struct CandidateDeepAnalysis {
+    /// True only when both the Steam order book and price history were read for real.
+    pub verified: bool,
+    pub ob_verified: bool,
+    pub history_verified: bool,
+    pub real_ratio_bps: Option<u64>,
+    pub slope_bps_per_day: Option<i64>,
+    pub history_days: u32,
+    pub history_snapshot_id: Option<String>,
     pub smart_price_cents: u64,
     pub sell_pressure: f64,
     pub sell_pressure_ok: bool,
@@ -140,6 +169,23 @@ pub struct ScanReport {
     pub coverage: Coverage,
     pub candidates: Vec<Candidate>,
     pub error: Option<String>,
+    /// "fetch" (SteamDT list) → "deep_verify" (per-item Steam checks) → "done".
+    #[serde(default)]
+    pub phase: String,
+    #[serde(default)]
+    pub deep_total: usize,
+    #[serde(default)]
+    pub deep_done: usize,
+    #[serde(default)]
+    pub logs: Vec<ScanLog>,
+}
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ScanLog {
+    pub at: u64,
+    pub level: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub item: Option<String>,
+    pub message: String,
 }
 impl ScanReport {
     pub fn new(request: ScanRequest) -> Self {
@@ -154,6 +200,10 @@ impl ScanReport {
             coverage: Coverage::default(),
             candidates: vec![],
             error: None,
+            phase: "fetch".into(),
+            deep_total: 0,
+            deep_done: 0,
+            logs: vec![],
         }
     }
 }

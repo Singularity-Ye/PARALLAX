@@ -87,7 +87,13 @@ async fn main() -> anyhow::Result<()> {
         Some(live_fx.clone()),
         notify.clone(),
     );
-    let state = Application::with_fx(Provider::new()?, store, fx);
+    let live_probe = std::sync::Arc::new(parallax::application::deep_verify::LiveDeepProbe {
+        order_books: order_books.clone(),
+        histories: histories.clone(),
+        fx: live_fx.clone(),
+        store: store.clone(),
+    });
+    let state = Application::with_fx_and_probe(Provider::new()?, store, fx, live_probe);
     let browser_logins = parallax::application::browser_login::BrowserLogins::new(
         auth.clone(),
         parallax::adapters::browser_auth::LocalBrowser,

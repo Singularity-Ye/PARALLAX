@@ -17,53 +17,18 @@ pub fn compute_safe_purchase_limit(cash_cents: u64, daily_volume: u64, held_same
 }
 
 fn build_initial_deep_analysis(item: &MarketItem, basic_passed: bool) -> CandidateDeepAnalysis {
-    // Deterministic baseline stability & barrier estimation (enriched later with live DB snapshots if available)
-    let smart_price_cents = item.steam_gross_cents;
-    let hash_seed = item
-        .key
-        .bytes()
-        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
-    let top5_est = ((hash_seed % 18) + 8) as f64;
-    let sell_pressure = if item.volume > 0 {
-        ((top5_est / (item.volume as f64 / 10.0).max(1.0)) * 100.0).round() / 100.0
-    } else {
-        9.99
-    };
-    let sell_pressure_ok = sell_pressure <= 5.0;
-    let cv_30d = (((hash_seed % 42) + 12) as f64) / 1000.0; // 0.012 .. 0.053
-    let r_squared = (((hash_seed % 55) + 15) as f64) / 100.0;
-    let trend_status = if hash_seed % 5 == 0 {
-        "RISING".to_string()
-    } else {
-        "STABLE".to_string()
-    };
-    let ema7_cents = smart_price_cents.saturating_mul(99) / 100;
-    let ema30_cents = smart_price_cents.saturating_mul(97) / 100;
-    let price_percentile = ((hash_seed % 55) + 25) as u8;
-    let safe_purchase_limit = compute_safe_purchase_limit(item.cash_cents, item.volume, 0);
-    let stability_passed = basic_passed && sell_pressure_ok && cv_30d <= 0.08 && price_percentile <= 88;
-    let summary = format!(
-        "{} · CV {:.3} · 卖压 {:.2} · 分位 P{} · 限购 {}件",
-        if trend_status == "RISING" { "上升趋势" } else { "横盘稳定" },
-        cv_30d,
-        sell_pressure,
-        price_percentile,
-        safe_purchase_limit
-    );
+    // Phase 1 only knows SteamDT list values. Stability/sell pressure stay unverified until the
+    // per-item Steam phase reads a real order book and history; never invent placeholder metrics.
     CandidateDeepAnalysis {
-        smart_price_cents,
-        sell_pressure,
-        sell_pressure_ok,
-        cv_30d,
-        r_squared,
-        trend_status,
-        ema7_cents,
-        ema30_cents,
-        price_percentile,
-        held_same_units: 0,
-        safe_purchase_limit,
-        stability_passed,
-        summary,
+        smart_price_cents: item.steam_gross_cents,
+        trend_status: "UNVERIFIED".into(),
+        safe_purchase_limit: compute_safe_purchase_limit(item.cash_cents, item.volume, 0),
+        summary: if basic_passed {
+            "SteamDT 初筛通过，等待 Steam 深度复核".into()
+        } else {
+            "SteamDT 初筛未通过".into()
+        },
+        ..Default::default()
     }
 }
 

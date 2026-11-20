@@ -342,8 +342,16 @@
               </div>
             </div>
             <div class="adv-col">
-              <span class="scan-label">排除规则</span>
+              <span class="scan-label">排除规则 &amp; 逐件深度复核（防假高折 / 高波接盘）</span>
               <label>排除关键词 (逗号分隔)<input name="exclude_keywords" value="印花" maxlength="500" class="compact-input"></label>
+              <div class="pair" style="margin-top:6px;">
+                <label>复核件数(0=关)<input name="deep_verify_limit" type="number" min="0" max="50" value="10" class="compact-input" title="阶段 2 逐件查 Steam 盘口与历史曲线的最大件数，0 表示仅做 SteamDT 初筛" required></label>
+                <label>冷却(秒/件)<input name="deep_interval_secs" type="number" min="2" max="30" value="3" class="compact-input" title="两件饰品之间的请求间隔，避免触发 Steam 429 限流" required></label>
+              </div>
+              <div class="pair" style="margin-top:6px;">
+                <label>CV 波动上限 %<input name="deep_max_cv_pct" type="number" min="1" max="100" step="0.5" value="10" class="compact-input" title="历史清洗变异系数上限，超过将淘汰" required></label>
+                <label>历史窗口(日)<input name="deep_history_days" type="number" min="8" max="365" value="30" class="compact-input" title="Steam 历史曲线分析窗口天数" required></label>
+              </div>
             </div>
             <div class="adv-col">
               <span class="scan-label">费用估算模型</span>
@@ -392,6 +400,20 @@
           </div>
         </div>
       </div>
+
+      <!-- Live Per-Item Deep Verification Log Console -->
+      <details id="scan-live-log-drawer" class="scan-live-log-drawer">
+        <summary class="scan-live-log-summary">
+          <span class="scan-live-log-title">
+            <strong>实时深度分析流水</strong>
+            <span id="scan-live-phase-badge" class="badge muted">待开始</span>
+          </span>
+          <span id="scan-live-log-count" class="hint">0 条记录</span>
+        </summary>
+        <div id="scan-live-log-list" class="scan-log-console">
+          <div class="scan-log-empty">启动 SteamDT 扫描后，这里将按件实时播报 Steam 十档壁垒价、卖压与历史曲线稳定性核验过程。</div>
+        </div>
+      </details>
 
       <!-- High-Density Arbitrage Candidates Table -->
       <div class="candidates-table-wrap">
@@ -1454,6 +1476,19 @@
     </table>
   </div>
 
+  <!-- Per-Item Deep Analysis Console -->
+  <section class="card" id="debug-scan-log-card" style="margin-top:16px;">
+    <div class="panel-toolbar" style="margin-bottom:10px;padding:0;">
+      <div class="toolbar-title">
+        <h3>逐件深度分析流水</h3>
+        <span id="debug-log-meta" class="hint">点击上方任意扫描任务的「日志」即可查看逐件盘口壁垒与历史波动核验明细</span>
+      </div>
+    </div>
+    <div id="debug-log-console" class="scan-log-console scan-log-console-tall">
+      <div class="scan-log-empty">暂无分析日志；在「选品工作台」执行 SteamDT 扫描后可在此回看完整核验流水。</div>
+    </div>
+  </section>
+
   <p class="security-tip" style="margin-top:14px;">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-1px;margin-right:4px"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
     说明：当前流水展示本机已保存的选品扫描任务。统一事件日志、任务调度与代理自动轮换仍待实现。折扣与赠礼暂缓。
@@ -1996,5 +2031,5 @@
 <section class="page" data-page="not-found" id="page-not-found" hidden><div class="card"><h2>这个页面还不存在。</h2><p>请从左侧导航选择功能，已填写的内容仍保留在当前工作台。</p><a class="button-link" href="#dashboard">返回仪表盘 ↗</a></div></section>
 <footer><span>PARALLAX</span><span>观其异，度其值。</span></footer></main>
 <noscript>此工作台需要 JavaScript 才能切换页面和调用本地服务，请在浏览器中启用。</noscript>
-<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261118_autofetch" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261109_phase4" type="module"></script><script src="/steam-deals.js?v=20261109_phase5" type="module"></script><script src="/gift.js?v=20261109_phase5" type="module"></script><script src="/analytics.js?v=20261116_optA" type="module"></script>
+<script src="/catalog.js?v=20261109_phase4" type="module"></script><script src="/steam-guard.js?v=20261109_phase4" type="module"></script><script src="/proxy.js?v=20261109_phase4" type="module"></script><script src="/shell.js?v=20261109_phase4" type="module"></script><script src="/app.js?v=20261120_deepverify" type="module"></script><script src="/accounts.js?v=20261109_phase4" type="module"></script><script src="/inventory.js?v=20261109_phase4" type="module"></script><script src="/strategies.js?v=20261109_phase4" type="module"></script><script src="/preflight.js?v=20261109_phase4" type="module"></script><script src="/ledger.js?v=20261109_phase4" type="module"></script><script src="/checkout.js?v=20261109_phase4" type="module"></script><script src="/buff-orders.js?v=20261109_phase4" type="module"></script><script src="/sale-research.js?v=20261109_phase4" type="module"></script><script src="/settings.js?v=20261109_phase4" type="module"></script><script src="/debug.js?v=20261120_deepverify" type="module"></script><script src="/steam-deals.js?v=20261109_phase5" type="module"></script><script src="/gift.js?v=20261109_phase5" type="module"></script><script src="/analytics.js?v=20261116_optA" type="module"></script>
 </body></html>

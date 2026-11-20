@@ -284,3 +284,29 @@ export function syncScanSelectOptions(selectEl, scans, currentReport, blockedPla
     selectEl.value = currentReport.id;
   }
 }
+
+export function renderScanLogLines(container, logs, emptyText = '暂无分析日志。') {
+  if (!container) return;
+  const list = Array.isArray(logs) ? logs : [];
+  if (!list.length) {
+    container.replaceChildren(rNode('div', 'scan-log-empty', emptyText));
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const entry of list) {
+    const line = rNode('div', `scan-log-line is-${entry.level || 'info'}`);
+    const d = entry.at ? new Date(entry.at * 1000) : null;
+    const ts = d
+      ? `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
+      : '--:--:--';
+    const lvlTag = { ok: 'PASS', warn: 'WARN', info: 'INFO' }[entry.level] || 'INFO';
+    line.append(
+      rNode('span', 'scan-log-ts', ts),
+      rNode('span', `scan-log-lvl is-${entry.level || 'info'}`, `[${lvlTag}]`),
+      rNode('span', 'scan-log-msg', entry.message || ''),
+    );
+    frag.append(line);
+  }
+  container.replaceChildren(frag);
+  container.scrollTop = container.scrollHeight;
+}
